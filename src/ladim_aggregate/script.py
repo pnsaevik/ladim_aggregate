@@ -24,7 +24,23 @@ def run(dset_in, config, dset_out):
     dset_in.filter = config.get('filter', None)
     dset_in.weights = weights
 
-    hist = Histogrammer(bins=config['bins'])
+    # --- Start of section: Find bins
+
+    bins = config['bins']
+
+    autobins = {k: v for k, v in bins.items() if type(v) not in (dict, list)}
+    if autobins:
+        autolimits = dset_in.find_limits(autobins)
+        for k, v in autolimits.items():
+            bins[k] = dict(min=v[0], max=v[1], step=bins[k])
+
+    for k, v in bins.items():
+        if isinstance(v, dict):
+            bins[k] = np.arange(v['min'], v['max'] + v['step'], v['step'])
+
+    # --- End of section: Find bins
+
+    hist = Histogrammer(bins=bins)
     coords = hist.coords
 
     for coord_name, coord_info in coords.items():

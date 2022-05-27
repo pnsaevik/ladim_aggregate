@@ -1,0 +1,46 @@
+input_files:
+  ladim.nc:
+    time:
+      dims: time
+      data: ['2000-01-02']
+    X:
+      dims: particle_instance
+      data: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    Y:
+      dims: particle_instance
+      data: [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+    Z:
+      dims: particle_instance
+      data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    particle_count:
+      dims: time
+      data: [10]
+    pid:
+      dims: particle_instance
+      data: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+  aggregate.yaml:
+    bins:
+      Z: [0, 8, 12]                    # Explicit bins
+      Y: 400                           # Resolution
+      X: {min: 0, max: 120, step: 30}  # Resolution and limits
+    outfile: count.nc
+
+command_args: [ladim.nc, aggregate.yaml]
+
+output_files:
+  count.nc:
+    histogram:
+      dims: ['Z', 'Y', 'X']
+      data:
+      - [[2, 1, 0, 0], [0, 2, 2, 0], [0, 0, 0, 0]]
+      - [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 2]]
+    X:
+      dims: 'X'
+      data: [15, 45, 75, 105]
+    Y:
+      dims: 'Y'
+      data: [200, 600, 1000]
+    Z:
+      dims: 'Z'
+      data: [4, 10]

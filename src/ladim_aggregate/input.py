@@ -238,6 +238,7 @@ def get_weight_func_from_funcstring(s: str):
 
 def ladim_iterator(ladim_dsets):
     for dset in ladim_dsets:
+        instance_offset = dset.get('instance_offset', 0)
         pcount_cum = np.concatenate([[0], np.cumsum(dset.particle_count.values)])
 
         for tidx in range(dset.dims['time']):
@@ -248,12 +249,11 @@ def ladim_iterator(ladim_dsets):
                 continue
             pidx = xr.Variable('particle_instance', dset.pid[iidx].values)
             ttidx = xr.Variable('particle_instance', np.broadcast_to(tidx, (len(pidx), )))
-            ddset = dset.isel(
-                time=ttidx,
-                particle_instance=iidx,
-                particle=pidx,
-            )
-            ddset = ddset.assign(instance_offset=dset.instance_offset + iidx.start)
+            ddset = dset.isel(time=ttidx, particle_instance=iidx)
+            if 'particle' in dset.dims:
+                ddset = ddset.isel(particle=pidx)
+
+            ddset = ddset.assign(instance_offset=instance_offset + iidx.start)
             yield ddset
 
 

@@ -27,17 +27,18 @@ def nc_dump(dset):
 def run(testconf):
     from .. import script
     from ..output import MultiDataset
+    from ..input import LadimInputStream
     import re
 
     ladim_filename, conf_filename,  = testconf['command_args']
     conf = testconf['input_files'][conf_filename]
     pattern = ladim_filename.replace('?', '.').replace('*', '.*')
 
-    input_dsets = {
-        k: xr.Dataset.from_dict(testconf['input_files'][k])
+    input_dsets = LadimInputStream([
+        xr.Dataset.from_dict(testconf['input_files'][k])
         for k in testconf['input_files']
         if re.match(pattern, k)
-    }
+    ])
 
     outfile_name = conf['outfile']
     with MultiDataset(outfile_name, diskless=True) as output_dset:

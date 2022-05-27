@@ -2,11 +2,16 @@ import numpy as np
 
 
 class Histogrammer:
-    def __init__(self, resolution, limits):
+    def __init__(self, resolution=None, limits=None, bins=None):
+        self.bins = bins
         self.resolution = resolution
         self.limits = limits
         self.weights = dict(bincount=None)
-        self.coords = Histogrammer._get_coords(resolution, limits)
+
+        if bins is None:
+            self.coords = Histogrammer._get_coords(resolution, limits)
+        else:
+            self.coords = Histogrammer._get_coords_from_bins(bins)
 
     @staticmethod
     def get_edges(centers):
@@ -43,6 +48,20 @@ class Histogrammer:
             limits = limits_dict[crd_name]
             centers = Histogrammer.get_centers(resolution, limits)
             edges = Histogrammer.get_edges(centers)
+            crd[crd_name] = dict(centers=centers, edges=edges)
+        return crd
+
+    @staticmethod
+    def get_centers_from_edges(edges):
+        edgediff = edges[1:] - edges[:-1]
+        return edges[:-1] + 0.5 * edgediff
+
+    @staticmethod
+    def _get_coords_from_bins(bins_dict):
+        crd = dict()
+        for crd_name, bins in bins_dict.items():
+            edges = np.asarray(bins)
+            centers = Histogrammer.get_centers_from_edges(edges)
             crd[crd_name] = dict(centers=centers, edges=edges)
         return crd
 

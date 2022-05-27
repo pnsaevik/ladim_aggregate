@@ -23,7 +23,11 @@ class Test_nc_dump:
         )
 
 
-testfiles = ['count_particles_per_time_step']
+testfiles = [
+    f[:-5]
+    for f in importlib.resources.contents('ladim_aggregate.examples')
+    if f.endswith('.yaml')
+]
 
 
 class Test_run:

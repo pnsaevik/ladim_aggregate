@@ -361,4 +361,19 @@ class MultiDataset:
 
 
 def nc_to_dict(dset):
-    return {}
+    d = dict()
+    for varname in dset.variables:
+        v = dset.variables[varname]
+        d[varname] = dict(
+            dims=list(v.dimensions),
+            data=v[:].tolist(),
+        )
+        if len(d[varname]['dims']) == 1:
+            d[varname]['dims'] = d[varname]['dims'][0]
+
+        atts = dict()
+        for attname in v.ncattrs():
+            atts[attname] = v.getncattr(attname)
+        if atts:
+            d[varname]['attrs'] = atts
+    return d

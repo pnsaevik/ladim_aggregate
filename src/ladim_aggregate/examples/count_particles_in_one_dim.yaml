@@ -16,11 +16,15 @@ input_files:
   aggregate.yaml:
     bins:
       temp: [0, 50, 100]
-    variables:
-      - count
     outfile: count.nc
 
 command_args: [ladim.nc, aggregate.yaml]
 
 output_files:
-  count.nc: {}
+  count.nc:
+    histogram:
+      dims: 'temp'
+      data: [4, 4]
+    temp:
+      dims: 'temp'
+      data: [25, 75]

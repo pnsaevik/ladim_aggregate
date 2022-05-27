@@ -23,11 +23,3 @@ def ladim_dset():
             time=np.array(['2000-01-02', '2000-01-03']).astype('datetime64[D]'),
         ),
     )
-
-
-class Test_run:
-    def test_accepts_minimal_config(self, ladim_dset):
-        dset_in = ladim_input.LadimInputStream(ladim_dset)
-        dset_out = ladim_output.MultiDataset(uuid4(), diskless=True)
-        config = dict()
-        run(dset_in, config, dset_out)

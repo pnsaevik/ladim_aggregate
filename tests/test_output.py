@@ -1,3 +1,5 @@
+import netCDF4
+import xarray as xr
 from ladim_aggregate import output
 import pytest
 import numpy as np
@@ -132,3 +134,19 @@ class Test_MultiDataset:
         assert mdset.getData('x').tolist() == [7, 7]
         mdset.setData('y', 8)
         assert mdset.getData('y').tolist() == [8, 8, 8]
+
+
+class Test_nc_to_dict:
+    def test_returns_valid_xarray_dict_representation(self):
+        with netCDF4.Dataset(uuid4(), 'w', diskless=True) as dset:
+            dset.createDimension('mydim1', 2)
+            dset.createDimension('mydim2', 3)
+            dset.createVariable('myvar1', int, 'mydim1')[:] = 0
+            dset.createVariable('myvar2', int, ('mydim1', 'mydim2'))[:] = 1
+            dset['myvar1'].long_name = "Variable 2"
+            d = output.nc_to_dict(dset)
+
+        xr_dset = xr.Dataset.from_dict(d)
+        assert list(xr_dset.variables) == ['myvar1', 'myvar2']
+        assert xr_dset.myvar2.values.tolist() == [[1, 1, 1], [1, 1, 1]]
+        assert xr_dset.myvar1.attrs['long_name'] == 'Variable 2'

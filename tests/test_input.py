@@ -147,3 +147,15 @@ class Test_LadimInputStream:
             assert list(limits.keys()) == ['time']
             timestr = np.array(limits['time']).astype('datetime64[h]').astype(str)
             assert timestr.tolist() == ['2000-01-02T00', '2000-01-05T06']
+
+    def test_can_apply_filter_string(self, ladim_dset):
+        with ladim_input.LadimInputStream(ladim_dset) as dset:
+            # No filter: 6 particle instances
+            chunks = xr.concat(dset.chunks(), dim='particle_instance')
+            assert chunks.dims['particle_instance'] == 6
+
+            # With filter: 4 particle instances
+            dset.seek(0)
+            dset.filter = "farm_id != 12346"
+            chunks = xr.concat(dset.chunks(), dim='particle_instance')
+            assert chunks.dims['particle_instance'] == 4

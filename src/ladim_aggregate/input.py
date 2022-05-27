@@ -168,7 +168,7 @@ class LadimInputStream:
         except StopIteration:
             return None
 
-    def chunks(self) -> typing.Iterable:
+    def chunks(self) -> typing.Iterable[xr.Dataset]:
         chunk = self.read()
         while chunk is not None:
             yield chunk

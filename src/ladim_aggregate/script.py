@@ -18,11 +18,10 @@ def main(*args):
 def run(dset_in, config, dset_out):
     from .histogram import Histogrammer
 
-    afilter = None
     weights = None
     filesplit_dims = ()
 
-    dset_in.filter = afilter
+    dset_in.filter = config.get('filter', None)
     dset_in.weights = weights
 
     hist = Histogrammer(bins=config['bins'])

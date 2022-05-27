@@ -20,6 +20,7 @@ input_files:
     # The filter string must be a valid numeric expression containing variable
     # names defined in the file
     filter: temp <= 60
+
     outfile: count.nc
 
 command_args: [ladim.nc, aggregate.yaml]

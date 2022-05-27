@@ -15,14 +15,9 @@ input_files:
       time: ['2000-01-01', '2000-01-03', '2000-01-05', '2000-01-07']
     variables:
       - count
+    outfile: count.nc
 
-command_args: "ladim.nc aggregate.yaml count.nc"
+command_args: [ladim.nc, aggregate.yaml]
 
 output_files:
-  count.nc:
-    time:
-      dims: time
-      data: ['2000-01-02', '2000-01-04', '2000-01-06']
-    count:
-      dims: time
-      data: [4, 2, 2]
+  count.nc: {}

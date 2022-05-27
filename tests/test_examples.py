@@ -23,20 +23,6 @@ class Test_nc_dump:
         )
 
 
-class Test_nc_load:
-    def test_creates_netcdf_dataset_from_dict(self):
-        netcdf_as_dict = dict(
-            count=dict(dims='time', data=[4, 2, 2], attrs=dict(long_name='Count')),
-        )
-
-        with examples.nc_load(netcdf_as_dict) as dset:
-            dset = dset  # type: nc.Dataset
-            assert set(dset.variables) == {'count'}
-            assert dset.variables['count'].dimensions == ('time', )
-            assert dset.variables['count'][:].tolist() == [4, 2, 2]
-            assert dset.variables['count'].long_name == "Count"
-
-
 testfiles = ['count_particles_per_time_step']
 
 

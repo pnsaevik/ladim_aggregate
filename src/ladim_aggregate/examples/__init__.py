@@ -1,5 +1,4 @@
-import contextlib
-import numpy as np
+import xarray as xr
 
 
 def nc_dump(dset):
@@ -25,30 +24,22 @@ def nc_dump(dset):
     return variables
 
 
-@contextlib.contextmanager
-def nc_load(dset_dict):
-    from uuid import uuid4
-    import netCDF4 as nc
-
-    dims = {}
-    for v in dset_dict.values():
-        dimnames = v['dims']
-        if isinstance(dimnames, str):
-            dimnames = [dimnames]
-        for dimname, dimsize in zip(dimnames, np.shape(v['data'])):
-            dims[dimname] = dimsize
-
-    with nc.Dataset(uuid4(), 'w', diskless=True) as dset:
-        for dimname, dimsize in dims.items():
-            dset.createDimension(dimname, dimsize)
-
-        for k, v in dset_dict.items():
-            data = np.array(v['data'])
-            dset.createVariable(k, data.dtype, v['dims'])[:] = data
-            dset.variables[k].setncatts(v.get('attrs', {}))
-
-        yield dset
-
-
 def run(testconf):
-    return testconf['output_files']
+    from .. import script
+    from ..output import MultiDataset
+    import re
+
+    ladim_filename, conf_filename,  = testconf['command_args']
+    conf = testconf['input_files'][conf_filename]
+    pattern = ladim_filename.replace('?', '.').replace('*', '.*')
+
+    input_dsets = {
+        k: xr.Dataset.from_dict(testconf['input_files'][k])
+        for k in testconf['input_files']
+        if re.match(pattern, k)
+    }
+
+    outfile_name = conf['outfile']
+    with MultiDataset(outfile_name, diskless=True) as output_dset:
+        script.run(input_dsets, conf, output_dset)
+        return output_dset.to_dict()

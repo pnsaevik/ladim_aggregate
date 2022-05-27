@@ -15,6 +15,5 @@ def main(*args):
     run(**config)
 
 
-def run(output_file, diskless=False):
-    from .output import MultiDataset
-    MultiDataset(output_file, diskless=diskless)
+def run(dset_in, config, dset_out):
+    return dset_out

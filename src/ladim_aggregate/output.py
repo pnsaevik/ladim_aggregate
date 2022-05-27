@@ -350,3 +350,15 @@ class MultiDataset:
             file_idx = {d: br[di] for d, br, di, sd in
                         zip(dims, big_range, data_idx, is_splitdim) if sd}
             yield file_idx, var_idx, data_idx
+
+    def to_dict(self):
+        all_datasets = [self.main_dataset] + list(self.datasets.values())
+        dset_dict = {}
+        for dset in all_datasets:
+            key = dset.filepath()
+            dset_dict[key] = nc_to_dict(dset)
+        return dset_dict
+
+
+def nc_to_dict(dset):
+    return {}

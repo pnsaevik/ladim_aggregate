@@ -1,3 +1,6 @@
+import netCDF4 as nc
+
+
 def main(*args):
     import argparse
 
@@ -12,5 +15,6 @@ def main(*args):
     run(**config)
 
 
-def run(output_file):
-    pass
+def run(output_file, diskless=False):
+    from .output import MultiDataset
+    MultiDataset(output_file, diskless=diskless)

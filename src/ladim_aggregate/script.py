@@ -1,22 +1,43 @@
-import numpy as np
+from .input import LadimInputStream
+from .output import MultiDataset
 
 
 def main(*args):
     import argparse
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        prog='ladim_aggregate',
+    )
 
+    parser.add_argument('particle_file', help="File containing output of LADiM simulation (netCDF format)")
+    parser.add_argument('config_file', help="File describing the aggregation options (YAML format)")
+
+    # If no explicit arguments, use command line arguments
     if not args:
-        parsed_args = parser.parse_args()
-    else:
-        parsed_args = parser.parse_args(args)
+        import sys
+        args = sys.argv[1:]
 
-    config = dict()
-    run(**config)
+    # If called with no arguments, print usage information
+    if len(args) < 2:
+        parser.print_help()
+        return
+
+    parsed_args = parser.parse_args(args)
+
+    import yaml
+    with open(parsed_args.config_file, encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+
+    init_logger()
+
+    with LadimInputStream(parsed_args.particle_file) as dset_in:
+        with MultiDataset(config['outfile']) as dset_out:
+            run(dset_in, config, dset_out)
 
 
 def run(dset_in, config, dset_out):
     from .histogram import Histogrammer
+    import numpy as np
 
     weights = None
     filesplit_dims = ()
@@ -66,3 +87,18 @@ def run(dset_in, config, dset_out):
             )
 
     return dset_out
+
+
+def init_logger(loglevel=None):
+    import logging
+    if loglevel is None:
+        loglevel = logging.INFO
+
+    package_name = str(__name__).split('.', maxsplit=1)[0]
+    package_logger = logging.getLogger(package_name)
+    package_logger.setLevel(loglevel)
+    ch = logging.StreamHandler()
+    ch.setLevel(loglevel)
+    formatter = logging.Formatter('%(asctime)s  %(name)s:%(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    package_logger.addHandler(ch)

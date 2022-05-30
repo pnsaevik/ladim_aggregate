@@ -1,4 +1,5 @@
 import xarray as xr
+from typing import Any
 
 
 def nc_dump(dset):
@@ -24,23 +25,62 @@ def nc_dump(dset):
     return variables
 
 
-def run(testconf):
+def load_yaml_resource(pkg_name, file_name):
+    import yaml
+    import pkgutil
+    pkg_data = pkgutil.get_data(pkg_name, file_name)
+    return yaml.safe_load(pkg_data.decode('utf-8'))
+
+
+def run(example_name):
+    # Import resource names
+    import importlib
+    m = importlib.import_module('.', '.'.join([__name__, example_name]))  # type: Any
+    config_file = getattr(m, 'config_file', 'aggregate.yaml')
+
+    # Get all file names
+    import importlib.resources
+    all_files = [
+        f for f in importlib.resources.contents(m.__name__)
+        if not f.startswith('__')
+    ]
+
+    # Load config file
+    config = load_yaml_resource(m.__name__, config_file)
+
+    # Load input datasets (as xarray objects)
+    import re
+    input_pattern = config['infile'].replace(
+        '.nc', '.nc.yaml').replace('.', '\\.').replace('?', '.').replace('*', '.*')
+    input_dsets = []
+    for input_file in all_files:
+        if re.match(input_pattern, input_file):
+            xr_dict = load_yaml_resource(m.__name__, input_file)
+            input_dsets.append(xr.Dataset.from_dict(xr_dict))
+
+    # Load output datasets (as dict objects)
+    import re
+    output_pattern = config['outfile'].replace('.nc', '.*\\.nc\\.yaml')
+    output_dsets = dict()
+    for output_file in all_files:
+        if re.match(output_pattern, output_file):
+            key = output_file[:-5]  # Remove the .yaml part
+            output_dsets[key] = load_yaml_resource(m.__name__, output_file)
+
     from .. import script
     from ..output import MultiDataset
     from ..input import LadimInputStream
-    import re
 
-    ladim_filename, conf_filename,  = testconf['command_args']
-    conf = testconf['input_files'][conf_filename]
-    pattern = ladim_filename.replace('?', '.').replace('*', '.*')
+    ladim_input_stream = LadimInputStream(input_dsets)
 
-    input_dsets = LadimInputStream([
-        xr.Dataset.from_dict(testconf['input_files'][k])
-        for k in testconf['input_files']
-        if re.match(pattern, k)
-    ])
-
-    outfile_name = conf['outfile']
+    outfile_name = config['outfile']
     with MultiDataset(outfile_name, diskless=True) as output_dset:
-        script.run(input_dsets, conf, output_dset)
-        return output_dset.to_dict()
+        script.run(ladim_input_stream, config, output_dset)
+        result = output_dset.to_dict()
+
+    return result, output_dsets
+
+
+def available():
+    import pkgutil
+    return [m.name for m in pkgutil.iter_modules(__path__) if m.ispkg]

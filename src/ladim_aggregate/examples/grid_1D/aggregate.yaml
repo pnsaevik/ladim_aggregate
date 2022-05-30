@@ -1,0 +1,4 @@
+bins:
+  temp: [0, 50, 100]
+outfile: count.nc
+infile: ladim.nc

@@ -1,0 +1,6 @@
+histogram:
+  dims: 'temp'
+  data: [4, 2]
+temp:
+  dims: 'temp'
+  data: [25, 75]

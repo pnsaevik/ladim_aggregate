@@ -1,5 +1,3 @@
-input_files:
-  ladim.nc:
     time:
       dims: time
       data: ['2000-01-02', '2000-01-04', '2000-01-06']
@@ -12,19 +10,3 @@ input_files:
     pid:
       dims: particle_instance
       data: [0, 1, 2, 3, 1, 2, 1, 2]
-
-  aggregate.yaml:
-    bins:
-      temp: [0, 50, 100]
-    outfile: count.nc
-
-command_args: [ladim.nc, aggregate.yaml]
-
-output_files:
-  count.nc:
-    histogram:
-      dims: 'temp'
-      data: [4, 4]
-    temp:
-      dims: 'temp'
-      data: [25, 75]

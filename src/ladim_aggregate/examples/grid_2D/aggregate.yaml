@@ -1,0 +1,9 @@
+bins:
+  temp: [0, 50, 100]
+
+# The filter string must be a valid numeric expression containing variable
+# names defined in the file
+filter: temp <= 60
+
+infile: ladim.nc
+outfile: count.nc

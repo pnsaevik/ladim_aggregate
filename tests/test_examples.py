@@ -23,24 +23,11 @@ class Test_nc_dump:
         )
 
 
-testfiles = [
-    f[:-5]
-    for f in importlib.resources.contents('ladim_aggregate.examples')
-    if f.endswith('.yaml')
-]
+named_examples = examples.available()
 
 
 class Test_run:
-    @pytest.mark.parametrize("testfile", testfiles)
-    def test_matches_output(self, testfile):
-        spec = importlib.resources.open_text(
-            package='ladim_aggregate.examples',
-            resource=testfile + '.yaml',
-            encoding='utf-8',
-        )
-
-        with spec as f:
-            testconf = yaml.safe_load(f)
-
-        result = examples.run(testconf)
-        assert result == testconf['output_files']
+    @pytest.mark.parametrize("named_example", named_examples)
+    def test_matches_output(self, named_example):
+        result, expected = examples.run(named_example)
+        assert result == expected

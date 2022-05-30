@@ -14,4 +14,4 @@ install:
   - pip list
 
 script:
-  - pytest
+  - pytest -Wignore

@@ -1,20 +1,29 @@
 dist: bionic
 language: python
-cache: pip
+
 python:
-- "3.7"
-- "3.8"
-- "3.9"
-- "3.10"
-- "3.11"
+  # We don't actually use the Travis Python, but this keeps it organized.
+  - "3.7"
+  - "3.8"
+  - "3.9"
+  - "3.10"
+  - "3.11"
 
 install:
-  - python --version
-  - pip --version
-  - pip install --upgrade setuptools numpy
-  - pip install typing-extensions
-  - pip install .
-  - pip list
+  # We do this conditionally because it saves us some downloading if the
+  # version is the same.
+  - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - source "$HOME/miniconda/etc/profile.d/conda.sh"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  # Useful for debugging any issues with conda
+  - conda info -a
+
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+  - conda activate test-environment
+  - python -m pip install .
 
 script:
   - pytest -Wignore

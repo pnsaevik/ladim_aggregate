@@ -6,7 +6,6 @@ jobs:
   - env: "PYVER=3.8"
   - env: "PYVER=3.9"
   - env: "PYVER=3.10"
-  - env: "PYVER=3.11"
 
 before_install:
   # We do this conditionally because it saves us some downloading if the

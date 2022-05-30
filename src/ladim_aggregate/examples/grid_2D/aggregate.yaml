@@ -1,3 +1,5 @@
+# Basic example summing up particles in a two-dimensional grid
+
 bins:
   temp: [0, 50, 100]
 

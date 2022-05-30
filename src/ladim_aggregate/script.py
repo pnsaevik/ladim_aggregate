@@ -1,14 +1,49 @@
-from .input import LadimInputStream
-from .output import MultiDataset
-
-
 def main(*args):
     import argparse
 
+    from . import examples
+    available = examples.available()
+    sort_order = [
+        'grid_2D', 'grid_3D', 'time', 'filter', 'weights', 'wgt_tab', 'last', 'groupby',
+        'multi', 'blur', 'crs', 'density', 'geotag', 'connect',
+    ]
+    example_names = [n for n in sort_order if n in available]
+    example_names += [n for n in available if n not in example_names]
+
+    # Planned for the future:
+    # '  grid_2D:  Basic example summing up particles in a two-dimensional grid\n'
+    # '  grid_3D:  Shows different ways of specifying grid bins\n'
+    # '  time:     Make one aggregation for every time step\n'
+    # '  filter:   Filter out particles prior to aggregation\n'
+    # '  weights:  Use a weighting variable (or expression)\n'
+    # '  wgt_tab:  Use an external table to assign weights\n'
+    # '  last:     Use only last particle position\n'
+    # '  groupby:  Group by specific attribute, such as farm id etc.\n'
+    # '  multi:    Data is spread across multiple input and output files\n'
+    # '  blur:     Apply a blurring filter the output grid\n'
+    # '  crs:      Use a georeferenced output grid\n'
+    # '  density:  Divide by volume (or area)\n'
+    # '  geotag:   Assign geographic region based on location\n'
+    # '  connect:  Group by start and stop region\n'
+
+    example_list = []
+    for name in example_names:
+        descr = examples.get_descr(name)
+        example_list.append(f'  {name:8}  {descr}')
+
     parser = argparse.ArgumentParser(
         prog='ladim_aggregate',
+        description=(
+            "Aggregate particles from LADiM simulations\n\n"
+        ),
+        epilog=(
+            'The program includes several built-in examples:\n'
+            + "\n".join(example_list) +
+            '\n\nUse "ladim_aggregate example <name of example>" to run any of these.\n'
+            'Example files and output files are extracted to the current directory.\n'
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-
     parser.add_argument('particle_file', help="File containing output of LADiM simulation (netCDF format)")
     parser.add_argument('config_file', help="File describing the aggregation options (YAML format)")
 
@@ -17,20 +52,24 @@ def main(*args):
         import sys
         args = sys.argv[1:]
 
-    # If called with no arguments, print usage information
-    if len(args) < 2:
+    # If called with too few arguments, print usage information
+    if len(args) < 3:
         parser.print_help()
         return
 
     parsed_args = parser.parse_args(args)
+    config_file = parsed_args.config_file
+    particle_file = parsed_args.particle_file
 
     import yaml
-    with open(parsed_args.config_file, encoding='utf-8') as f:
+    with open(config_file, encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
     init_logger()
 
-    with LadimInputStream(parsed_args.particle_file) as dset_in:
+    from .input import LadimInputStream
+    with LadimInputStream(particle_file) as dset_in:
+        from .output import MultiDataset
         with MultiDataset(config['outfile']) as dset_out:
             run(dset_in, config, dset_out)
 

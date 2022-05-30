@@ -1,3 +1,5 @@
+# Filter out particles prior to aggregation
+
 bins:
   temp: [0, 50, 100]
 

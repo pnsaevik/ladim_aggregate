@@ -1,3 +1,5 @@
+# Shows different ways of specifying grid bins
+
 bins:
   Z: [0, 8, 12]                    # Explicit bins
   Y: 400                           # Resolution

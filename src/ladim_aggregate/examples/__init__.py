@@ -1,4 +1,3 @@
-import xarray as xr
 from typing import Any
 
 
@@ -50,6 +49,7 @@ def run(example_name):
 
     # Load input datasets (as xarray objects)
     import re
+    import xarray as xr
     input_pattern = config['infile'].replace(
         '.nc', '.nc.yaml').replace('.', '\\.').replace('?', '.').replace('*', '.*')
     input_dsets = []
@@ -59,7 +59,6 @@ def run(example_name):
             input_dsets.append(xr.Dataset.from_dict(xr_dict))
 
     # Load output datasets (as dict objects)
-    import re
     output_pattern = config['outfile'].replace('.nc', '.*\\.nc\\.yaml')
     output_dsets = dict()
     for output_file in all_files:
@@ -84,3 +83,19 @@ def run(example_name):
 def available():
     import pkgutil
     return [m.name for m in pkgutil.iter_modules(__path__) if m.ispkg]
+
+
+def get_descr(example_name):
+    # Import resource names
+    import importlib
+    m = importlib.import_module('.', '.'.join([__name__, example_name]))  # type: Any
+    config_file = getattr(m, 'config_file', 'aggregate.yaml')
+
+    import pkgutil
+    import re
+    config_txt = pkgutil.get_data(m.__name__, config_file).decode('utf-8')
+    match = re.match('^# (.*)', config_txt)
+    if match:
+        return match.group(1)
+    else:
+        return ""

@@ -32,17 +32,6 @@ def ladim_dset2(ladim_dset):
     return d
 
 
-@pytest.fixture(scope='module')
-def fnames():
-    import pkg_resources
-    try:
-        yield dict(
-            outdata=pkg_resources.resource_filename('ladim_plugins.chemicals', 'out.nc'),
-        )
-    finally:
-        pkg_resources.cleanup_resources()
-
-
 class Test_ladim_iterator:
     def test_returns_one_dataset_per_timestep_when_multiple_datasets(self, ladim_dset, ladim_dset2):
         it = ladim_input.ladim_iterator([ladim_dset, ladim_dset2])
@@ -89,15 +78,15 @@ class Test_LadimInputStream:
         with ladim_input.LadimInputStream([ladim_dset, ladim_dset2]) as dset:
             dset.read()
 
-    def test_can_initialise_from_filename(self, fnames):
-        ladim_fname = fnames['outdata']
-        with ladim_input.LadimInputStream(ladim_fname) as dset:
-            dset.read()
+    # def test_can_initialise_from_filename(self, fnames):
+    #     ladim_fname = fnames['outdata']
+    #     with ladim_input.LadimInputStream(ladim_fname) as dset:
+    #         dset.read()
 
-    def test_can_initialise_from_multiple_filenames(self, fnames):
-        ladim_fname = fnames['outdata']
-        with ladim_input.LadimInputStream([ladim_fname, ladim_fname]) as dset:
-            dset.read()
+    # def test_can_initialise_from_multiple_filenames(self, fnames):
+    #     ladim_fname = fnames['outdata']
+    #     with ladim_input.LadimInputStream([ladim_fname, ladim_fname]) as dset:
+    #         dset.read()
 
     def test_can_seek_to_dataset_beginning(self, ladim_dset):
         with ladim_input.LadimInputStream(ladim_dset) as dset:

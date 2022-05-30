@@ -15,3 +15,5 @@ install:
 
 script:
   - pytest -Wignore
+  - ladim_aggregate --example grid_2D
+  - ladim_aggregate aggregate.yaml

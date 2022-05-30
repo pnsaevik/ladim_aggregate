@@ -39,13 +39,22 @@ def main(*args):
         epilog=(
             'The program includes several built-in examples:\n'
             + "\n".join(example_list) +
-            '\n\nUse "ladim_aggregate example <name of example>" to run any of these.\n'
+            '\n\nUse "ladim_aggregate --example name_of_example" to run any of these.\n'
             'Example files and output files are extracted to the current directory.\n'
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('particle_file', help="File containing output of LADiM simulation (netCDF format)")
-    parser.add_argument('config_file', help="File describing the aggregation options (YAML format)")
+
+    parser.add_argument(
+        'config_file',
+        help="File describing the aggregation options (YAML format)"
+    )
+
+    parser.add_argument(
+        '--example',
+        action='store_true',
+        help="Run a built-in example"
+    )
 
     # If no explicit arguments, use command line arguments
     if not args:
@@ -53,22 +62,26 @@ def main(*args):
         args = sys.argv[1:]
 
     # If called with too few arguments, print usage information
-    if len(args) < 3:
+    if len(args) < 2:
         parser.print_help()
         return
 
     parsed_args = parser.parse_args(args)
     config_file = parsed_args.config_file
-    particle_file = parsed_args.particle_file
+
+    init_logger()
+
+    # Extract example if requested
+    if parsed_args.example:
+        from .examples import extract
+        config_file = extract(example_name=config_file)
 
     import yaml
     with open(config_file, encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
-    init_logger()
-
     from .input import LadimInputStream
-    with LadimInputStream(particle_file) as dset_in:
+    with LadimInputStream(config['infile']) as dset_in:
         from .output import MultiDataset
         with MultiDataset(config['outfile']) as dset_out:
             run(dset_in, config, dset_out)

@@ -24,47 +24,30 @@ def nc_dump(dset):
     return variables
 
 
-def load_yaml_resource(pkg_name, file_name):
+def run(example_name):
     import yaml
     import pkgutil
-    pkg_data = pkgutil.get_data(pkg_name, file_name)
-    return yaml.safe_load(pkg_data.decode('utf-8'))
+    pkg = __name__ + '.' + example_name
+    files = get_file_list(example_name)
 
-
-def run(example_name):
-    # Import resource names
-    import importlib
-    m = importlib.import_module('.', '.'.join([__name__, example_name]))  # type: Any
-    config_file = getattr(m, 'config_file', 'aggregate.yaml')
-
-    # Get all file names
-    import importlib.resources
-    all_files = [
-        f for f in importlib.resources.contents(m.__name__)
-        if not f.startswith('__')
-    ]
+    def load_yaml(fname):
+        return yaml.safe_load(pkgutil.get_data(pkg, fname).decode('utf-8'))
 
     # Load config file
-    config = load_yaml_resource(m.__name__, config_file)
+    config = load_yaml(files['config'])
 
     # Load input datasets (as xarray objects)
-    import re
     import xarray as xr
-    input_pattern = config['infile'].replace(
-        '.nc', '.nc.yaml').replace('.', '\\.').replace('?', '.').replace('*', '.*')
     input_dsets = []
-    for input_file in all_files:
-        if re.match(input_pattern, input_file):
-            xr_dict = load_yaml_resource(m.__name__, input_file)
-            input_dsets.append(xr.Dataset.from_dict(xr_dict))
+    for input_file in files['input']:
+        xr_dict = load_yaml(input_file)
+        input_dsets.append(xr.Dataset.from_dict(xr_dict))
 
     # Load output datasets (as dict objects)
-    output_pattern = config['outfile'].replace('.nc', '.*\\.nc\\.yaml')
     output_dsets = dict()
-    for output_file in all_files:
-        if re.match(output_pattern, output_file):
-            key = output_file[:-5]  # Remove the .yaml part
-            output_dsets[key] = load_yaml_resource(m.__name__, output_file)
+    for output_file in files['output']:
+        key = output_file[:-5]  # Remove the .yaml part
+        output_dsets[key] = load_yaml(output_file)
 
     from .. import script
     from ..output import MultiDataset
@@ -99,3 +82,61 @@ def get_descr(example_name):
         return match.group(1)
     else:
         return ""
+
+
+def get_file_list(example_name):
+    # Import resource names
+    import importlib
+    m = importlib.import_module('.', '.'.join([__name__, example_name]))  # type: Any
+
+    # Get all file names
+    import importlib.resources
+    all_files = [
+        f for f in importlib.resources.contents(m.__name__)
+        if not f.startswith('__')
+    ]
+
+    import yaml
+    import pkgutil
+    config_file = getattr(m, 'config_file', 'aggregate.yaml')
+    config_str = pkgutil.get_data(m.__name__, config_file).decode('utf-8')
+    config = yaml.safe_load(config_str)
+
+    import re
+    input_pattern = config['infile'].replace(
+        '.nc', '.nc.yaml').replace('.', '\\.').replace('?', '.').replace('*', '.*')
+    input_files = [f for f in all_files if re.match(input_pattern, f)]
+
+    output_pattern = config['outfile'].replace('.nc', '.*\\.nc\\.yaml')
+    output_files = [f for f in all_files if re.match(output_pattern, f)]
+
+    return dict(all=all_files, config=config_file, input=input_files, output=output_files)
+
+
+def extract(example_name):
+    import yaml
+    import pkgutil
+    import logging
+    from pathlib import Path
+
+    logger = logging.getLogger(__name__)
+    pkg = __name__ + '.' + example_name
+    files = get_file_list(example_name)
+    outdir = Path('.')
+
+    # Save config file
+    logger.info(f'Extract config file: "{files["config"]}"')
+    with open(outdir / files['config'], 'bw') as f:
+        f.write(pkgutil.get_data(pkg, files['config']))
+
+    # Save input datasets (as xarray objects)
+    for input_file in files['input']:
+        new_file = input_file[:-5]  # Remove .yaml extension
+        logger.info(f'Extract input data file: "{new_file}"')
+        yaml_str = pkgutil.get_data(pkg, input_file).decode('utf-8')
+        xr_dict = yaml.safe_load(yaml_str)
+        import xarray as xr
+        xr_dset = xr.Dataset.from_dict(xr_dict)
+        xr_dset.to_netcdf(new_file)
+
+    return files['config']

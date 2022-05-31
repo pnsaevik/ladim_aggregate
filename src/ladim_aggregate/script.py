@@ -91,11 +91,10 @@ def run(dset_in, config, dset_out):
     from .histogram import Histogrammer
     import numpy as np
 
-    weights = None
     filesplit_dims = ()
 
     dset_in.filter = config.get('filter', None)
-    dset_in.weights = weights
+    dset_in.weights = config.get('weights', None)
 
     # --- Start of section: Find bins
 

@@ -34,6 +34,8 @@ class Particles:
             ')'
         )
 
+        return self
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.connection:
             # Do not commit changes on exit. Instead, assume that the user
@@ -43,3 +45,6 @@ class Particles:
 
         if self.filename:
             Path(self.filename).unlink(missing_ok=True)
+
+    def add_ladim(self, particles):
+        pass

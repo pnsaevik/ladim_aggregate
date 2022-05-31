@@ -1,0 +1,15 @@
+time:
+  dims: time
+  data: ['2020-01-02', '2020-01-04']
+X:
+  dims: particle_instance
+  data: [9, 9, 7, 7]
+farm_id:
+  dims: particle
+  data: [12345, 12346, 12345, 12346]
+particle_count:
+  dims: time
+  data: [2, 2]
+pid:
+  dims: particle_instance
+  data: [1, 2, 1, 2]

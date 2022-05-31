@@ -1,0 +1,7 @@
+X:
+  dims: X
+  data: [1, 3, 5, 7, 9]
+
+farm_id:
+  dims: farm_id
+  data: [12345, 12346]

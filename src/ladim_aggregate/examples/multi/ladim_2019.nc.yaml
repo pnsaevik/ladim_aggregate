@@ -1,0 +1,15 @@
+time:
+  dims: time
+  data: ['2019-01-02', '2019-01-04', '2019-01-06']
+X:
+  dims: particle_instance
+  data: [1, 1, 3, 3, 5, 5, 7, 7]
+farm_id:
+  dims: particle
+  data: [12345, 12346, 12345, 12345]
+particle_count:
+  dims: time
+  data: [4, 2, 2]
+pid:
+  dims: particle_instance
+  data: [0, 1, 2, 3, 1, 2, 1, 2]

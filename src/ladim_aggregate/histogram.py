@@ -2,66 +2,17 @@ import numpy as np
 
 
 class Histogrammer:
-    def __init__(self, resolution=None, limits=None, bins=None):
+    def __init__(self, bins=None):
         self.bins = bins
-        self.resolution = resolution
-        self.limits = limits
         self.weights = dict(bincount=None)
-
-        if bins is None:
-            self.coords = Histogrammer._get_coords(resolution, limits)
-        else:
-            self.coords = Histogrammer._get_coords_from_bins(bins)
-
-    @staticmethod
-    def get_edges(centers):
-        return get_edges(centers)
-
-    @staticmethod
-    def get_centers(resolution, limits):
-        start, stop = limits
-
-        # Check if limits is a datestring
-        if isinstance(start, str) and isinstance(stop, str):
-            try:
-                start, stop = np.array([start, stop]).astype('datetime64')
-            except ValueError:
-                pass
-
-        # Check if resolution is a timedelta specified as [value, unit]
-        if np.issubdtype(np.array(start).dtype, np.datetime64):
-            try:
-                t64val, t64unit = resolution
-                resolution = np.timedelta64(t64val, t64unit)
-            except TypeError:
-                pass
-
-        centers = np.arange(start, stop + resolution, resolution)
-        if centers[-1] > stop:
-            centers = centers[:-1]
-        return centers
-
-    @staticmethod
-    def _get_coords(resolution_dict, limits_dict):
-        crd = dict()
-        for crd_name, resolution in resolution_dict.items():
-            limits = limits_dict[crd_name]
-            centers = Histogrammer.get_centers(resolution, limits)
-            edges = Histogrammer.get_edges(centers)
-            crd[crd_name] = dict(centers=centers, edges=edges)
-        return crd
-
-    @staticmethod
-    def get_centers_from_edges(edges):
-        edgediff = edges[1:] - edges[:-1]
-        return edges[:-1] + 0.5 * edgediff
+        self.coords = Histogrammer._get_coords_from_bins(bins)
 
     @staticmethod
     def _get_coords_from_bins(bins_dict):
         crd = dict()
         for crd_name, bins in bins_dict.items():
             edges = np.asarray(bins)
-            centers = Histogrammer.get_centers_from_edges(edges)
+            centers = get_centers_from_edges(edges)
             crd[crd_name] = dict(centers=centers, edges=edges)
         return crd
 
@@ -129,3 +80,32 @@ def get_edges(a):
     last_edge = a[-1] + half_offset[-1]
     mid_edges = a[:-1] + half_offset
     return np.concatenate([[first_edge], mid_edges, [last_edge]])
+
+
+def get_centers_from_resolution_and_limits(resolution, limits):
+    start, stop = limits
+
+    # Check if limits is a datestring
+    if isinstance(start, str) and isinstance(stop, str):
+        try:
+            start, stop = np.array([start, stop]).astype('datetime64')
+        except ValueError:
+            pass
+
+    # Check if resolution is a timedelta specified as [value, unit]
+    if np.issubdtype(np.array(start).dtype, np.datetime64):
+        try:
+            t64val, t64unit = resolution
+            resolution = np.timedelta64(t64val, t64unit)
+        except TypeError:
+            pass
+
+    centers = np.arange(start, stop + resolution, resolution)
+    if centers[-1] > stop:
+        centers = centers[:-1]
+    return centers
+
+
+def get_centers_from_edges(edges):
+    edgediff = edges[1:] - edges[:-1]
+    return edges[:-1] + 0.5 * edgediff

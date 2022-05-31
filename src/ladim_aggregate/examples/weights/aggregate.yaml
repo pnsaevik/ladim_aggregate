@@ -1,0 +1,12 @@
+# Use a weighting variable (or expression)
+
+# In this example, we use a simple 1-dimensional binning
+bins:
+  X: [0, 50, 100]
+
+# Here we specify the weights expression. This must be a valid numeric
+# expression containing variable names defined in the input file.
+weights: mass
+
+outfile: count.nc
+infile: ladim.nc

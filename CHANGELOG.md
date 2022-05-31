@@ -1,6 +1,6 @@
 # Version history
 
-## [unreleased]
+## [1.2]
 ### Added
 - Use multiple ladim input files
 - Split output into multiple files

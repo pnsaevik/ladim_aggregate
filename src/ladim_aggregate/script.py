@@ -91,7 +91,7 @@ def run(dset_in, config, dset_out):
     from .histogram import Histogrammer
     import numpy as np
 
-    filesplit_dims = ()
+    filesplit_dims = config.get('filesplit_dims', [])
 
     dset_in.filter = config.get('filter', None)
     dset_in.weights = config.get('weights', None)

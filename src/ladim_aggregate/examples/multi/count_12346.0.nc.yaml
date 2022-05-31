@@ -1,0 +1,13 @@
+histogram:
+  dims: [farm_id, X]
+  data: [[1, 0, 1, 2, 1]]
+
+X:
+  dims: X
+  data: [1, 3, 5, 7, 9]
+
+farm_id:
+  dims: farm_id
+  data: [12346]
+  attrs:
+    global_index: 1

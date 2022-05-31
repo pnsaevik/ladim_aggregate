@@ -1,16 +1,15 @@
-import pandas as pd
 from ladim_aggregate import sql
 import xarray as xr
 import pytest
 import numpy as np
-import pandas
+import pandas as pd
 
 
 @pytest.fixture()
 def ladim_dset():
     return xr.Dataset(
         data_vars=dict(
-            X=xr.Variable('particle_instance', [1, 1, 3, 3, 5, 5, 7, 7]),
+            X=xr.Variable('particle_instance', [1.5, 1., 3., 3., 5., 5., 7., 7.]),
             particle_count=xr.Variable('time', [4, 2, 2]),
             pid=xr.Variable('particle_instance', [0, 1, 2, 3, 1, 2, 1, 2]),
             farm_id=xr.Variable('particle', [12345, 12346, 12345, 12345]),
@@ -33,6 +32,25 @@ class Test_add_ladim:
         assert len(part) == ladim_dset.dims['particle']
         assert len(inst) == ladim_dset.dims['particle_instance']
         assert len(time) == ladim_dset.dims['time']
+
+    def test_ladim_dataset_integer_values_are_properly_converted(self, ladim_dset):
+        with sql.Particles() as p:
+            p.add_ladim(ladim_dset)
+            part = pd.read_sql('SELECT * FROM particle', p.connection)
+        assert part['pid'].values.tolist() == [0, 1, 2, 3]
+
+    def test_ladim_dataset_float_values_are_properly_converted(self, ladim_dset):
+        with sql.Particles() as p:
+            p.add_ladim(ladim_dset)
+            inst = pd.read_sql('SELECT * FROM particle_instance', p.connection)
+        assert inst['X'].values.tolist() == [1.5, 1., 3., 3., 5., 5., 7., 7.]
+
+    def test_ladim_dataset_time_values_are_properly_converted(self, ladim_dset):
+        with sql.Particles() as p:
+            p.add_ladim(ladim_dset)
+            time = pd.read_sql('SELECT * FROM time', p.connection)
+        assert time['time'].values.tolist() == [
+            '2019-01-02T00:00:00', '2019-01-04T00:00:00', '2019-01-06T00:00:00']
 
 
 class Test_get_sql_data:

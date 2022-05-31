@@ -67,7 +67,7 @@ class Particles:
         for tab in ['time', 'particle_instance', 'particle']:
             cols = [c for c in self._tables[tab].columns if c in dset.variables]
             np_vals = (dset.variables[c].values for c in cols)
-            vals = [get_sql_data_format(np_val)[1] for np_val in np_vals]
+            vals = [get_sql_data_format(np_val)[1].tolist() for np_val in np_vals]
             self._add_data(tab, cols, vals)
 
 

@@ -1,0 +1,7 @@
+X:
+  data: [25, 75]
+  dims: X
+
+histogram:
+  data: [400, 40]
+  dims: X

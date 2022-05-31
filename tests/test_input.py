@@ -148,3 +148,9 @@ class Test_LadimInputStream:
             dset.filter = "farm_id != 12346"
             chunks = xr.concat(dset.chunks(), dim='particle_instance')
             assert chunks.dims['particle_instance'] == 4
+
+            # A more complex filter expression
+            dset.seek(0)
+            dset.filter = "(farm_id > 12345) & (farm_id < 12347)"
+            chunks = xr.concat(dset.chunks(), dim='particle_instance')
+            assert chunks.dims['particle_instance'] == 2

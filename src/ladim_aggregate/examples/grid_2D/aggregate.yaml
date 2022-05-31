@@ -1,11 +1,17 @@
 # Basic example summing up particles in a two-dimensional grid
 
+# The keyword "bins" determines the grouping variables. By convention, the
+# coordinate order Y, X is most common. With the configuration below, we get
+# bin edges of Y: [10, 12, 14, 16, 18, 20] and X: [0.5, 1.5, 2.5, 3.5].
 bins:
-  temp: [0, 50, 100]
+  # The first grouping variable is "Y", with a resolution of 2.
+  Y: {min: 10, max: 20, step: 2}
+  # The second grouping variable is "X". In this example, we specify the bin
+  # edges explicitly.
+  X: [0.5, 1.5, 2.5, 3.5]
 
-# The filter string must be a valid numeric expression containing variable
-# names defined in the file
-filter: temp <= 60
-
+# Input file in netCDF format (ladim output format)
 infile: ladim.nc
+
+# Output file in netCDF format
 outfile: count.nc

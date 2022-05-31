@@ -4,6 +4,8 @@
 ### Added
 - Use multiple ladim input files
 - Split output into multiple files
+### Removed
+- Autobin feature of Histogram class
 
 ## [1.1] - 2022-05-31
 ### Added

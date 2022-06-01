@@ -1,6 +1,10 @@
 # Version history
 
-## [1.2]
+## [1.3] - 2022-06-01
+### Changed
+- Histogram feature now uses pandas backend for improved scalability
+
+## [1.2] - 2022-05-31
 ### Added
 - Use multiple ladim input files
 - Split output into multiple files

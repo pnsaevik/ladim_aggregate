@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 
 class Histogrammer:
@@ -16,50 +17,6 @@ class Histogrammer:
             crd[crd_name] = dict(centers=centers, edges=edges)
         return crd
 
-    @staticmethod
-    def adaptive_histogram(sample, bins, **kwargs):
-        """
-        Return an adaptive histogram
-
-        For input values `sample` and `bins`, the code snippet
-
-        hist = np.zeros([len(b) for b in bins])
-        hist_chunk, idx = adaptive_histogram(sample, bins, **kwargs)
-        hist[idx] = hist_chunk
-
-        gives the same output as
-
-        hist, _ = np.histogramdd(sample, bins, **kwargs)
-
-        :param sample:
-        :param bins:
-        :param kwargs:
-        :return:
-        """
-
-        # Abort if there are no points in the sample
-        if len(sample[0]) == 0:
-            return np.zeros((0, ) * len(sample)), (slice(1, 0), ) * len(sample)
-
-        # Cast datetime samples to be comparable with bins
-        for i, s in enumerate(sample):
-            if np.issubdtype(s.dtype, np.datetime64):
-                sample[i] = s.astype(bins[i].dtype)
-
-        # Find min and max bin edges to be used
-        idx = []
-        bins_subset = []
-        for coord, bin_edges in zip(sample, bins):
-            digitized_min = np.searchsorted(bin_edges, np.min(coord), side='right')
-            digitized_max = np.searchsorted(bin_edges, np.max(coord), side='right')
-            idx_start = max(0, digitized_min - 1)
-            idx_stop = min(len(bin_edges), digitized_max + 1)
-            idx.append(slice(idx_start, idx_stop - 1))
-            bins_subset.append(bin_edges[idx_start:idx_stop])
-
-        rasterized_data = np.histogramdd(sample, bins_subset, **kwargs)[0]
-        return rasterized_data, tuple(idx)
-
     def make(self, chunk):
         coord_names = list(self.coords.keys())
         bins = [self.coords[k]['edges'] for k in coord_names]
@@ -70,7 +27,7 @@ class Histogrammer:
         else:
             weights = None
 
-        values, idx = self.adaptive_histogram(coords, bins, weights=weights)
+        values, idx = adaptive_histogram(coords, bins, weights=weights)
         yield dict(indices=idx, values=values)
 
 
@@ -109,3 +66,80 @@ def get_centers_from_resolution_and_limits(resolution, limits):
 def get_centers_from_edges(edges):
     edgediff = edges[1:] - edges[:-1]
     return edges[:-1] + 0.5 * edgediff
+
+
+def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
+    """
+    Return an adaptive histogram
+
+    For input values `sample` and `bins`, the code snippet
+
+    hist = np.zeros([len(b) - 1 for b in bins])
+    hist_chunk, idx = adaptive_histogram(sample, bins, **kwargs)
+    hist[idx] = hist_chunk
+
+    gives the same output as
+
+    hist, _ = np.histogramdd(sample, bins, **kwargs)
+
+    :param sample:
+    :param bins:
+    :param kwargs:
+    :param exact_dims:
+    :return:
+    """
+
+    # Abort if there are no points in the sample
+    if len(sample[0]) == 0:
+        return np.zeros((0, ) * len(sample)), (slice(1, 0), ) * len(sample)
+
+    # Cast datetime samples to be comparable with bins
+    for i, s in enumerate(sample):
+        s_dtype = np.asarray(s).dtype
+        if np.issubdtype(s_dtype, np.datetime64):
+            sample[i] = s.astype(bins[i].dtype)
+
+    num_entries = next(len(s) for s in sample)
+    included = np.ones(num_entries, dtype=bool)
+    is_exact = np.zeros(len(bins), dtype=bool)
+    is_exact[list(exact_dims)] = True
+
+    # Find histogram coordinates of each entry
+    binned_sample = []
+    for s, b, ex in zip(sample, bins, is_exact):
+        if ex:
+            mapping = {k: i for i, k in enumerate(b)}
+            coords = np.asarray([mapping.get(k, 0) for k in s])
+            included = included & np.asarray([k in mapping for k in s])
+        else:
+            coords = np.searchsorted(b, s, side='right') - 1
+            included = included & (0 <= coords) & (coords < len(b) - 1)
+        binned_sample.append(coords)
+
+    # Filter out coordinates outside interval
+    for i, bs in enumerate(binned_sample):
+        binned_sample[i] = bs[included]
+
+    # Find min and max bin edges to be used
+    idx = [(np.min(bs), np.max(bs) + 1) for bs in binned_sample]
+    idx_slice = [slice(start, stop) for start, stop in idx]
+
+    # Aggregate particles
+    df = pd.DataFrame(np.asarray(binned_sample).T)
+    df_grouped = df.groupby(list(range(len(bins))))
+    if kwargs.get('weights', None) is None:
+        df['weights'] = 1
+        df_sum = df_grouped.count()
+    else:
+        df['weights'] = kwargs['weights']
+        df_sum = df_grouped.sum()
+    coords = df_sum.index.to_frame().values.T
+    vals = df_sum['weights'].values
+
+    # Densify
+    shifted_coords = coords - np.asarray([start for start, _ in idx])[:, np.newaxis]
+    shape = [stop - start for start, stop in idx]
+    hist_chunk = np.zeros(shape, dtype=vals.dtype)
+    hist_chunk[tuple(shifted_coords)] = vals
+
+    return hist_chunk, idx_slice

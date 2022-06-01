@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 
 class Histogrammer:
@@ -97,16 +98,40 @@ def adaptive_histogram(sample, bins, **kwargs):
         if np.issubdtype(s_dtype, np.datetime64):
             sample[i] = s.astype(bins[i].dtype)
 
-    # Find min and max bin edges to be used
-    idx = []
-    bins_subset = []
-    for coord, bin_edges in zip(sample, bins):
-        digitized_min = np.searchsorted(bin_edges, np.min(coord), side='right')
-        digitized_max = np.searchsorted(bin_edges, np.max(coord), side='right')
-        idx_start = max(0, digitized_min - 1)
-        idx_stop = min(len(bin_edges), digitized_max + 1)
-        idx.append(slice(idx_start, idx_stop - 1))
-        bins_subset.append(bin_edges[idx_start:idx_stop])
+    num_entries = next(len(s) for s in sample)
+    included = np.ones(num_entries, dtype=bool)
 
-    rasterized_data = np.histogramdd(sample, bins_subset, **kwargs)[0]
-    return rasterized_data, tuple(idx)
+    # Find histogram coordinates of each entry
+    binned_sample = []
+    for s, b in zip(sample, bins):
+        coords = np.searchsorted(b, s, side='right') - 1
+        included = included & (0 <= coords) & (coords < len(b) - 1)
+        binned_sample.append(coords)
+
+    # Filter out coordinates outside interval
+    for i, bs in enumerate(binned_sample):
+        binned_sample[i] = bs[included]
+
+    # Find min and max bin edges to be used
+    idx = [(np.min(bs), np.max(bs) + 1) for bs in binned_sample]
+    idx_slice = [slice(start, stop) for start, stop in idx]
+
+    # Aggregate particles
+    df = pd.DataFrame(np.asarray(binned_sample).T)
+    df_grouped = df.groupby(list(range(len(bins))))
+    if kwargs.get('weights', None) is None:
+        df['weights'] = 1
+        df_sum = df_grouped.count()
+    else:
+        df['weights'] = kwargs['weights']
+        df_sum = df_grouped.sum()
+    coords = df_sum.index.to_frame().values.T
+    vals = df_sum['weights'].values
+
+    # Densify
+    shifted_coords = coords - np.asarray([start for start, _ in idx])[:, np.newaxis]
+    shape = [stop - start for start, stop in idx]
+    hist_chunk = np.zeros(shape, dtype=vals.dtype)
+    hist_chunk[tuple(shifted_coords)] = vals
+
+    return hist_chunk, idx_slice

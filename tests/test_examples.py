@@ -2,8 +2,6 @@ from ladim_aggregate import examples
 import netCDF4 as nc
 from uuid import uuid4
 import pytest
-import importlib.resources
-import yaml
 
 
 class Test_nc_dump:

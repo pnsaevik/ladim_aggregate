@@ -16,50 +16,6 @@ class Histogrammer:
             crd[crd_name] = dict(centers=centers, edges=edges)
         return crd
 
-    @staticmethod
-    def adaptive_histogram(sample, bins, **kwargs):
-        """
-        Return an adaptive histogram
-
-        For input values `sample` and `bins`, the code snippet
-
-        hist = np.zeros([len(b) for b in bins])
-        hist_chunk, idx = adaptive_histogram(sample, bins, **kwargs)
-        hist[idx] = hist_chunk
-
-        gives the same output as
-
-        hist, _ = np.histogramdd(sample, bins, **kwargs)
-
-        :param sample:
-        :param bins:
-        :param kwargs:
-        :return:
-        """
-
-        # Abort if there are no points in the sample
-        if len(sample[0]) == 0:
-            return np.zeros((0, ) * len(sample)), (slice(1, 0), ) * len(sample)
-
-        # Cast datetime samples to be comparable with bins
-        for i, s in enumerate(sample):
-            if np.issubdtype(s.dtype, np.datetime64):
-                sample[i] = s.astype(bins[i].dtype)
-
-        # Find min and max bin edges to be used
-        idx = []
-        bins_subset = []
-        for coord, bin_edges in zip(sample, bins):
-            digitized_min = np.searchsorted(bin_edges, np.min(coord), side='right')
-            digitized_max = np.searchsorted(bin_edges, np.max(coord), side='right')
-            idx_start = max(0, digitized_min - 1)
-            idx_stop = min(len(bin_edges), digitized_max + 1)
-            idx.append(slice(idx_start, idx_stop - 1))
-            bins_subset.append(bin_edges[idx_start:idx_stop])
-
-        rasterized_data = np.histogramdd(sample, bins_subset, **kwargs)[0]
-        return rasterized_data, tuple(idx)
-
     def make(self, chunk):
         coord_names = list(self.coords.keys())
         bins = [self.coords[k]['edges'] for k in coord_names]
@@ -70,7 +26,7 @@ class Histogrammer:
         else:
             weights = None
 
-        values, idx = self.adaptive_histogram(coords, bins, weights=weights)
+        values, idx = adaptive_histogram(coords, bins, weights=weights)
         yield dict(indices=idx, values=values)
 
 
@@ -109,3 +65,48 @@ def get_centers_from_resolution_and_limits(resolution, limits):
 def get_centers_from_edges(edges):
     edgediff = edges[1:] - edges[:-1]
     return edges[:-1] + 0.5 * edgediff
+
+
+def adaptive_histogram(sample, bins, **kwargs):
+    """
+    Return an adaptive histogram
+
+    For input values `sample` and `bins`, the code snippet
+
+    hist = np.zeros([len(b) - 1 for b in bins])
+    hist_chunk, idx = adaptive_histogram(sample, bins, **kwargs)
+    hist[idx] = hist_chunk
+
+    gives the same output as
+
+    hist, _ = np.histogramdd(sample, bins, **kwargs)
+
+    :param sample:
+    :param bins:
+    :param kwargs:
+    :return:
+    """
+
+    # Abort if there are no points in the sample
+    if len(sample[0]) == 0:
+        return np.zeros((0, ) * len(sample)), (slice(1, 0), ) * len(sample)
+
+    # Cast datetime samples to be comparable with bins
+    for i, s in enumerate(sample):
+        s_dtype = np.asarray(s).dtype
+        if np.issubdtype(s_dtype, np.datetime64):
+            sample[i] = s.astype(bins[i].dtype)
+
+    # Find min and max bin edges to be used
+    idx = []
+    bins_subset = []
+    for coord, bin_edges in zip(sample, bins):
+        digitized_min = np.searchsorted(bin_edges, np.min(coord), side='right')
+        digitized_max = np.searchsorted(bin_edges, np.max(coord), side='right')
+        idx_start = max(0, digitized_min - 1)
+        idx_stop = min(len(bin_edges), digitized_max + 1)
+        idx.append(slice(idx_start, idx_stop - 1))
+        bins_subset.append(bin_edges[idx_start:idx_stop])
+
+    rasterized_data = np.histogramdd(sample, bins_subset, **kwargs)[0]
+    return rasterized_data, tuple(idx)

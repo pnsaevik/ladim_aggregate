@@ -143,3 +143,19 @@ def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
     hist_chunk[tuple(shifted_coords)] = vals
 
     return hist_chunk, idx_slice
+
+
+def autobins(spec, dset):
+    bins = spec.copy()
+
+    autobins_spec = {k: v for k, v in bins.items() if type(v) not in (dict, list)}
+    if autobins_spec:
+        autolimits = dset.find_limits(autobins_spec)
+        for k, v in autolimits.items():
+            bins[k] = dict(min=v[0], max=v[1], step=bins[k])
+
+    for k, v in bins.items():
+        if isinstance(v, dict):
+            bins[k] = np.arange(v['min'], v['max'] + v['step'], v['step'])
+
+    return bins

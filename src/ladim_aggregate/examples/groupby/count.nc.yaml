@@ -1,0 +1,6 @@
+histogram:
+  dims: 'farm_id'
+  data: [4, 3, 1]
+farm_id:
+  dims: 'farm_id'
+  data: [12345, 23456, 34567]

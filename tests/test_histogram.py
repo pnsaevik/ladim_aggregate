@@ -148,6 +148,17 @@ class Test_autobins:
         bins = histogram.autobins(spec, dset=MockLadimDataset())
         assert bins == dict(x=[9, 12, 15, 18, 21])
 
+    def test_returns_bins_if_unique(self):
+        class MockLadimDataset:
+            @staticmethod
+            def scan(arg):
+                assert arg == dict(x=['unique'])
+                return dict(x=dict(unique=[1, 2, 5]))
+
+        spec = dict(x='unique')
+        bins = histogram.autobins(spec, dset=MockLadimDataset())
+        assert bins == dict(x=[1, 2, 5, 6])
+
 
 class Test_align_to_resolution:
     def test_aligns_to_integer(self):

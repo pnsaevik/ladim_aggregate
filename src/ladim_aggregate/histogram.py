@@ -157,7 +157,7 @@ def autobins(spec, dset):
         elif isinstance(v, dict) and all(u in v for u in ['min', 'max', 'step']):
             spec_types[k] = 'range'
 
-        elif v == 'group_by':
+        elif v == 'group_by' or v == 'unique':
             spec_types[k] = 'unique'
 
         elif np.issubdtype(type(v), np.number):
@@ -184,8 +184,10 @@ def bin_generator(spec, spec_type, scan_output):
         return spec
     elif spec_type == 'range':
         return np.arange(spec['min'], spec['max'] + spec['step'], spec['step']).tolist()
-    elif spec_type == 'group_by':
-        raise NotImplementedError
+    elif spec_type == 'unique':
+        data = scan_output['unique']
+        bins = np.concatenate([data, [data[-1] + 1]])
+        return bins.tolist()
     elif spec_type == 'resolution':
         res = t64conv(spec)
         minval = align_to_resolution(scan_output['min'], res)

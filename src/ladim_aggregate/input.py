@@ -108,17 +108,37 @@ class LadimInputStream:
         else:
             raise TypeError(f'Unknown type: {type(spec)}')
 
-    def find_limits(self, resolution):
-        def iterate_datasets() -> typing.Iterable:
-            for spec in self.datasets:
-                if isinstance(spec, str):
-                    logger.info(f'Open input dataset {spec}')
-                    with xr.open_dataset(spec) as ddset:
-                        yield ddset
-                else:
-                    logger.info(f'Enter new dataset')
-                    yield spec
+    def scan(self, spec):
+        """
+        Scan the dataset and return summary values for chosen variables.
 
+        The input parameter `spec` is used to specify summary functions. Each variable
+        name can be mapped to one or more functions.
+
+        :param spec: A mapping of variable names to summary function names.
+        :returns: A mapping of variable names to summary function name/value pairs.
+        """
+        out = {k: {fun: None for fun in funclist} for k, funclist in spec.items()}
+
+        for dset in self.idatasets():
+            for varname, funclist in spec.items():
+                for fun in funclist:
+                    data = dset.variables[varname].values
+                    out[varname][fun] = update_agg(out[varname][fun], fun, data)
+
+        return out
+
+    def idatasets(self) -> typing.Iterable:
+        for spec in self.datasets:
+            if isinstance(spec, str):
+                logger.info(f'Open input dataset {spec}')
+                with xr.open_dataset(spec) as ddset:
+                    yield ddset
+            else:
+                logger.info(f'Enter new dataset')
+                yield spec
+
+    def find_limits(self, resolution):
         def t64conv(timedelta_or_other):
             try:
                 t64val, t64unit = timedelta_or_other
@@ -138,18 +158,17 @@ class LadimInputStream:
 
         varnames = resolution.keys()
         logger.info("Limits are not given, compute automatically from input file")
-        minvals = {k: [] for k in varnames}
-        maxvals = {k: [] for k in varnames}
-        for dset in iterate_datasets():
-            for k in varnames:
-                res = t64conv(resolution[k])
-                minval = align(dset.variables[k].min().values, res)
-                maxval = align(dset.variables[k].max().values + res, res)
-                logger.info(f'Limits for `{k}` in current dataset: [{minval}, {maxval}]')
-                minvals[k].append(minval)
-                maxvals[k].append(maxval)
 
-        lims = {k: [np.min(minvals[k]), np.max(maxvals[k])] for k in varnames}
+        spec = {k: ['min', 'max'] for k in varnames}
+        out = self.scan(spec)
+
+        lims = {}
+        for k in varnames:
+            res = t64conv(resolution[k])
+            minval = align(out[k]['min'], res)
+            maxval = align(out[k]['max'] + res, res)
+            lims[k] = [minval, maxval]
+
         for k in varnames:
             logger.info(f'Final limits for {k}: [{lims[k][0]}, {lims[k][1]}]')
         return lims
@@ -268,3 +287,22 @@ def _ladim_iterator_read_variable(dset, varname, tidx, iidx, pidx):
         return v[tidx].values
     else:
         raise ValueError(f'Unknown dimension type: {first_dim}')
+
+
+def update_agg(old, aggfun, data):
+    funcs = dict(max=update_max, min=update_min)
+    return funcs[aggfun](old, data)
+
+
+def update_max(old, data):
+    if old is None:
+        return np.max(data)
+    else:
+        return max(np.max(data), old)
+
+
+def update_min(old, data):
+    if old is None:
+        return np.min(data)
+    else:
+        return min(np.min(data), old)

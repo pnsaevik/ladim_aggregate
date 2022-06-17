@@ -69,6 +69,29 @@ class Test_ladim_iterator:
         assert offset == [0, 4]
 
 
+class Test_LadimInputStream_scan:
+    def test_can_return_min_value(self, ladim_dset):
+        with ladim_input.LadimInputStream(ladim_dset) as dset:
+            spec = dict(X=['min'])
+            out = dset.scan(spec)
+            assert out == dict(X=dict(min=5))
+
+    def test_can_return_max_value(self, ladim_dset):
+        with ladim_input.LadimInputStream(ladim_dset) as dset:
+            spec = dict(X=['max'])
+            out = dset.scan(spec)
+            assert out == dict(X=dict(max=6))
+
+    def test_can_return_multiple_stats(self, ladim_dset, ladim_dset2):
+        ladim_dset3 = ladim_dset2.copy(deep=True)
+        ladim_dset3['X'] += 10
+        ladim_dset3['Y'] += 10
+        with ladim_input.LadimInputStream([ladim_dset, ladim_dset3]) as dset:
+            spec = dict(X=['max'], Y=['min', 'max'])
+            out = dset.scan(spec)
+            assert out == dict(X=dict(max=16), Y=dict(min=60, max=72))
+
+
 class Test_LadimInputStream:
     def test_can_initialise_from_xr_dataset(self, ladim_dset):
         with ladim_input.LadimInputStream(ladim_dset) as dset:

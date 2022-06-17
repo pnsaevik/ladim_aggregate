@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import pandas as pd
 
@@ -146,16 +148,76 @@ def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
 
 
 def autobins(spec, dset):
-    bins = spec.copy()
+    # Find bin specification type
+    spec_types = dict()
+    for k, v in spec.items():
+        if isinstance(v, list):
+            spec_types[k] = 'edges'
 
-    autobins_spec = {k: v for k, v in bins.items() if type(v) not in (dict, list)}
-    if autobins_spec:
-        autolimits = dset.find_limits(autobins_spec)
-        for k, v in autolimits.items():
-            bins[k] = dict(min=v[0], max=v[1], step=bins[k])
+        elif isinstance(v, dict) and all(u in v for u in ['min', 'max', 'step']):
+            spec_types[k] = 'range'
 
-    for k, v in bins.items():
-        if isinstance(v, dict):
-            bins[k] = np.arange(v['min'], v['max'] + v['step'], v['step']).tolist()
+        elif v == 'group_by':
+            spec_types[k] = 'unique'
 
+        elif np.issubdtype(type(v), np.number):
+            spec_types[k] = 'resolution'
+
+        else:
+            raise ValueError(f'Unknown bin type: {v}')
+
+    # Check if we need pre-scanning of the dataset
+    scan_params_template = dict(unique=['unique'], resolution=['min', 'max'])
+    scan_params = {k: scan_params_template[v] for k, v in spec_types.items()
+                   if v in scan_params_template}
+    scan_output = {k: None for k in spec}
+    if scan_params:
+        scan_output = {**scan_output, **dset.scan(scan_params)}
+
+    # Put the specs and the result of the pre-scanning into the bin generator
+    bins = {k: bin_generator(spec[k], spec_types[k], scan_output[k]) for k in spec}
     return bins
+
+
+def bin_generator(spec, spec_type, scan_output):
+    if spec_type == 'edges':
+        return spec
+    elif spec_type == 'range':
+        return np.arange(spec['min'], spec['max'] + spec['step'], spec['step']).tolist()
+    elif spec_type == 'group_by':
+        raise NotImplementedError
+    elif spec_type == 'resolution':
+        res = t64conv(spec)
+        minval = align_to_resolution(scan_output['min'], res)
+        maxval = align_to_resolution(scan_output['max'] + 2 * res, res)
+        return np.arange(minval, maxval, res).tolist()
+    else:
+        raise ValueError(f'Unknown spec_type: {spec_type}')
+
+
+def t64conv(timedelta_or_other):
+    """
+    Convert input data in the form of [value, unit] to timedelta64, or returns the
+    argument verbatim if there are any errors.
+    """
+    try:
+        t64val, t64unit = timedelta_or_other
+        return np.timedelta64(t64val, t64unit)
+    except TypeError:
+        return timedelta_or_other
+
+
+# Align to wholenumber resolution
+def align_to_resolution(value, resolution):
+    """
+    Round down to a specified resolution.
+
+    Specifically, `(returned_value <= value) and (returned_value % resolution == 0)`.
+    """
+    if np.issubdtype(np.array(resolution).dtype, np.timedelta64):
+        val_posix = (value - np.datetime64('1970-01-01')).astype('timedelta64[us]')
+        res_posix = resolution.astype('timedelta64[us]')
+        ret_posix = (val_posix.astype('i8') // res_posix.astype('i8')) * res_posix
+        return np.datetime64('1970-01-01') + ret_posix
+    else:
+        return np.array((value // resolution) * resolution).item()

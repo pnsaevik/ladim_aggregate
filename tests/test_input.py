@@ -142,24 +142,6 @@ class Test_LadimInputStream:
                 [12346, 12347],
             ]
 
-    def test_autolimit_aligns_to_wholenumber_resolution_points(self, ladim_dset, ladim_dset2):
-        with ladim_input.LadimInputStream([ladim_dset, ladim_dset2]) as dset:
-            assert dset.find_limits(dict(X=1)) == dict(X=[5, 7])
-            assert dset.find_limits(dict(X=2)) == dict(X=[4, 8])
-            assert dset.find_limits(dict(X=10)) == dict(X=[0, 10])
-
-    def test_autolimit_aligns_to_wholenumber_resolution_points_when_time(self, ladim_dset, ladim_dset2):
-        with ladim_input.LadimInputStream([ladim_dset, ladim_dset2]) as dset:
-            limits = dset.find_limits(dict(time=np.timedelta64(1, 'h')))
-            assert list(limits.keys()) == ['time']
-            timestr = np.array(limits['time']).astype('datetime64[h]').astype(str)
-            assert timestr.tolist() == ['2000-01-02T00', '2000-01-05T01']
-
-            limits = dset.find_limits(dict(time=np.timedelta64(6, 'h')))
-            assert list(limits.keys()) == ['time']
-            timestr = np.array(limits['time']).astype('datetime64[h]').astype(str)
-            assert timestr.tolist() == ['2000-01-02T00', '2000-01-05T06']
-
     def test_can_apply_filter_string(self, ladim_dset):
         with ladim_input.LadimInputStream(ladim_dset) as dset:
             # No filter: 6 particle instances

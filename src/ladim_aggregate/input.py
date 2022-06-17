@@ -138,41 +138,6 @@ class LadimInputStream:
                 logger.info(f'Enter new dataset')
                 yield spec
 
-    def find_limits(self, resolution):
-        def t64conv(timedelta_or_other):
-            try:
-                t64val, t64unit = timedelta_or_other
-                return np.timedelta64(t64val, t64unit)
-            except TypeError:
-                return timedelta_or_other
-
-        # Align to wholenumber resolution
-        def align(val_raw, res_raw):
-            if np.issubdtype(np.array(res).dtype, np.timedelta64):
-                val_posix = (val_raw - np.datetime64('1970-01-01')).astype('timedelta64[us]')
-                res_posix = res.astype('timedelta64[us]')
-                ret_posix = (val_posix.astype('i8') // res_posix.astype('i8')) * res_posix
-                return np.datetime64('1970-01-01') + ret_posix
-            else:
-                return np.array((val_raw // res_raw) * res_raw).item()
-
-        varnames = resolution.keys()
-        logger.info("Limits are not given, compute automatically from input file")
-
-        spec = {k: ['min', 'max'] for k in varnames}
-        out = self.scan(spec)
-
-        lims = {}
-        for k in varnames:
-            res = t64conv(resolution[k])
-            minval = align(out[k]['min'], res)
-            maxval = align(out[k]['max'] + res, res)
-            lims[k] = [minval, maxval]
-
-        for k in varnames:
-            logger.info(f'Final limits for {k}: [{lims[k][0]}, {lims[k][1]}]')
-        return lims
-
     def read(self):
         try:
             chunk = next(self.ladim_iter)

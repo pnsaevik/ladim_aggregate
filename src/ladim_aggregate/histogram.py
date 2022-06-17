@@ -156,6 +156,6 @@ def autobins(spec, dset):
 
     for k, v in bins.items():
         if isinstance(v, dict):
-            bins[k] = np.arange(v['min'], v['max'] + v['step'], v['step'])
+            bins[k] = np.arange(v['min'], v['max'] + v['step'], v['step']).tolist()
 
     return bins

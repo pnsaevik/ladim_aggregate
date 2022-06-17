@@ -115,3 +115,15 @@ class Test_adaptive_histogram:
         hist4, idx4 = histogram.adaptive_histogram(sample, bins4, exact_dims=[0, 1])
         assert hist4.tolist() == hist1.tolist()
         assert idx4 == idx1
+
+
+class Test_autobins:
+    def test_returns_verbatim_if_spec_is_list(self):
+        spec = dict(x=[1, 2, 3])
+        bins = histogram.autobins(spec, dset=None)
+        assert bins == spec
+
+    def test_returns_inclusive_range_if_spec_is_min_max_step(self):
+        spec = dict(x=dict(min=1, max=10, step=3))
+        bins = histogram.autobins(spec, dset=None)
+        assert bins == dict(x=[1, 4, 7, 10])

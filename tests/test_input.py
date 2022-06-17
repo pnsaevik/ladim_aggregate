@@ -169,3 +169,20 @@ class Test_LadimInputStream:
             assert chunk['weights'].values.tolist() == list(
                 chunk['X'].values + chunk['Y'].values
             )
+
+
+class Test_update_agg:
+    def test_can_compute_max(self):
+        assert ladim_input.update_agg(None, 'max', [1, 2, 3]) == 3
+        assert ladim_input.update_agg(4, 'max', [1, 2, 3]) == 4
+        assert ladim_input.update_agg(2, 'max', [1, 2, 3]) == 3
+
+    def test_can_compute_min(self):
+        assert ladim_input.update_agg(None, 'min', [1, 2, 3]) == 1
+        assert ladim_input.update_agg(0, 'min', [1, 2, 3]) == 0
+        assert ladim_input.update_agg(2, 'min', [1, 2, 3]) == 1
+
+    def test_can_compute_unique(self):
+        assert ladim_input.update_agg(None, 'unique', [1, 1, 3]) == [1, 3]
+        assert ladim_input.update_agg([], 'unique', [1, 1, 3]) == [1, 3]
+        assert ladim_input.update_agg([2, 3, 4], 'unique', [1, 1, 3]) == [1, 2, 3, 4]

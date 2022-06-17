@@ -255,7 +255,7 @@ def _ladim_iterator_read_variable(dset, varname, tidx, iidx, pidx):
 
 
 def update_agg(old, aggfun, data):
-    funcs = dict(max=update_max, min=update_min)
+    funcs = dict(max=update_max, min=update_min, unique=update_unique)
     return funcs[aggfun](old, data)
 
 
@@ -271,3 +271,11 @@ def update_min(old, data):
         return np.min(data)
     else:
         return min(np.min(data), old)
+
+
+def update_unique(old, data):
+    if old is None:
+        return np.unique(data).tolist()
+    else:
+        unq = np.unique(data)
+        return np.union1d(old, unq).tolist()

@@ -183,20 +183,23 @@ def autobins(spec, dset):
 def bin_generator(spec, spec_type, scan_output):
     if spec_type == 'edges':
         edges = np.asarray(spec)
+        centers = get_centers_from_edges(edges)
     elif spec_type == 'range':
         edges = np.arange(spec['min'], spec['max'] + spec['step'], spec['step'])
+        centers = get_centers_from_edges(edges)
     elif spec_type == 'unique':
         data = scan_output['unique']
         edges = np.concatenate([data, [data[-1] + 1]])
+        centers = np.asarray(data)
     elif spec_type == 'resolution':
         res = t64conv(spec)
         minval = align_to_resolution(scan_output['min'], res)
         maxval = align_to_resolution(scan_output['max'] + 2 * res, res)
         edges = np.arange(minval, maxval, res)
+        centers = get_centers_from_edges(edges)
     else:
         raise ValueError(f'Unknown spec_type: {spec_type}')
 
-    centers = get_centers_from_edges(edges)
     return dict(edges=edges, centers=centers)
 
 

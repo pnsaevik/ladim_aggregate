@@ -1,5 +1,9 @@
 # Version history
 
+## [1.4] - 2022-06-22
+### Added
+- Group-by feature
+
 ## [1.3] - 2022-06-01
 ### Changed
 - Histogram feature now uses pandas backend for improved scalability

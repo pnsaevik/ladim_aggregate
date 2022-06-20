@@ -1,0 +1,9 @@
+# Group by specific attribute, such as source location
+
+bins:
+  # We use the keyword "group_by" to specify that particles are grouped by
+  # this variable
+  farm_id: group_by
+
+outfile: count.nc
+infile: ladim.nc

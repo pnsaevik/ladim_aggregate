@@ -1,0 +1,18 @@
+time:
+  dims: time
+  data: ['2000-01-02', '2000-01-04', '2000-01-06']
+X:
+  dims: particle_instance
+  data: [10, 20, 30, 40, 50, 60, 70, 80]
+Y:
+  dims: particle_instance
+  data: [10, 20, 30, 40, 50, 60, 70, 80]
+farm_id:
+  dims: particle
+  data: [12345, 23456, 12345, 34567]
+particle_count:
+  dims: time
+  data: [4, 2, 2]
+pid:
+  dims: particle_instance
+  data: [0, 1, 2, 3, 1, 2, 1, 2]

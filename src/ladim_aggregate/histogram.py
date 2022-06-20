@@ -4,7 +4,6 @@ import pandas as pd
 
 class Histogrammer:
     def __init__(self, bins=None):
-        self.bins = bins
         self.weights = dict(bincount=None)
         self.coords = Histogrammer._get_coords_from_bins(bins)
 
@@ -12,8 +11,12 @@ class Histogrammer:
     def _get_coords_from_bins(bins_dict):
         crd = dict()
         for crd_name, bins in bins_dict.items():
-            edges = np.asarray(bins)
-            centers = get_centers_from_edges(edges)
+            if isinstance(bins, dict):
+                edges = bins['edges']
+                centers = bins['centers']
+            else:
+                edges = np.asarray(bins)
+                centers = get_centers_from_edges(edges)
             crd[crd_name] = dict(centers=centers, edges=edges)
         return crd
 
@@ -143,3 +146,86 @@ def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
     hist_chunk[tuple(shifted_coords)] = vals
 
     return hist_chunk, idx_slice
+
+
+def autobins(spec, dset):
+    # Find bin specification type
+    spec_types = dict()
+    for k, v in spec.items():
+        if isinstance(v, list):
+            spec_types[k] = 'edges'
+
+        elif isinstance(v, dict) and all(u in v for u in ['min', 'max', 'step']):
+            spec_types[k] = 'range'
+
+        elif v == 'group_by' or v == 'unique':
+            spec_types[k] = 'unique'
+
+        elif np.issubdtype(type(v), np.number):
+            spec_types[k] = 'resolution'
+
+        else:
+            raise ValueError(f'Unknown bin type: {v}')
+
+    # Check if we need pre-scanning of the dataset
+    scan_params_template = dict(unique=['unique'], resolution=['min', 'max'])
+    scan_params = {k: scan_params_template[v] for k, v in spec_types.items()
+                   if v in scan_params_template}
+    scan_output = {k: None for k in spec}
+    if scan_params:
+        scan_output = {**scan_output, **dset.scan(scan_params)}
+
+    # Put the specs and the result of the pre-scanning into the bin generator
+    bins = {k: bin_generator(spec[k], spec_types[k], scan_output[k]) for k in spec}
+    return bins
+
+
+def bin_generator(spec, spec_type, scan_output):
+    if spec_type == 'edges':
+        edges = np.asarray(spec)
+        centers = get_centers_from_edges(edges)
+    elif spec_type == 'range':
+        edges = np.arange(spec['min'], spec['max'] + spec['step'], spec['step'])
+        centers = get_centers_from_edges(edges)
+    elif spec_type == 'unique':
+        data = scan_output['unique']
+        edges = np.concatenate([data, [data[-1] + 1]])
+        centers = np.asarray(data)
+    elif spec_type == 'resolution':
+        res = t64conv(spec)
+        minval = align_to_resolution(scan_output['min'], res)
+        maxval = align_to_resolution(scan_output['max'] + 2 * res, res)
+        edges = np.arange(minval, maxval, res)
+        centers = get_centers_from_edges(edges)
+    else:
+        raise ValueError(f'Unknown spec_type: {spec_type}')
+
+    return dict(edges=edges, centers=centers)
+
+
+def t64conv(timedelta_or_other):
+    """
+    Convert input data in the form of [value, unit] to timedelta64, or returns the
+    argument verbatim if there are any errors.
+    """
+    try:
+        t64val, t64unit = timedelta_or_other
+        return np.timedelta64(t64val, t64unit)
+    except TypeError:
+        return timedelta_or_other
+
+
+# Align to wholenumber resolution
+def align_to_resolution(value, resolution):
+    """
+    Round down to a specified resolution.
+
+    Specifically, `(returned_value <= value) and (returned_value % resolution == 0)`.
+    """
+    if np.issubdtype(np.array(resolution).dtype, np.timedelta64):
+        val_posix = (value - np.datetime64('1970-01-01')).astype('timedelta64[us]')
+        res_posix = resolution.astype('timedelta64[us]')
+        ret_posix = (val_posix.astype('i8') // res_posix.astype('i8')) * res_posix
+        return np.datetime64('1970-01-01') + ret_posix
+    else:
+        return np.array((value // resolution) * resolution).item()

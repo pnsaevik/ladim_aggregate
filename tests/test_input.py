@@ -69,6 +69,29 @@ class Test_ladim_iterator:
         assert offset == [0, 4]
 
 
+class Test_LadimInputStream_scan:
+    def test_can_return_min_value(self, ladim_dset):
+        with ladim_input.LadimInputStream(ladim_dset) as dset:
+            spec = dict(X=['min'])
+            out = dset.scan(spec)
+            assert out == dict(X=dict(min=5))
+
+    def test_can_return_max_value(self, ladim_dset):
+        with ladim_input.LadimInputStream(ladim_dset) as dset:
+            spec = dict(X=['max'])
+            out = dset.scan(spec)
+            assert out == dict(X=dict(max=6))
+
+    def test_can_return_multiple_stats(self, ladim_dset, ladim_dset2):
+        ladim_dset3 = ladim_dset2.copy(deep=True)
+        ladim_dset3['X'] += 10
+        ladim_dset3['Y'] += 10
+        with ladim_input.LadimInputStream([ladim_dset, ladim_dset3]) as dset:
+            spec = dict(X=['max'], Y=['min', 'max'])
+            out = dset.scan(spec)
+            assert out == dict(X=dict(max=16), Y=dict(min=60, max=72))
+
+
 class Test_LadimInputStream:
     def test_can_initialise_from_xr_dataset(self, ladim_dset):
         with ladim_input.LadimInputStream(ladim_dset) as dset:
@@ -119,24 +142,6 @@ class Test_LadimInputStream:
                 [12346, 12347],
             ]
 
-    def test_autolimit_aligns_to_wholenumber_resolution_points(self, ladim_dset, ladim_dset2):
-        with ladim_input.LadimInputStream([ladim_dset, ladim_dset2]) as dset:
-            assert dset.find_limits(dict(X=1)) == dict(X=[5, 7])
-            assert dset.find_limits(dict(X=2)) == dict(X=[4, 8])
-            assert dset.find_limits(dict(X=10)) == dict(X=[0, 10])
-
-    def test_autolimit_aligns_to_wholenumber_resolution_points_when_time(self, ladim_dset, ladim_dset2):
-        with ladim_input.LadimInputStream([ladim_dset, ladim_dset2]) as dset:
-            limits = dset.find_limits(dict(time=np.timedelta64(1, 'h')))
-            assert list(limits.keys()) == ['time']
-            timestr = np.array(limits['time']).astype('datetime64[h]').astype(str)
-            assert timestr.tolist() == ['2000-01-02T00', '2000-01-05T01']
-
-            limits = dset.find_limits(dict(time=np.timedelta64(6, 'h')))
-            assert list(limits.keys()) == ['time']
-            timestr = np.array(limits['time']).astype('datetime64[h]').astype(str)
-            assert timestr.tolist() == ['2000-01-02T00', '2000-01-05T06']
-
     def test_can_apply_filter_string(self, ladim_dset):
         with ladim_input.LadimInputStream(ladim_dset) as dset:
             # No filter: 6 particle instances
@@ -164,3 +169,20 @@ class Test_LadimInputStream:
             assert chunk['weights'].values.tolist() == list(
                 chunk['X'].values + chunk['Y'].values
             )
+
+
+class Test_update_agg:
+    def test_can_compute_max(self):
+        assert ladim_input.update_agg(None, 'max', [1, 2, 3]) == 3
+        assert ladim_input.update_agg(4, 'max', [1, 2, 3]) == 4
+        assert ladim_input.update_agg(2, 'max', [1, 2, 3]) == 3
+
+    def test_can_compute_min(self):
+        assert ladim_input.update_agg(None, 'min', [1, 2, 3]) == 1
+        assert ladim_input.update_agg(0, 'min', [1, 2, 3]) == 0
+        assert ladim_input.update_agg(2, 'min', [1, 2, 3]) == 1
+
+    def test_can_compute_unique(self):
+        assert ladim_input.update_agg(None, 'unique', [1, 1, 3]) == [1, 3]
+        assert ladim_input.update_agg([], 'unique', [1, 1, 3]) == [1, 3]
+        assert ladim_input.update_agg([2, 3, 4], 'unique', [1, 1, 3]) == [1, 2, 3, 4]

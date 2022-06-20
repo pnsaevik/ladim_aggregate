@@ -1,0 +1,17 @@
+# Sum up particles and group by time step
+
+bins:
+  # For performance reasons, time should be the first binning variable.
+  # Here, we choose "group_by", which means that each unique time step gets
+  # its own bin.
+  time: group_by
+
+  # The second grouping variable is "Z", with a resolution of 2.
+  Z: 2
+
+
+# Input file in netCDF format (ladim output format)
+infile: ladim.nc
+
+# Output file in netCDF format
+outfile: count.nc

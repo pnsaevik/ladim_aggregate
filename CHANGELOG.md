@@ -1,5 +1,9 @@
 # Version history
 
+## [Unreleased]
+### Added
+- Allow splitting by time steps
+
 ## [1.4] - 2022-06-22
 ### Added
 - Group-by feature

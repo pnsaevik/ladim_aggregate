@@ -121,12 +121,12 @@ class Test_autobins:
     def test_returns_verbatim_if_spec_is_list(self):
         spec = dict(x=[1, 2, 3])
         bins = histogram.autobins(spec, dset=None)
-        assert bins == spec
+        assert bins['x']['edges'].tolist() == [1, 2, 3]
 
     def test_returns_inclusive_range_if_spec_is_min_max_step(self):
         spec = dict(x=dict(min=1, max=10, step=3))
         bins = histogram.autobins(spec, dset=None)
-        assert bins == dict(x=[1, 4, 7, 10])
+        assert bins['x']['edges'].tolist() == [1, 4, 7, 10]
 
     def test_accepts_multiple_specs(self):
         spec_1 = dict(x=dict(min=1, max=10, step=3))
@@ -135,7 +135,8 @@ class Test_autobins:
         bins_2 = histogram.autobins(spec_2, dset=None)
         spec = {**spec_1, **spec_2}
         bins = histogram.autobins(spec, dset=None)
-        assert bins == {**bins_1, **bins_2}
+        assert bins['x']['edges'].tolist() == bins_1['x']['edges'].tolist()
+        assert bins['y']['edges'].tolist() == bins_2['y']['edges'].tolist()
 
     def test_returns_aligned_range_if_resolution(self):
         class MockLadimDataset:
@@ -146,7 +147,7 @@ class Test_autobins:
 
         spec = dict(x=3)
         bins = histogram.autobins(spec, dset=MockLadimDataset())
-        assert bins == dict(x=[9, 12, 15, 18, 21])
+        assert bins['x']['edges'].tolist() == [9, 12, 15, 18, 21]
 
     def test_returns_bins_if_unique(self):
         class MockLadimDataset:
@@ -157,14 +158,14 @@ class Test_autobins:
 
         spec = dict(x='unique')
         bins = histogram.autobins(spec, dset=MockLadimDataset())
-        assert bins == dict(x=[1, 2, 5, 6])
+        assert bins['x']['edges'].tolist() == [1, 2, 5, 6]
 
 
 class Test_align_to_resolution:
     def test_aligns_to_integer(self):
         assert histogram.align_to_resolution(value=22, resolution=3) == 21
         assert histogram.align_to_resolution(value=21, resolution=3) == 21
-        assert histogram.align_to_resolution(value=19, resolution=3) == 21
+        assert histogram.align_to_resolution(value=19, resolution=3) == 18
 
     def test_aligns_to_time(self):
         align = histogram.align_to_resolution

@@ -1,12 +1,9 @@
-import logging
-
 import numpy as np
 import pandas as pd
 
 
 class Histogrammer:
     def __init__(self, bins=None):
-        self.bins = bins
         self.weights = dict(bincount=None)
         self.coords = Histogrammer._get_coords_from_bins(bins)
 
@@ -14,8 +11,12 @@ class Histogrammer:
     def _get_coords_from_bins(bins_dict):
         crd = dict()
         for crd_name, bins in bins_dict.items():
-            edges = np.asarray(bins)
-            centers = get_centers_from_edges(edges)
+            if isinstance(bins, dict):
+                edges = bins['edges']
+                centers = bins['centers']
+            else:
+                edges = np.asarray(bins)
+                centers = get_centers_from_edges(edges)
             crd[crd_name] = dict(centers=centers, edges=edges)
         return crd
 
@@ -181,20 +182,22 @@ def autobins(spec, dset):
 
 def bin_generator(spec, spec_type, scan_output):
     if spec_type == 'edges':
-        return spec
+        edges = np.asarray(spec)
     elif spec_type == 'range':
-        return np.arange(spec['min'], spec['max'] + spec['step'], spec['step']).tolist()
+        edges = np.arange(spec['min'], spec['max'] + spec['step'], spec['step'])
     elif spec_type == 'unique':
         data = scan_output['unique']
-        bins = np.concatenate([data, [data[-1] + 1]])
-        return bins.tolist()
+        edges = np.concatenate([data, [data[-1] + 1]])
     elif spec_type == 'resolution':
         res = t64conv(spec)
         minval = align_to_resolution(scan_output['min'], res)
         maxval = align_to_resolution(scan_output['max'] + 2 * res, res)
-        return np.arange(minval, maxval, res).tolist()
+        edges = np.arange(minval, maxval, res)
     else:
         raise ValueError(f'Unknown spec_type: {spec_type}')
+
+    centers = get_centers_from_edges(edges)
+    return dict(edges=edges, centers=centers)
 
 
 def t64conv(timedelta_or_other):

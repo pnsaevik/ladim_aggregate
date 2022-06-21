@@ -1,3 +1,6 @@
+import logging
+
+
 def main(*args):
     import argparse
 
@@ -69,7 +72,9 @@ def main(*args):
     parsed_args = parser.parse_args(args)
     config_file = parsed_args.config_file
 
+    import logging
     init_logger()
+    logger = logging.getLogger(__name__)
 
     # Extract example if requested
     if parsed_args.example:
@@ -77,12 +82,15 @@ def main(*args):
         config_file = extract(example_name=config_file)
 
     import yaml
+    logger.info(f'Open config file "{config_file}"')
     with open(config_file, encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
     from .input import LadimInputStream
+    logger.info(f'Open ladim file "{config["infile"]}"')
     with LadimInputStream(config['infile']) as dset_in:
         from .output import MultiDataset
+        logger.info(f'Create output file "{config["outfile"]}"')
         with MultiDataset(config['outfile']) as dset_out:
             run(dset_in, config, dset_out)
 
@@ -114,8 +122,12 @@ def run(dset_in, config, dset_out):
         dims=tuple(coords.keys()),
     )
 
+    logger = logging.getLogger(__name__)
+
     for chunk_in in dset_in.chunks():
         for chunk_out in hist.make(chunk_in):
+            txt = ", ".join([f'{a.start}:{a.stop}' for a in chunk_out['indices']])
+            logger.info(f'Write output chunk [{txt}]')
             dset_out.incrementData(
                 varname='histogram',
                 data=chunk_out['values'],

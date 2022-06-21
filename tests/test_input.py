@@ -10,7 +10,8 @@ def ladim_dset():
         data_vars=dict(
             X=xr.Variable('particle_instance', [5, 5, 6, 6, 5, 6]),
             Y=xr.Variable('particle_instance', [60, 60, 60, 61, 60, 62]),
-            Z=xr.Variable('particle_instance', [0, 1, 2, 3, 4, 5]),
+            Z=xr.Variable('particle_instance', [0, 1, 2, 3, 4, 5],
+                          attrs=dict(standard_name='depth')),
             lon=xr.Variable('particle_instance', [5, 5, 6, 6, 5, 6]),
             lat=xr.Variable('particle_instance', [60, 60, 60, 61, 60, 62]),
             instance_offset=xr.Variable((), 0),
@@ -169,6 +170,10 @@ class Test_LadimInputStream:
             assert chunk['weights'].values.tolist() == list(
                 chunk['X'].values + chunk['Y'].values
             )
+
+    def test_can_return_attributes_of_variables(self, ladim_dset):
+        with ladim_input.LadimInputStream(ladim_dset) as dset:
+            assert dset.attributes['Z']['standard_name'] == 'depth'
 
 
 class Test_update_agg:

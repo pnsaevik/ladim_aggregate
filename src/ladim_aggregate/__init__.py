@@ -1,3 +1,3 @@
 from .script import main, run
 
-__version__ = '1.4'
+__version__ = '1.5'

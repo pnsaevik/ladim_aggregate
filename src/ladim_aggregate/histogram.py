@@ -14,10 +14,12 @@ class Histogrammer:
             if isinstance(bins, dict):
                 edges = bins['edges']
                 centers = bins['centers']
+                attrs = bins.get('attrs', dict())
             else:
                 edges = np.asarray(bins)
                 centers = get_centers_from_edges(edges)
-            crd[crd_name] = dict(centers=centers, edges=edges)
+                attrs = dict()
+            crd[crd_name] = dict(centers=centers, edges=edges, attrs=attrs)
         return crd
 
     def make(self, chunk):

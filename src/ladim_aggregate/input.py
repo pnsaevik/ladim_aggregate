@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import glob
 import numpy as np
@@ -56,12 +57,8 @@ class LadimInputStream:
         if self._attributes is None:
             spec = self.datasets[0]
             self._attributes = dict()
-            if isinstance(spec, str):
-                with xr.open_dataset(spec) as dset:
-                    for k, v in dset.variables.items():
-                        self._attributes[k] = v.attrs
-            else:
-                for k, v in spec.variables.items():
+            with _open_spec(spec) as (dset, _):
+                for k, v in dset.variables.items():
                     self._attributes[k] = v.attrs
         return self._attributes
 
@@ -71,19 +68,13 @@ class LadimInputStream:
 
         def dataset_iterator():
             for spec in self.datasets:
-                if isinstance(spec, str):
-                    logger.info(f'Open input dataset {spec}')
-                    with xr.open_dataset(spec) as dset:
-                        logger.info(f'Number of particle instances: {dset.dims["particle_instance"]}')
-                        self._dataset_current = dset
-                        self._dataset_mustclose = True
-                        yield dset
-                else:
-                    logger.info(f'Enter new dataset')
-                    self._dataset_current = spec
-                    self._dataset_mustclose = False
-                    logger.info(f'Number of particle instances: {spec.dims["particle_instance"]}')
-                    yield spec
+                with _open_spec(spec) as (dset, is_file):
+                    self._dataset_mustclose = is_file
+                    self._dataset_current = dset
+                    logtext = f'Open input dataset {spec}' if is_file else "Enter new dataset"
+                    logger.info(logtext)
+                    logger.info(f'Number of particle instances: {dset.dims["particle_instance"]}')
+                    yield dset
 
         self._dataset_iterator = dataset_iterator()
         self.ladim_iter = ladim_iterator(self._dataset_iterator)
@@ -146,13 +137,8 @@ class LadimInputStream:
 
     def idatasets(self) -> typing.Iterable:
         for spec in self.datasets:
-            if isinstance(spec, str):
-                logger.info(f'Open input dataset {spec}')
-                with xr.open_dataset(spec) as ddset:
-                    yield ddset
-            else:
-                logger.info(f'Enter new dataset')
-                yield spec
+            with _open_spec(spec) as (dset, _):
+                yield dset
 
     def read(self):
         try:
@@ -295,3 +281,12 @@ def update_unique(old, data):
     else:
         unq = np.unique(data)
         return np.union1d(old, unq).tolist()
+
+
+@contextlib.contextmanager
+def _open_spec(spec):
+    if isinstance(spec, str):
+        with xr.open_dataset(spec) as ddset:
+            yield ddset, True
+    else:
+        yield spec, False

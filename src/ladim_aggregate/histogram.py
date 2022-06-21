@@ -177,6 +177,13 @@ def autobins(spec, dset):
 
     # Put the specs and the result of the pre-scanning into the bin generator
     bins = {k: bin_generator(spec[k], spec_types[k], scan_output[k]) for k in spec}
+
+    # Add attributes from the dataset
+    if dset is not None and hasattr(dset, 'attributes'):
+        for k, v in dset.attributes.items():
+            if k in bins:
+                bins[k]['attrs'] = v
+
     return bins
 
 

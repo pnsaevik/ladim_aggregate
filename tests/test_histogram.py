@@ -160,6 +160,19 @@ class Test_autobins:
         bins = histogram.autobins(spec, dset=MockLadimDataset())
         assert bins['x']['edges'].tolist() == [1, 2, 5, 6]
 
+    def test_copies_attributes_from_input_dataset(self):
+        class MockLadimDataset:
+            def __init__(self):
+                self.attributes = dict(
+                    x=dict(long_name="x coordinate value"),
+                    y=dict(long_name="y coordinate value"),  # An extra attribute which is not in the bins
+                )
+
+        spec = dict(x=[1, 2, 3])
+        bins = histogram.autobins(spec, dset=MockLadimDataset())
+        assert bins['x']['attrs']['long_name'] == "x coordinate value"
+        assert 'y' not in bins
+
 
 class Test_align_to_resolution:
     def test_aligns_to_integer(self):

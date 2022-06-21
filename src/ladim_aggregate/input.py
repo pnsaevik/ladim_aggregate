@@ -286,7 +286,7 @@ def update_unique(old, data):
 @contextlib.contextmanager
 def _open_spec(spec):
     if isinstance(spec, str):
-        with xr.open_dataset(spec) as ddset:
+        with xr.open_dataset(spec, decode_cf=False) as ddset:
             yield ddset, True
     else:
         yield spec, False

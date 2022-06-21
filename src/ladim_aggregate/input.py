@@ -34,6 +34,8 @@ class LadimInputStream:
         self.ladim_iter = None
         self._reset_ladim_iterator()
 
+        self._attributes = None
+
     def __enter__(self):
         return self
 
@@ -48,6 +50,20 @@ class LadimInputStream:
         if pos != 0:
             raise NotImplementedError
         self._reset_ladim_iterator()
+
+    @property
+    def attributes(self):
+        if self._attributes is None:
+            spec = self.datasets[0]
+            self._attributes = dict()
+            if isinstance(spec, str):
+                with xr.open_dataset(spec) as dset:
+                    for k, v in dset.variables.items():
+                        self._attributes[k] = v.attrs
+            else:
+                for k, v in spec.variables.items():
+                    self._attributes[k] = v.attrs
+        return self._attributes
 
     def _reset_ladim_iterator(self):
         if self._dataset_mustclose:

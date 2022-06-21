@@ -1,7 +1,7 @@
 # Sum up particles and group by time step
 
 bins:
-  # For performance reasons, time should be the first binning variable.
+  # For performance reasons, time should usually be the first binning variable.
   # Here, we choose "group_by", which means that each unique time step gets
   # its own bin.
   time: group_by

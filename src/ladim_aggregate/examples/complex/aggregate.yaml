@@ -10,13 +10,12 @@ bins:
 
   # The variable `time` is also included in filesplit_dims, but here we show
   # that it's possible to include bins explicitly.
-  time: [0, 366, 732]
-
-    # # It's possible to specify bin edges and labels explicitly. Labels don't
-    # # have to be the number in the middle between the edges. In fact, they can
-    # # be anything.
-    # edges: [10000, 20000, 30000]
-    # labels: [12345, 23456]
+  time:
+    # It's possible to specify bin edges and labels explicitly. Labels don't
+    # have to be the number in the middle between the edges. In fact, they can
+    # be anything.
+    edges: [0, 366, 732]
+    labels: [183, 549]
 
   # We can choose to specify only edges, in which case labels are automatically
   # chosen as the number in the middle between the edges. In this example,

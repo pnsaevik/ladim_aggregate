@@ -4,9 +4,10 @@
 ### Added
 - Config script may now exclude certain explicit specifications, which are
   instead added by default.
-- Complex example showing several feature at once
+- Complex example showing several features at once
 ### Fixed
-- Bug which caused adaptive histogram tests to fail on some python versions 
+- Bug which caused adaptive histogram tests to fail on some python versions
+- Bug which caused failure when all particles were outside range
 
 ## [1.5] - 2022-06-21
 ### Added

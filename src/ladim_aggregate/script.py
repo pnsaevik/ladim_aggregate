@@ -82,10 +82,9 @@ def main(*args):
         config_file = extract(example_name=config_file)
 
     import yaml
-    from .parseconfig import parse_config
     logger.info(f'Open config file "{config_file}"')
     with open(config_file, encoding='utf-8') as f:
-        config = parse_config(yaml.safe_load(f))
+        config = yaml.safe_load(f)
 
     from .input import LadimInputStream
     logger.info(f'Open ladim file "{config["infile"]}"')
@@ -98,7 +97,11 @@ def main(*args):
 
 def run(dset_in, config, dset_out):
     from .histogram import Histogrammer, autobins
+    from .parseconfig import parse_config
     import numpy as np
+
+    # Modify configuration dict by reformatting and appending default values
+    config = parse_config(config)
 
     filesplit_dims = config.get('filesplit_dims', [])
 

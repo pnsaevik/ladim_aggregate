@@ -97,7 +97,11 @@ def main(*args):
 
 def run(dset_in, config, dset_out):
     from .histogram import Histogrammer, autobins
+    from .parseconfig import parse_config
     import numpy as np
+
+    # Modify configuration dict by reformatting and appending default values
+    config = parse_config(config)
 
     filesplit_dims = config.get('filesplit_dims', [])
 

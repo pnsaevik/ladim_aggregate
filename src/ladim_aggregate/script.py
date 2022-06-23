@@ -138,10 +138,6 @@ def run(dset_in, config, dset_out):
                 idx=chunk_out['indices'],
             )
 
-    if 'projection' in config:
-        from .proj import write_projection
-        write_projection(dset_out, config['projection'])
-
     return dset_out
 
 

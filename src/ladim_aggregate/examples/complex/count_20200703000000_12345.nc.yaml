@@ -1,6 +1,9 @@
 histogram:
   dims: [time, farm_id, Z, Y, X]
-  data: [[[[[0, 0, 0, 1, 1]]]]]
+  data: [[[
+    [[0, 0, 0, 0, 0]],
+    [[0, 0, 0, 1, 1]],
+  ]]]
 
 X:
   dims: X
@@ -12,7 +15,7 @@ Y:
 
 Z:
   dims: Z
-  data: [6]
+  data: [3, 9]
 
 farm_id:
   dims: farm_id

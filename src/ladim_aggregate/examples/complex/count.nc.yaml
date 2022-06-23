@@ -8,7 +8,7 @@ Y:
 
 Z:
   dims: Z
-  data: [6]
+  data: [3, 9]
 
 farm_id:
   dims: farm_id

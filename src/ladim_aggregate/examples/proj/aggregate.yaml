@@ -1,0 +1,10 @@
+# Add projection information to output file
+
+bins:
+  X: [0, 2, 4, 6]
+
+# Input file in netCDF format (ladim output format)
+infile: ladim.nc
+
+# Output file in netCDF format
+outfile: count.nc

@@ -2,6 +2,14 @@ X:
   dims: X
   data: [1, 3, 5, 7, 9]
 
+Y:
+  dims: Y
+  data: [6]
+
+Z:
+  dims: Z
+  data: [6]
+
 farm_id:
   dims: farm_id
   data: [12345, 12346]

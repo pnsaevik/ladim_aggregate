@@ -37,6 +37,14 @@ class Test_MultiDataset:
         assert mdset.getAttrs('mycoord') == dict(myatt=123)
         assert mdset.getAttrs('myvar') == dict(myatt=9)
 
+    def test_can_add_attrs_after_creating_main_coord_or_variable(self, mdset):
+        mdset.createCoord('mycoord', [1, 2, 3], attrs=dict(myatt=123))
+        mdset.createVariable('myvar', [4, 5, 6], 'mycoord', attrs=dict(myatt=9))
+        mdset.setAttrs('mycoord', dict(myatt2=234))
+        mdset.setAttrs('myvar', dict(myatt2=8))
+        assert mdset.getAttrs('mycoord') == dict(myatt=123, myatt2=234)
+        assert mdset.getAttrs('myvar') == dict(myatt=9, myatt2=8)
+
     def test_can_set_data_of_main_variable_after_creation(self, mdset):
         mdset.createCoord('mycoord', [1, 2, 3])
         mdset.createVariable('myvar', [4, 5, 6], 'mycoord')

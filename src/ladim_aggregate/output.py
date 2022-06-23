@@ -80,6 +80,31 @@ class MultiDataset:
             self._cross_coords[varname] = data
         return variable
 
+    def setAttrs(self, varname, attrs):
+        """
+        Set attributes of a regular variable
+        :param varname:
+        :param attrs:
+        :return:
+        """
+        if not self._editable:
+            # It's probably safe to edit attributes anyway (at least for
+            # non-cross-dataset variables), but I don't have the time to test it just now
+            raise TypeError(
+                "Setting attributes must be done before accessing cross-dataset data")
+
+        # Get cross-dataset variable attributes
+        if varname in self._cross_vars:
+            # It's probably not difficult to implement this, but I don't have the time
+            # right now
+            raise NotImplementedError
+
+        # Get regular variable attributes
+        else:
+            v = self.main_dataset.variables[varname]
+            v = v  # type: nc.Variable
+            v.setncatts(attrs)
+
     def getCoord(self, varname):
         """
         Return a coordinate variable from the main dataset
@@ -90,7 +115,7 @@ class MultiDataset:
 
     def getAttrs(self, varname):
         """
-        Return the attributes of either a reuglar or cross-dataset
+        Return the attributes of either a regular or cross-dataset
         variable.
 
         :param varname: Variable name

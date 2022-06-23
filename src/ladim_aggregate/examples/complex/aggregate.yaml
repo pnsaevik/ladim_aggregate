@@ -37,13 +37,13 @@ filesplit_dims:
   - time
   - farm_id
 
-# Here we specify an optional filter expression. This must be a valid numeric
+# Specify optional filter expression. This must be a valid numeric
 # expression containing variable names defined in the input file. Valid
 # operators include `&` (logical AND), `|` (logical OR), `~` (logical NOT),
 # `==` (equality), `!=` (not equal) as well as `+`, `-`, `*`, `/`, `**`.
 filter: (is_inside == 1) & (is_inside > 0)
 
-# Here we specify an optional weights expression. This must be a valid numeric
+# Specify an optional weights expression. This must be a valid numeric
 # expression containing variable names defined in the input file.
 # In this example, the weights all evaluate to 1
 weights: 2*farm_id - farm_id - farm_id + 1

@@ -1,0 +1,15 @@
+time:
+  dims: time
+  data: ['2000-01-02', '2000-01-04', '2000-01-06']
+X:
+  dims: particle_instance
+  data: [1, 2, 3, 1, 2, 3, 1, 2]
+Y:
+  dims: particle_instance
+  data: [10, 11, 12, 13, 14, 15, 16, 17]
+particle_count:
+  dims: time
+  data: [4, 2, 2]
+pid:
+  dims: particle_instance
+  data: [0, 1, 2, 3, 1, 2, 1, 2]

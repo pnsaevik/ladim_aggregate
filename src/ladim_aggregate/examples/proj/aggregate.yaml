@@ -1,0 +1,19 @@
+# Add projection information to output file
+
+bins:
+  Y: [10, 12, 14, 16, 18, 20]
+  X: [0.5, 1.5, 2.5, 3.5]
+
+# Input file in netCDF format (ladim output format)
+infile: ladim.nc
+
+# Add projection information
+projection:
+  # Specify projection as a proj4 string
+  proj4: +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs
+  # Specify variable names for the coordinates
+  x: X
+  y: Y
+
+# Output file in netCDF format
+outfile: count.nc

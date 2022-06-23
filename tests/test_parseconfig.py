@@ -15,10 +15,11 @@ class Test_parse_config:
         conf_out = parseconfig.parse_config(conf)
         assert conf_out['bins']['farm_id'] == [12345, 23456]
 
-    def test_adds_groupby_bin_if_missing_and_in_filesplit_dims(self):
+    def test_adds_groupby_bin_on_top_if_missing_and_in_filesplit_dims(self):
         conf = dict(
             bins=dict(x=[1, 2, 3]),
             filesplit_dims=['farm_id'],
         )
         conf_out = parseconfig.parse_config(conf)
         assert conf_out['bins']['farm_id'] == 'group_by'
+        assert list(conf_out['bins'].keys()) == ['farm_id', 'x']

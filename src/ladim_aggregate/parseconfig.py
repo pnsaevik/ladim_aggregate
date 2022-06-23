@@ -12,8 +12,7 @@ def parse_config(conf):
     conf_out['bins'] = conf.get('bins', dict())
     conf_out['filesplit_dims'] = conf.get('filesplit_dims', [])
 
-    for filesplit_dim in conf_out['filesplit_dims']:
-        if filesplit_dim not in conf_out['bins'].keys():
-            conf_out['bins'][filesplit_dim] = "group_by"
+    filesplit_bins = {k: "group_by" for k in conf_out['filesplit_dims']}
+    conf_out['bins'] = {**filesplit_bins, **conf_out['bins']}
 
     return conf_out

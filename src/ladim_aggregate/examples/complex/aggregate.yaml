@@ -26,7 +26,7 @@ bins:
   # Instead of explicit edges, we can choose to specify min, max and resolution
   Y:
     min: 0
-    max: 12
+    max: 24
     step: 12
 
   # Or we can specify only resolution, in which case min and max is determined

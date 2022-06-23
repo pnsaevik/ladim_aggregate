@@ -14,6 +14,7 @@ class Test_write_projection:
             yield dset
 
     def test_adds_crs_variable(self, nc_dset):
-        config = dict()
+        config = dict(proj4="+proj=longlat +ellps=WGS84 +datum=WGS84", x='X', y='Y')
         proj.write_projection(nc_dset, config)
-        assert 'crs' in nc_dset.main_dataset.variables
+        crs_var = nc_dset.main_dataset.variables['crs']
+        assert crs_var.grid_mapping_name == 'latitude_longitude'

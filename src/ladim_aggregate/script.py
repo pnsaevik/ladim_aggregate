@@ -82,9 +82,10 @@ def main(*args):
         config_file = extract(example_name=config_file)
 
     import yaml
+    from .parseconfig import parse_config
     logger.info(f'Open config file "{config_file}"')
     with open(config_file, encoding='utf-8') as f:
-        config = yaml.safe_load(f)
+        config = parse_config(yaml.safe_load(f))
 
     from .input import LadimInputStream
     logger.info(f'Open ladim file "{config["infile"]}"')

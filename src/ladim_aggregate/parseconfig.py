@@ -8,4 +8,12 @@ def parse_config(conf):
     applied.
     """
     conf_out = conf.copy()
+
+    conf_out['bins'] = conf.get('bins', dict())
+    conf_out['filesplit_dims'] = conf.get('filesplit_dims', [])
+
+    for filesplit_dim in conf_out['filesplit_dims']:
+        if filesplit_dim not in conf_out['bins'].keys():
+            conf_out['bins'][filesplit_dim] = "group_by"
+
     return conf_out

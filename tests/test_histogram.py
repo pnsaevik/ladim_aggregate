@@ -37,6 +37,7 @@ class Test_adaptive_histogram:
 
         hist2 = np.zeros([len(b) - 1 for b in bins])
         hist_chunk, idx = histogram.adaptive_histogram(sample, bins)
+        assert idx == np.s_[0:2, 0:3]
         hist2[idx] = hist_chunk
 
         assert hist2.tolist() == hist.tolist()
@@ -65,6 +66,7 @@ class Test_adaptive_histogram:
 
         hist2 = np.zeros([len(b) - 1 for b in bins])
         hist_chunk, idx = histogram.adaptive_histogram(sample, bins, weights=weights)
+        assert idx == np.s_[0:2, 0:3]
         hist2[idx] = hist_chunk
 
         assert hist2.tolist() == hist.tolist()
@@ -88,6 +90,7 @@ class Test_adaptive_histogram:
 
         hist2 = np.zeros([len(b) - 1 for b in bins])
         hist_chunk, idx = histogram.adaptive_histogram(sample, bins)
+        assert idx == np.s_[1:2, 0:2]
         hist2[idx] = hist_chunk
 
         assert hist2.tolist() == hist_np.tolist()

@@ -6,3 +6,11 @@ class Test_parse_config:
         conf = dict(this_is_an_unknown_keyword="some_values")
         conf_out = parseconfig.parse_config(conf)
         assert conf_out == conf
+
+    def test_dont_change_bin_if_present_and_in_filesplit_dims(self):
+        conf = dict(
+            bins=dict(x=[1, 2, 3], farm_id=[12345, 23456]),
+            filesplit_dims=['farm_id'],
+        )
+        conf_out = parseconfig.parse_config(conf)
+        assert conf_out == conf

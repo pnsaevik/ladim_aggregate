@@ -28,3 +28,8 @@ class Test_write_projection:
         config = dict(proj4="+proj=longlat +ellps=WGS84 +datum=WGS84", x='X', y='Y')
         proj.write_projection(nc_dset, config)
         assert nc_dset.getAttrs('histogram')['grid_mapping'] == 'crs'
+
+    def test_adds_conventions_attribute_to_dataset(self, nc_dset):
+        config = dict(proj4="+proj=longlat +ellps=WGS84 +datum=WGS84", x='X', y='Y')
+        proj.write_projection(nc_dset, config)
+        assert nc_dset.main_dataset.Conventions == "CF-1.8"

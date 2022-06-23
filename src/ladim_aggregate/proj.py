@@ -8,3 +8,4 @@ def write_projection(dset, config):
     dset.setAttrs(config['x'], cs[0])
     dset.setAttrs(config['y'], cs[1])
     dset.setAttrs('histogram', dict(grid_mapping='crs'))
+    dset.main_dataset.Conventions = "CF-1.8"

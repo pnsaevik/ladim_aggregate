@@ -1,6 +1,6 @@
 # Version history
 
-## [Unreleased] - 2022-06-23
+## [1.6] - 2022-06-23
 ### Added
 - Config script may now exclude certain explicit specifications, which are
   instead added by default.

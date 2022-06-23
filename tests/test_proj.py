@@ -16,5 +16,10 @@ class Test_write_projection:
     def test_adds_crs_variable(self, nc_dset):
         config = dict(proj4="+proj=longlat +ellps=WGS84 +datum=WGS84", x='X', y='Y')
         proj.write_projection(nc_dset, config)
-        crs_var = nc_dset.main_dataset.variables['crs']
-        assert crs_var.grid_mapping_name == 'latitude_longitude'
+        assert nc_dset.getAttrs('crs')['grid_mapping_name'] == 'latitude_longitude'
+
+    def test_adds_attrs_to_coord_vars(self, nc_dset):
+        config = dict(proj4="+proj=longlat +ellps=WGS84 +datum=WGS84", x='X', y='Y')
+        proj.write_projection(nc_dset, config)
+        assert nc_dset.getAttrs('X')['standard_name'] == 'longitude'
+        assert nc_dset.getAttrs('Y')['standard_name'] == 'latitude'

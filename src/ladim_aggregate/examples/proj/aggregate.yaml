@@ -11,8 +11,7 @@ infile: ladim.nc
 projection:
   # Specify projection as a proj4 string
   proj4: +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs
-  # Specify variable names for the coordinates. CAUTION: For WGS84 lon/lat, the
-  # "x coordinate" is the latitude and the "y cordinate" is the longitude.
+  # Specify variable names for the coordinates
   x: X
   y: Y
 

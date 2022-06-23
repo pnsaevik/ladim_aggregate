@@ -126,6 +126,10 @@ def run(dset_in, config, dset_out):
         dims=tuple(coords.keys()),
     )
 
+    if 'projection' in config:
+        from .proj import write_projection
+        write_projection(dset_out, config['projection'])
+
     logger = logging.getLogger(__name__)
 
     for chunk_in in dset_in.chunks():
@@ -137,10 +141,6 @@ def run(dset_in, config, dset_out):
                 data=chunk_out['values'],
                 idx=chunk_out['indices'],
             )
-
-    if 'projection' in config:
-        from .proj import write_projection
-        write_projection(dset_out, config['projection'])
 
     return dset_out
 

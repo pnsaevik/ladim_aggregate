@@ -5,6 +5,7 @@
 - Config script may now exclude certain explicit specifications, which are
   instead added by default.
 - Complex example showing several features at once
+- Projection information can now be added to output file
 ### Fixed
 - Bug which caused adaptive histogram tests to fail on some python versions
 - Bug which caused failure when all particles were outside range

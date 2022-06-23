@@ -9,6 +9,7 @@ bins:
   X: {min: 0, max: 10, step: 2}
 
 # The binning variable `farm_id` is split across multiple files.
+# Multiple variables can be specified.
 filesplit_dims:
   - farm_id
 

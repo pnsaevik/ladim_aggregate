@@ -125,10 +125,6 @@ def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
     for i, bs in enumerate(binned_sample):
         binned_sample[i] = bs[included]
 
-    # Find min and max bin edges to be used
-    idx = [(np.min(bs), np.max(bs) + 1) for bs in binned_sample]
-    idx_slice = [slice(start, stop) for start, stop in idx]
-
     # Aggregate particles
     df = pd.DataFrame(np.asarray(binned_sample).T)
     df_grouped = df.groupby(list(range(len(bins))))
@@ -140,6 +136,10 @@ def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
         df_sum = df_grouped.sum()
     coords = df_sum.index.to_frame().values.T
     vals = df_sum['weights'].values
+
+    # Find min and max bin edges to be used
+    idx = [(np.min(c), np.max(c) + 1) for c in coords]
+    idx_slice = [slice(start, stop) for start, stop in idx]
 
     # Densify
     shifted_coords = coords - np.asarray([start for start, _ in idx])[:, np.newaxis]

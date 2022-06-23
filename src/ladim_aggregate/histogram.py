@@ -160,6 +160,9 @@ def autobins(spec, dset):
         elif isinstance(v, dict) and all(u in v for u in ['min', 'max', 'step']):
             spec_types[k] = 'range'
 
+        elif isinstance(v, dict) and all(u in v for u in ['edges', 'labels']):
+            spec_types[k] = 'edges_labels'
+
         elif v == 'group_by' or v == 'unique':
             spec_types[k] = 'unique'
 
@@ -193,6 +196,9 @@ def bin_generator(spec, spec_type, scan_output):
     if spec_type == 'edges':
         edges = np.asarray(spec)
         centers = get_centers_from_edges(edges)
+    elif spec_type == 'edges_labels':
+        edges = np.asarray(spec['edges'])
+        centers = np.asarray(spec['labels'])
     elif spec_type == 'range':
         edges = np.arange(spec['min'], spec['max'] + spec['step'], spec['step'])
         centers = get_centers_from_edges(edges)

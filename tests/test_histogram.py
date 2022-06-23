@@ -121,15 +121,23 @@ class Test_adaptive_histogram:
 
 
 class Test_autobins:
-    def test_returns_verbatim_if_spec_is_list(self):
+    def test_computes_centers_if_spec_is_list(self):
         spec = dict(x=[1, 2, 3])
         bins = histogram.autobins(spec, dset=None)
         assert bins['x']['edges'].tolist() == [1, 2, 3]
+        assert bins['x']['centers'].tolist() == [1.5, 2.5]
+
+    def test_returns_verbatim_if_spec_is_edges_labels(self):
+        spec = dict(x=dict(edges=[1, 2, 3], labels=[10, 20]))
+        bins = histogram.autobins(spec, dset=None)
+        assert bins['x']['edges'].tolist() == [1, 2, 3]
+        assert bins['x']['centers'].tolist() == [10, 20]
 
     def test_returns_inclusive_range_if_spec_is_min_max_step(self):
         spec = dict(x=dict(min=1, max=10, step=3))
         bins = histogram.autobins(spec, dset=None)
         assert bins['x']['edges'].tolist() == [1, 4, 7, 10]
+        assert bins['x']['centers'].tolist() == [2.5, 5.5, 8.5]
 
     def test_accepts_multiple_specs(self):
         spec_1 = dict(x=dict(min=1, max=10, step=3))
@@ -162,6 +170,7 @@ class Test_autobins:
         spec = dict(x='unique')
         bins = histogram.autobins(spec, dset=MockLadimDataset())
         assert bins['x']['edges'].tolist() == [1, 2, 5, 6]
+        assert bins['x']['centers'].tolist() == [1, 2, 5]
 
     def test_copies_attributes_from_input_dataset(self):
         class MockLadimDataset:

@@ -1,0 +1,61 @@
+# Complex example which illustrates many features at once
+
+# In this example, we use 5 binning categories, illustrating different ways
+# of specifying bins. The order of the bins matter.
+bins:
+  # We don't specify bins for `farm_id` since it's already included in
+  # filesplit_dims. A binning of the type "group_by" is added automatically.
+  # farm_id: group_by
+
+  # The variable `time` is also included in filesplit_dims, but here we show
+  # that it's possible to include bins explicitly.
+  time:
+    # It's possible to specify bin edges and labels explicitly. Labels don't
+    # have to be the number in the middle between the edges. In fact, they can
+    # be anything.
+    edges: [0, 366, 732]
+    labels: [183, 549]
+
+  # We can choose to specify only edges, in which case labels are automatically
+  # chosen as the number in the middle between the edges. In this example,
+  # edges are [0, 6, 12] and labels are [3, 9].
+  Z: [0, 6, 12]
+
+  # Instead of explicit edges, we can choose to specify min, max and resolution
+  Y:
+    min: 0
+    max: 24
+    step: 12
+
+  # Or we can specify only resolution, in which case min and max is determined
+  # from the values within the particle file
+  X: 2
+
+# The binning variables `farm_id` and `time`are split across multiple files.
+# This parameter is optional.
+filesplit_dims:
+  - time
+  - farm_id
+
+# Here we specify an optional filter expression. This must be a valid numeric
+# expression containing variable names defined in the input file. Valid
+# operators include `&` (logical AND), `|` (logical OR), `~` (logical NOT),
+# `==` (equality), `!=` (not equal) as well as `+`, `-`, `*`, `/`, `**`.
+filter: (is_inside == 1) & (is_inside > 0)
+
+# Here we specify an optional weights expression. This must be a valid numeric
+# expression containing variable names defined in the input file.
+# In this example, the weights all evaluate to 1
+weights: 2*farm_id - farm_id - farm_id + 1
+
+# Multiple input files are specified using wildcards. CAUTION: All files must
+# be in the same format. In particular, the date format in all files must
+# match.
+infile: ladim_*.nc
+
+# Output file in netCDF format. This is the name of the *main* dataset file.
+# Since the binning variables `time` and `farm_id` are split across multiple
+# files, there will be generated files named count_<timeval>_<firstFarmID>.nc,
+# count_<timeval>_<secondFarmID>.nc and so on. The main dataset file contains
+# variables that are common to all the subdatasets.
+outfile: count.nc

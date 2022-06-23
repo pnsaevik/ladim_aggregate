@@ -1,0 +1,26 @@
+time:
+  dims: time
+  data: [1, 3, 5]
+  attrs:
+    units: days since 2019-01-01
+X:
+  dims: particle_instance
+  data: [1, 1, 3, 3, 5, 5, 7, 7, 3, 3]
+Y:
+  dims: particle_instance
+  data: [1, 1, 3, 3, 5, 5, 7, 7, 2, 2]
+Z:
+  dims: particle_instance
+  data: [1, 1, 3, 3, 5, 5, 7, 7, 1, 1]
+is_inside:
+  dims: particle_instance
+  data: [1, 1, 1, 1, 1, 1, 1, 1, 0, 0]
+farm_id:
+  dims: particle
+  data: [12345, 12346, 12345, 12345]
+particle_count:
+  dims: time
+  data: [4, 2, 4]
+pid:
+  dims: particle_instance
+  data: [0, 1, 2, 3, 1, 2, 1, 2, 0, 3]

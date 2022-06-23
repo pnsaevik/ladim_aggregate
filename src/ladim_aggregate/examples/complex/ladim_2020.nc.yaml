@@ -12,6 +12,9 @@ Y:
 Z:
   dims: particle_instance
   data: [9, 9, 7, 7]
+is_inside:
+  dims: particle_instance
+  data: [1, 1, 1, 1]
 farm_id:
   dims: particle
   data: [12345, 12346, 12345, 12346]

@@ -37,6 +37,12 @@ filesplit_dims:
   - time
   - farm_id
 
+# Here we specify the filter expression. This must be a valid numeric
+# expression containing variable names defined in the input file. Valid
+# operators include `&` (logical AND), `|` (logical OR), `~` (logical NOT),
+# `==` (equality), `!=` (not equal) as well as `+`, `-`, `*`, `/`, `**`.
+filter: is_inside == 1
+
 # Multiple input files are specified using wildcards. CAUTION: All files must
 # be in the same format. In particular, the date format in all files must
 # match.

@@ -4,6 +4,7 @@
 ### Added
 - Config script may now exclude certain explicit specifications, which are
   instead added by default.
+- Complex example showing several feature at once
 ### Fixed
 - Bug which caused adaptive histogram tests to fail on some python versions 
 

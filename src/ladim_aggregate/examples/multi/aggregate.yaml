@@ -3,7 +3,7 @@
 bins:
   # We use the variable `farm_id` as a grouping variable across files. By
   # convention, the across-file-dimensions are usually placed on top.
-  farm_id: [12344.5, 12345.5, 12346.5]
+  farm_id: group_by
 
   # We use a simple one-dimensional binning in the spatial direction
   X: {min: 0, max: 10, step: 2}

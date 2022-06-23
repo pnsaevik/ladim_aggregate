@@ -147,7 +147,7 @@ def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
     hist_chunk = np.zeros(shape, dtype=vals.dtype)
     hist_chunk[tuple(shifted_coords)] = vals
 
-    return hist_chunk, idx_slice
+    return hist_chunk, tuple(idx_slice)
 
 
 def autobins(spec, dset):

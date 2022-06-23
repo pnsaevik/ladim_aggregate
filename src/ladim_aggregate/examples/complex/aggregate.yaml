@@ -1,9 +1,8 @@
 # Complex example which illustrates many features at once
 
+# In this example, we use 5 binning categories, illustrating different ways
+# of specifying bins. The order of the bins matter.
 bins:
-  # In this example, we use 5 binning categories, illustrating different ways
-  # of specifying bins.
-
   # We don't specify bins for `farm_id` since it's already included in
   # filesplit_dims. A binning of the type "group_by" is added automatically.
   # farm_id: group_by
@@ -33,15 +32,21 @@ bins:
   X: 2
 
 # The binning variables `farm_id` and `time`are split across multiple files.
+# This parameter is optional.
 filesplit_dims:
   - time
   - farm_id
 
-# Here we specify the filter expression. This must be a valid numeric
+# Here we specify an optional filter expression. This must be a valid numeric
 # expression containing variable names defined in the input file. Valid
 # operators include `&` (logical AND), `|` (logical OR), `~` (logical NOT),
 # `==` (equality), `!=` (not equal) as well as `+`, `-`, `*`, `/`, `**`.
-filter: is_inside == 1
+filter: (is_inside == 1) & (is_inside > 0)
+
+# Here we specify an optional weights expression. This must be a valid numeric
+# expression containing variable names defined in the input file.
+# In this example, the weights all evaluate to 1
+weights: 2*farm_id - farm_id - farm_id + 1
 
 # Multiple input files are specified using wildcards. CAUTION: All files must
 # be in the same format. In particular, the date format in all files must

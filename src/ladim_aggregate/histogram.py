@@ -94,10 +94,6 @@ def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
     :return:
     """
 
-    # Abort if there are no points in the sample
-    if len(sample[0]) == 0:
-        return np.zeros((0, ) * len(sample)), (slice(1, 0), ) * len(sample)
-
     # Cast datetime samples to be comparable with bins
     for i, s in enumerate(sample):
         s_dtype = np.asarray(s).dtype
@@ -124,6 +120,10 @@ def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
     # Filter out coordinates outside interval
     for i, bs in enumerate(binned_sample):
         binned_sample[i] = bs[included]
+
+    # Abort if there are no points left
+    if len(binned_sample[0]) == 0:
+        return np.zeros((0, ) * len(sample)), (slice(1, 0), ) * len(sample)
 
     # Aggregate particles
     df = pd.DataFrame(np.asarray(binned_sample).T)

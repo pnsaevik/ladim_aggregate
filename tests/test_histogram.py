@@ -95,6 +95,18 @@ class Test_adaptive_histogram:
 
         assert hist2.tolist() == hist_np.tolist()
 
+    def test_returns_same_as_histogramdd_if_no_particles_in_range(self):
+        sample = [[1, 2, 3, 3, 4], [5, 6, 7, 8, 9]]
+        bins = [[10, 20], [30, 40, 50]]
+        hist_np, _ = np.histogramdd(sample, bins)
+
+        hist2 = np.zeros([len(b) - 1 for b in bins])
+        hist_chunk, idx = histogram.adaptive_histogram(sample, bins)
+        assert idx == np.s_[1:0, 1:0]
+        hist2[idx] = hist_chunk
+
+        assert hist2.tolist() == hist_np.tolist()
+
     def test_can_interpret_bins_as_exact(self):
         # Classic bins
         sample = [[1, 2, 3, 3, 4], [5, 6, 7, 8, 9]]

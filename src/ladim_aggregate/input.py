@@ -127,11 +127,21 @@ class LadimInputStream:
         """
         out = {k: {fun: None for fun in funclist} for k, funclist in spec.items()}
 
+        def agg_log(aggfunc, aggval):
+            if aggfunc == "unique":
+                logger.info(f'Number of unique values: {len(aggval)}')
+            elif aggfunc == "max":
+                logger.info(f'Max value: {aggval}')
+            elif aggfunc == "min":
+                logger.info(f'Min value: {aggval}')
+
         for dset in self.idatasets():
             for varname, funclist in spec.items():
+                logger.info(f'Load "{varname}" values')
+                data = dset.variables[varname].values
                 for fun in funclist:
-                    data = dset.variables[varname].values
                     out[varname][fun] = update_agg(out[varname][fun], fun, data)
+                    agg_log(fun, out[varname][fun])
 
         return out
 
@@ -286,7 +296,9 @@ def update_unique(old, data):
 @contextlib.contextmanager
 def _open_spec(spec):
     if isinstance(spec, str):
+        logger.info(f'Open dataset "{spec}"')
         with xr.open_dataset(spec, decode_cf=False) as ddset:
             yield ddset, True
     else:
+        logger.info(f'Enter new dataset')
         yield spec, False

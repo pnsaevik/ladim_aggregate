@@ -178,6 +178,11 @@ def autobins(spec, dset):
                    if v in scan_params_template}
     scan_output = {k: None for k in spec}
     if scan_params:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info('Perform preliminary scan of the input dataset to find the following info:')
+        for k, v in scan_params.items():
+            logger.info(f'{k}: {v}')
         scan_output = {**scan_output, **dset.scan(scan_params)}
 
     # Put the specs and the result of the pre-scanning into the bin generator

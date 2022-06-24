@@ -133,6 +133,9 @@ def run(dset_in, config, dset_out):
     logger = logging.getLogger(__name__)
 
     for chunk_in in dset_in.chunks():
+        if chunk_in.dims['particle_instance'] == 0:
+            continue
+
         for chunk_out in hist.make(chunk_in):
             txt = ", ".join([f'{a.start}:{a.stop}' for a in chunk_out['indices']])
             logger.info(f'Write output chunk [{txt}]')

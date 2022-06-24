@@ -151,8 +151,9 @@ class LadimInputStream:
         spec_without_particle_vars = {
             k: v for k, v in spec.items() if first_dset[k].dims != ('particle', )}
 
-        for next_dset in dataset_iterator:
-            update_output(next_dset, spec_without_particle_vars)
+        if spec_without_particle_vars:
+            for next_dset in dataset_iterator:
+                update_output(next_dset, spec_without_particle_vars)
 
         return out
 

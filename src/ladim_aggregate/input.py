@@ -146,7 +146,7 @@ class LadimInputStream:
             logger.info("Apply filter")
             chunk = self.filter(chunk)
             num_unfiltered = chunk.dims['particle_instance']
-            logger.info(f'Number of unfiltered particles: {num_unfiltered}')
+            logger.info(f'Number of remaining particles: {num_unfiltered}')
             if self.weights and num_unfiltered:
                 logger.info("Apply weights")
                 chunk = chunk.assign(weights=self.weights(chunk))

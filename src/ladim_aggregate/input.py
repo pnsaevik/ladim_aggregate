@@ -163,7 +163,6 @@ class LadimInputStream:
         try:
             chunk = next(self.ladim_iter)
             logger.info(f'Number of particle instances: {chunk.dims["particle_instance"]}')
-            chunk.compute()
             logger.info("Apply filter")
             chunk = self.filter(chunk)
             num_unfiltered = chunk.dims['particle_instance']
@@ -175,7 +174,7 @@ class LadimInputStream:
         except StopIteration:
             return None
 
-    def chunks(self) -> typing.Iterable[xr.Dataset]:
+    def chunks(self) -> typing.Iterator[xr.Dataset]:
         chunk = self.read()
         while chunk is not None:
             yield chunk

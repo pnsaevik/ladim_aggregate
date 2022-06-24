@@ -1,5 +1,13 @@
 # Version history
 
+## [Unreleased] - 2022-06-24
+### Added
+- More logging statements
+### Changed
+- Optimized pre-scanning for particle variables
+### Fixed
+- Error in main script argument parsing 
+
 ## [1.6] - 2022-06-23
 ### Added
 - Config script may now exclude certain explicit specifications, which are

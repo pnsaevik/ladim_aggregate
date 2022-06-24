@@ -127,15 +127,37 @@ class LadimInputStream:
         """
         out = {k: {fun: None for fun in funclist} for k, funclist in spec.items()}
 
-        for dset in self.idatasets():
-            for varname, funclist in spec.items():
+        def agg_log(aggfunc, aggval):
+            if aggfunc == "unique":
+                logger.info(f'Number of unique values: {len(aggval)}')
+            elif aggfunc == "max":
+                logger.info(f'Max value: {aggval}')
+            elif aggfunc == "min":
+                logger.info(f'Min value: {aggval}')
+
+        def update_output(dset, sub_spec):
+            for varname, funclist in sub_spec.items():
+                logger.info(f'Load "{varname}" values')
+                data = dset.variables[varname].values
                 for fun in funclist:
-                    data = dset.variables[varname].values
                     out[varname][fun] = update_agg(out[varname][fun], fun, data)
+                    agg_log(fun, out[varname][fun])
+
+        # Particle variables do only need the first dataset
+        dataset_iterator = self.idatasets()
+        first_dset = next(dataset_iterator)
+        update_output(first_dset, spec)
+
+        spec_without_particle_vars = {
+            k: v for k, v in spec.items() if first_dset[k].dims != ('particle', )}
+
+        if spec_without_particle_vars:
+            for next_dset in dataset_iterator:
+                update_output(next_dset, spec_without_particle_vars)
 
         return out
 
-    def idatasets(self) -> typing.Iterable:
+    def idatasets(self) -> typing.Iterator:
         for spec in self.datasets:
             with _open_spec(spec) as (dset, _):
                 yield dset
@@ -146,7 +168,7 @@ class LadimInputStream:
             logger.info("Apply filter")
             chunk = self.filter(chunk)
             num_unfiltered = chunk.dims['particle_instance']
-            logger.info(f'Number of unfiltered particles: {num_unfiltered}')
+            logger.info(f'Number of remaining particles: {num_unfiltered}')
             if self.weights and num_unfiltered:
                 logger.info("Apply weights")
                 chunk = chunk.assign(weights=self.weights(chunk))
@@ -159,6 +181,10 @@ class LadimInputStream:
         while chunk is not None:
             yield chunk
             chunk = self.read()
+
+
+def get_time(timevar):
+    return xr.decode_cf(timevar.to_dataset(name='timevar')).timevar.values
 
 
 def get_filter_func_from_numexpr(spec):
@@ -228,7 +254,8 @@ def ladim_iterator(ladim_dsets):
         pcount_cum = np.concatenate([[0], np.cumsum(dset.particle_count.values)])
 
         for tidx in range(dset.dims['time']):
-            logger.info(f'Read time step {dset.time[tidx].values}')
+            timestr = str(get_time(dset.time[tidx]).astype('datetime64[s]')).replace("T", " ")
+            logger.info(f'Read time step {timestr}')
             iidx = slice(pcount_cum[tidx], pcount_cum[tidx + 1])
             logger.info(f'Number of particles: {iidx.stop - iidx.start}')
             if iidx.stop == iidx.start:
@@ -286,7 +313,9 @@ def update_unique(old, data):
 @contextlib.contextmanager
 def _open_spec(spec):
     if isinstance(spec, str):
+        logger.info(f'Open dataset "{spec}"')
         with xr.open_dataset(spec, decode_cf=False) as ddset:
             yield ddset, True
     else:
+        logger.info(f'Enter new dataset')
         yield spec, False

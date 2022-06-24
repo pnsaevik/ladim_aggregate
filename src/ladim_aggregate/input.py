@@ -192,7 +192,11 @@ def get_filter_func_from_numexpr(spec):
     ex = numexpr.NumExpr(spec)
 
     def filter_fn(chunk):
-        args = [chunk[n].values for n in ex.input_names]
+        args = []
+        for n in ex.input_names:
+            logger.info(f'Load variable "{n}"')
+            args.append(chunk[n].values)
+        logger.info(f'Compute filter expression "{spec}"')
         idx = ex.run(*args)
         return chunk.isel(particle_instance=idx)
     return filter_fn

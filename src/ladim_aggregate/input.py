@@ -183,6 +183,10 @@ class LadimInputStream:
             chunk = self.read()
 
 
+def get_time(timevar):
+    return xr.decode_cf(timevar.to_dataset(name='timevar')).timevar.values
+
+
 def get_filter_func_from_numexpr(spec):
     import numexpr
     ex = numexpr.NumExpr(spec)
@@ -250,7 +254,8 @@ def ladim_iterator(ladim_dsets):
         pcount_cum = np.concatenate([[0], np.cumsum(dset.particle_count.values)])
 
         for tidx in range(dset.dims['time']):
-            logger.info(f'Read time step {dset.time[tidx].values}')
+            timestr = str(get_time(dset.time[tidx]).astype('datetime64[s]')).replace("T", " ")
+            logger.info(f'Read time step {timestr}')
             iidx = slice(pcount_cum[tidx], pcount_cum[tidx + 1])
             logger.info(f'Number of particles: {iidx.stop - iidx.start}')
             if iidx.stop == iidx.start:

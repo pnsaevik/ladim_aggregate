@@ -8,7 +8,7 @@ root = Path(r"C:\Users\a5606\AppData\Local\Temp\stresstest")
 
 def test_lice():
     config = dict(
-        infile=r"S:\marimy\Lusearkiv_PO5\Raw2018\raw_0000.nc",
+        infile=r"S:\marimy\Lusearkiv_PO5\Raw2018\raw_000*.nc",
         outfile=str(root / "count.nc"),
         bins=dict(time="group_by", Y=1, X=1),
         filter="(40 <= age) & (age < 170) & (Z <= 2)",

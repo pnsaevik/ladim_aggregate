@@ -259,7 +259,7 @@ def ladim_iterator(ladim_dsets):
 
         for tidx in range(dset.dims['time']):
             timestr = str(get_time(dset.time[tidx]).astype('datetime64[s]')).replace("T", " ")
-            logger.info(f'Read time step {timestr}')
+            logger.info(f'Read time step {timestr} (time={dset.time[tidx].values.item()})')
             iidx = slice(pcount_cum[tidx], pcount_cum[tidx + 1])
             logger.info(f'Number of particles: {iidx.stop - iidx.start}')
             if iidx.stop == iidx.start:

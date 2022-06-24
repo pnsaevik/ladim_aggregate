@@ -6,7 +6,7 @@ import yaml
 root = Path(r"S:\scratch\a5606\stresstest")
 
 
-def test_lice():
+def run_lice():
     config = dict(
         infile=r"S:\marimy\Lusearkiv_PO5\Raw2018\raw_000*.nc",
         outfile=str(root / "count.nc"),
@@ -23,4 +23,4 @@ def test_lice():
 
 
 if __name__ == "__main__":
-    test_lice()
+    run_lice()

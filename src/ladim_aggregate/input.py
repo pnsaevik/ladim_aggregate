@@ -71,8 +71,6 @@ class LadimInputStream:
                 with _open_spec(spec) as (dset, is_file):
                     self._dataset_mustclose = is_file
                     self._dataset_current = dset
-                    logtext = f'Open input dataset {spec}' if is_file else "Enter new dataset"
-                    logger.info(logtext)
                     logger.info(f'Number of particle instances: {dset.dims["particle_instance"]}')
                     yield dset
 
@@ -325,6 +323,7 @@ def _open_spec(spec):
         logger.info(f'Open dataset "{spec}"')
         with xr.open_dataset(spec, decode_cf=False) as ddset:
             yield ddset, True
+            logger.info(f'Close dataset "{spec}"')
     else:
         logger.info(f'Enter new dataset')
         yield spec, False

@@ -203,7 +203,11 @@ def get_weight_func_from_numexpr(spec):
     ex = numexpr.NumExpr(spec)
 
     def weight_fn(chunk):
-        args = [chunk[n].values for n in ex.input_names]
+        args = []
+        for n in ex.input_names:
+            logger.info(f'Load variable "{n}"')
+            args.append(chunk[n].values)
+        logger.info(f'Compute weights expression "{spec}"')
         return xr.Variable('particle_instance', ex.run(*args))
 
     return weight_fn

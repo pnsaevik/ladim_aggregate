@@ -135,17 +135,28 @@ class LadimInputStream:
             elif aggfunc == "min":
                 logger.info(f'Min value: {aggval}')
 
-        for dset in self.idatasets():
-            for varname, funclist in spec.items():
+        def update_output(dset, sub_spec):
+            for varname, funclist in sub_spec.items():
                 logger.info(f'Load "{varname}" values')
                 data = dset.variables[varname].values
                 for fun in funclist:
                     out[varname][fun] = update_agg(out[varname][fun], fun, data)
                     agg_log(fun, out[varname][fun])
 
+        # Particle variables do only need the first dataset
+        dataset_iterator = self.idatasets()
+        first_dset = next(dataset_iterator)
+        update_output(first_dset, spec)
+
+        spec_without_particle_vars = {
+            k: v for k, v in spec.items() if first_dset[k].dims != ('particle', )}
+
+        for next_dset in dataset_iterator:
+            update_output(next_dset, spec_without_particle_vars)
+
         return out
 
-    def idatasets(self) -> typing.Iterable:
+    def idatasets(self) -> typing.Iterator:
         for spec in self.datasets:
             with _open_spec(spec) as (dset, _):
                 yield dset

@@ -189,18 +189,21 @@ def get_filter_func_from_numexpr(spec):
     ex = numexpr.NumExpr(spec)
 
     def filter_fn(chunk):
-        args = []
-        for n in ex.input_names:
+        data = {}
+        for n in chunk.variables.keys():
             logger.info(f'Load variable "{n}"')
-            args.append(chunk[n].values)
+            data[n] = chunk[n].values
+
+        args = [data[n] for n in ex.input_names]
+
         logger.info(f'Compute filter expression "{spec}"')
         idx = ex.run(*args)
         variables = {}
         for k, v in chunk.variables.items():
             if v.dims == ('particle_instance', ):
                 variables[k] = xr.Variable(
-                    dims=v.dims,
-                    data=v.values[idx],
+                    dims='particle_instance',
+                    data=data[k][idx],
                     attrs=v.attrs,
                 )
             else:

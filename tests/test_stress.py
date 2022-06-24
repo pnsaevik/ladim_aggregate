@@ -3,7 +3,7 @@ from pathlib import Path
 import yaml
 
 
-root = Path(r"C:\Users\a5606\AppData\Local\Temp\stresstest")
+root = Path(r"S:\scratch\a5606\stresstest")
 
 
 def test_lice():
@@ -13,7 +13,7 @@ def test_lice():
         bins=dict(time="group_by", Y=1, X=1),
         filter="(40 <= age) & (age < 170) & (Z <= 2)",
         weights="super",
-        filesplit_dims=['farmid', 'time'],
+        filesplit_dims=['farmid'],
     )
     config_fname = str(root / "aggregate.yaml")
     with open(config_fname, 'w', encoding='utf-8') as f:

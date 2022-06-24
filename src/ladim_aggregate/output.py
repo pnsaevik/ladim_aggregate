@@ -1,5 +1,9 @@
 import netCDF4 as nc
 import numpy as np
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class MultiDataset:
@@ -196,6 +200,7 @@ class MultiDataset:
         file_idx_key = tuple((k, file_idx[k]) for k in self._cross_coords.keys())
         if file_idx_key not in self.datasets:
             fname = self._get_filename(file_idx)
+            logger.info(f'Create sub-dataset "{fname}"')
             dset = nc.Dataset(fname, mode='w', **self._dataset_kwargs)
             self._copy_from_main(dset, file_idx)
             self.datasets[file_idx_key] = dset

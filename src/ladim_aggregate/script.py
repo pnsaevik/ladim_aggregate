@@ -65,7 +65,7 @@ def main(*args):
         args = sys.argv[1:]
 
     # If called with too few arguments, print usage information
-    if len(args) < 2:
+    if len(args) < 1:
         parser.print_help()
         return
 

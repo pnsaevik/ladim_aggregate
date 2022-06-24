@@ -71,7 +71,6 @@ class LadimInputStream:
                 with _open_spec(spec) as (dset, is_file):
                     self._dataset_mustclose = is_file
                     self._dataset_current = dset
-                    logger.info(f'Number of particle instances: {dset.dims["particle_instance"]}')
                     yield dset
 
         self._dataset_iterator = dataset_iterator()
@@ -163,6 +162,7 @@ class LadimInputStream:
     def read(self):
         try:
             chunk = next(self.ladim_iter)
+            logger.info(f'Number of particle instances: {chunk.dims["particle_instance"]}')
             chunk.compute()
             logger.info("Apply filter")
             chunk = self.filter(chunk)

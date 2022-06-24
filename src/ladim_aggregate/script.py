@@ -73,8 +73,10 @@ def main(*args):
     config_file = parsed_args.config_file
 
     import logging
+    from . import __version__ as version_str
     init_logger()
     logger = logging.getLogger(__name__)
+    logger.info(f'Starting ladim_aggregate, version {version_str}')
 
     # Extract example if requested
     if parsed_args.example:

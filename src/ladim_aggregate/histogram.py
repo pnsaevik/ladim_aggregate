@@ -1,5 +1,9 @@
 import numpy as np
 import pandas as pd
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class Histogrammer:
@@ -25,7 +29,10 @@ class Histogrammer:
     def make(self, chunk):
         coord_names = list(self.coords.keys())
         bins = [self.coords[k]['edges'] for k in coord_names]
-        coords = [chunk[k].values for k in coord_names]
+        coords = []
+        for k in coord_names:
+            logger.info(f'Load variable "{k}"')
+            coords.append(chunk[k].values)
 
         if 'weights' in chunk.variables:
             weights = chunk.weights.values

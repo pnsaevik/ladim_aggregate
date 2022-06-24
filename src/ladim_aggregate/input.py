@@ -162,7 +162,6 @@ class LadimInputStream:
     def read(self):
         try:
             chunk = next(self.ladim_iter)
-            logger.info(f'Number of particle instances: {chunk.dims["particle_instance"]}')
             logger.info("Apply filter")
             chunk = self.filter(chunk)
             num_unfiltered = chunk.dims['particle_instance']
@@ -196,7 +195,17 @@ def get_filter_func_from_numexpr(spec):
             args.append(chunk[n].values)
         logger.info(f'Compute filter expression "{spec}"')
         idx = ex.run(*args)
-        return chunk.isel(particle_instance=idx)
+        variables = {}
+        for k, v in chunk.variables.items():
+            if v.dims == ('particle_instance', ):
+                variables[k] = xr.Variable(
+                    dims=v.dims,
+                    data=v.values[idx],
+                    attrs=v.attrs,
+                )
+            else:
+                variables[k] = v
+        return xr.Dataset(data_vars=variables, attrs=chunk.attrs)
     return filter_fn
 
 

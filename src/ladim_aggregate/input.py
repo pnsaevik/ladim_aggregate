@@ -322,8 +322,8 @@ def update_unique(old, data):
 def _open_spec(spec):
     if isinstance(spec, str):
         logger.info(f'Open dataset "{spec}"')
-        with xr.open_dataset(spec, decode_cf=False) as ddset:
-            yield ddset, True
+        ddset = xr.load_dataset(spec, decode_cf=False)
+        yield ddset, True
     else:
         logger.info(f'Enter new dataset')
         yield spec, False

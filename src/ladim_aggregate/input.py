@@ -203,7 +203,11 @@ def get_weight_func_from_numexpr(spec):
     ex = numexpr.NumExpr(spec)
 
     def weight_fn(chunk):
-        args = [chunk[n].values for n in ex.input_names]
+        args = []
+        for n in ex.input_names:
+            logger.info(f'Load variable "{n}"')
+            args.append(chunk[n].values)
+        logger.info(f'Compute weights expression "{spec}"')
         return xr.Variable('particle_instance', ex.run(*args))
 
     return weight_fn
@@ -255,7 +259,7 @@ def ladim_iterator(ladim_dsets):
 
         for tidx in range(dset.dims['time']):
             timestr = str(get_time(dset.time[tidx]).astype('datetime64[s]')).replace("T", " ")
-            logger.info(f'Read time step {timestr}')
+            logger.info(f'Read time step {timestr} (time={dset.time[tidx].values.item()})')
             iidx = slice(pcount_cum[tidx], pcount_cum[tidx + 1])
             logger.info(f'Number of particles: {iidx.stop - iidx.start}')
             if iidx.stop == iidx.start:

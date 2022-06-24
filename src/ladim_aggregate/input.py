@@ -165,6 +165,7 @@ class LadimInputStream:
     def read(self):
         try:
             chunk = next(self.ladim_iter)
+            chunk.compute()
             logger.info("Apply filter")
             chunk = self.filter(chunk)
             num_unfiltered = chunk.dims['particle_instance']
@@ -322,8 +323,8 @@ def update_unique(old, data):
 def _open_spec(spec):
     if isinstance(spec, str):
         logger.info(f'Open dataset "{spec}"')
-        ddset = xr.load_dataset(spec, decode_cf=False)
-        yield ddset, True
+        with xr.open_dataset(spec, decode_cf=False) as ddset:
+            yield ddset, True
     else:
         logger.info(f'Enter new dataset')
         yield spec, False

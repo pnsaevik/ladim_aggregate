@@ -91,6 +91,7 @@ def main(*args):
     logger.info(f'Input file pattern: "{config["infile"]}"')
     from .input import LadimInputStream
     dset_in = LadimInputStream(config['infile'])
+    logger.info(f'Number of input datasets: {len(dset_in.datasets)}')
 
     logger.info(f'Create output file "{config["outfile"]}"')
     from .output import MultiDataset

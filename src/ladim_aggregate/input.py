@@ -12,8 +12,6 @@ logger = logging.getLogger(__name__)
 class LadimInputStream:
     def __init__(self, spec):
         self.datasets = glob_files(spec)
-        logger.info(f'Number of input datasets: {len(self.datasets)}')
-
         self._attributes = None
 
     @property

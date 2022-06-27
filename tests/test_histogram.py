@@ -114,30 +114,6 @@ class Test_adaptive_histogram:
 
         assert hist2.tolist() == hist_np.tolist()
 
-    def test_can_interpret_bins_as_exact(self):
-        # Classic bins
-        sample = [[1, 2, 3, 3, 4], [5, 6, 7, 8, 9]]
-        bins1 = [[1.5, 2.5, 3.5], [6.5, 7.5, 8.5, 9.5]]
-        hist1, idx1 = histogram.adaptive_histogram(sample, bins1)
-
-        # First dimension are exact values
-        bins2 = [[2, 3], [6.5, 7.5, 8.5, 9.5]]
-        hist2, idx2 = histogram.adaptive_histogram(sample, bins2, exact_dims=[0])
-        assert hist2.tolist() == hist1.tolist()
-        assert idx2 == idx1
-
-        # Second dimension are exact values
-        bins3 = [[1.5, 2.5, 3.5], [7, 8, 9]]
-        hist3, idx3 = histogram.adaptive_histogram(sample, bins3, exact_dims=[1])
-        assert hist3.tolist() == hist1.tolist()
-        assert idx3 == idx1
-
-        # Both dimensions are exact values
-        bins4 = [[2, 3], [7, 8, 9]]
-        hist4, idx4 = histogram.adaptive_histogram(sample, bins4, exact_dims=[0, 1])
-        assert hist4.tolist() == hist1.tolist()
-        assert idx4 == idx1
-
 
 class Test_autobins:
     def test_computes_centers_if_spec_is_list(self):

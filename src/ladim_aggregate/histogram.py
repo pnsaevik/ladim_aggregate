@@ -43,7 +43,7 @@ def get_centers_from_edges(edges):
     return edges[:-1] + 0.5 * edgediff
 
 
-def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
+def adaptive_histogram(sample, bins, **kwargs):
     """
     Return an adaptive histogram
 
@@ -60,7 +60,6 @@ def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
     :param sample:
     :param bins:
     :param kwargs:
-    :param exact_dims:
     :return:
     """
 
@@ -72,19 +71,12 @@ def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
 
     num_entries = next(len(s) for s in sample)
     included = np.ones(num_entries, dtype=bool)
-    is_exact = np.zeros(len(bins), dtype=bool)
-    is_exact[list(exact_dims)] = True
 
     # Find histogram coordinates of each entry
     binned_sample = []
-    for s, b, ex in zip(sample, bins, is_exact):
-        if ex:
-            mapping = {k: i for i, k in enumerate(b)}
-            coords = np.asarray([mapping.get(k, 0) for k in s])
-            included = included & np.asarray([k in mapping for k in s])
-        else:
-            coords = np.searchsorted(b, s, side='right') - 1
-            included = included & (0 <= coords) & (coords < len(b) - 1)
+    for s, b in zip(sample, bins):
+        coords = np.searchsorted(b, s, side='right') - 1
+        included = included & (0 <= coords) & (coords < len(b) - 1)
         binned_sample.append(coords)
 
     # Filter out coordinates outside interval

@@ -266,13 +266,32 @@ def ladim_iterator(ladim_dsets):
             logger.info(f'Number of particles: {iidx.stop - iidx.start}')
             if iidx.stop == iidx.start:
                 continue
-            pidx = xr.Variable('particle_instance', dset.pid[iidx].values)
-            ttidx = xr.Variable('particle_instance', np.broadcast_to(tidx, (len(pidx), )))
-            ddset = dset.isel(time=ttidx, particle_instance=iidx)
-            if 'particle' in dset.dims:
-                ddset = ddset.isel(particle=pidx)
 
-            ddset = ddset.assign(instance_offset=instance_offset + iidx.start)
+            pid = xr.Variable('particle_instance', dset.pid[iidx].values, dset.pid.attrs)
+
+            ddset = xr.Dataset(
+                data_vars=dict(instance_offset=instance_offset + iidx.start),
+                coords=dict({pid.dims[0]: pid}),
+                attrs=dset.attrs,
+            )
+
+            for k, v in dset.variables.items():
+                if k in ('pid', 'instance_offset'):
+                    continue
+
+                logger.info(f'Load variable "{k}"')
+                if v.dims == ('particle_instance', ):
+                    new_var = xr.Variable(pid.dims[0], v[iidx].values, v.attrs)
+                elif v.dims == ('particle', ):
+                    new_var = xr.Variable(pid.dims[0], v.values[pid.values], v.attrs)
+                elif v.dims == ('time', ):
+                    data = np.broadcast_to(v.values[tidx], (iidx.stop - iidx.start, ))
+                    new_var = xr.Variable(pid.dims[0], data, v.attrs)
+                else:
+                    raise ValueError(f'Unknkown dimension: "{v.dims}"')
+
+                ddset = ddset.assign(**{k: new_var})
+
             yield ddset
 
 

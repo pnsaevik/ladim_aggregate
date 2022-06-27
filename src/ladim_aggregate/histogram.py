@@ -15,14 +15,9 @@ class Histogrammer:
     def _get_coords_from_bins(bins_dict):
         crd = dict()
         for crd_name, bins in bins_dict.items():
-            if isinstance(bins, dict):
-                edges = bins['edges']
-                centers = bins['centers']
-                attrs = bins.get('attrs', dict())
-            else:
-                edges = np.asarray(bins)
-                centers = get_centers_from_edges(edges)
-                attrs = dict()
+            edges = bins['edges']
+            centers = bins['centers']
+            attrs = bins.get('attrs', dict())
             crd[crd_name] = dict(centers=centers, edges=edges, attrs=attrs)
         return crd
 

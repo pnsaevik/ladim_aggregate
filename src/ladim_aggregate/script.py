@@ -107,17 +107,21 @@ def run(dset_in, config, dset_out):
     # Modify configuration dict by reformatting and appending default values
     config = parse_config(config)
 
+    # Read some params
     filesplit_dims = config.get('filesplit_dims', [])
-
     filter_spec = config.get('filter', None)
     vars_spec = dict()
+
+    # Add weights
     if 'weights' in config:
         vars_spec['weights'] = config['weights']
 
+    # Prepare histogram bins
     bins = autobins(config['bins'], dset_in)
     hist = Histogrammer(bins=bins)
     coords = hist.coords
 
+    # Create output coordinate variables
     for coord_name, coord_info in coords.items():
         dset_out.createCoord(
             varname=coord_name,
@@ -126,22 +130,26 @@ def run(dset_in, config, dset_out):
             cross_dataset=coord_name in filesplit_dims,
         )
 
+    # Create aggregation variable
     dset_out.createVariable(
         varname='histogram',
         data=np.array(0, dtype=np.float32),
         dims=tuple(coords.keys()),
     )
 
+    # Add projection information
     if 'projection' in config:
         from .proj import write_projection
         write_projection(dset_out, config['projection'])
 
     logger = logging.getLogger(__name__)
 
+    # Read ladim file timestep by timestep
     for chunk_in in dset_in.chunks(filters=filter_spec, newvars=vars_spec):
         if chunk_in.dims['pid'] == 0:
             continue
 
+        # Write histogram values to file
         for chunk_out in hist.make(chunk_in):
             txt = ", ".join([f'{a.start}:{a.stop}' for a in chunk_out['indices']])
             logger.info(f'Write output chunk [{txt}]')

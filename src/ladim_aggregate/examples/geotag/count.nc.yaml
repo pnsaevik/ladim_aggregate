@@ -1,5 +1,5 @@
 histogram:
-  dims: [region, _INIT_region]
+  dims: [region, INIT_region]
   data:
     - [0, 0]
     - [2, 0]

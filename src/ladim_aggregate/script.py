@@ -112,6 +112,16 @@ def run(dset_in, config, dset_out):
     filter_spec = config.get('filter', None)
     vars_spec = dict()
 
+    # Add geotagging
+    if 'geotag' in config:
+        for k in config['geotag']['attrs']:
+            vars_spec[k] = ('geotag', dict(
+                attribute=k,
+                x_var=config['geotag']['coords']['x'],
+                y_var=config['geotag']['coords']['y'],
+                geojson=dict(),
+            ))
+
     # Add weights
     if 'weights' in config:
         vars_spec['weights'] = config['weights']

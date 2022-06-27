@@ -22,13 +22,16 @@ geotag:
   - inside
 
 bins:
-  # The first grouping variable is "farm_id", which is the value of the
-  # variable `farm_id` at the start of the simulation
-  region: group_by
-  _INIT_region: group_by
+  # Count the number of particles in each region, grouped by initial region
+  region:
+    edges: [101, 102, 103]
+    labels: [101, 102]
+  INIT_region:
+    edges: [101, 102, 103]
+    labels: [101, 102]
 
 # Find the distribution of particles with a certain age
-filter: age == 10
+filter: age == 2
 
 # Input file in netCDF format (ladim output format)
 infile: ladim.nc

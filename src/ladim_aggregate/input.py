@@ -25,6 +25,7 @@ class LadimInputStream:
             spec = self.datasets[0]
             self._attributes = dict()
             with _open_spec(spec) as dset:
+                logger.info('Read attributes')
                 for k, v in dset.variables.items():
                     self._attributes[k] = v.attrs
         return self._attributes

@@ -11,111 +11,19 @@ logger = logging.getLogger(__name__)
 
 class LadimInputStream:
     def __init__(self, spec):
-        # Convert input spec to a sequence
-        if isinstance(spec, tuple) or isinstance(spec, list):
-            specs = spec
-        else:
-            specs = [spec]
-
-        # Expand glob patterns in spec
-        self.datasets = []
-        for s in specs:
-            if isinstance(s, str):
-                self.datasets += sorted(glob.glob(s))
-            else:
-                self.datasets.append(s)
-        logger.info(f'Number of input datasets: {len(self.datasets)}')
-
-        self._filter = lambda chunk: chunk
-        self._weights = None
-
-        self._dataset_iterator = None
-        self._dataset_current = xr.Dataset()
-        self._dataset_mustclose = False
-        self.ladim_iter = None
-        self._reset_ladim_iterator()
-
+        self.datasets = glob_files(spec)
         self._attributes = None
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._dataset_mustclose:
-            self._dataset_current.close()
-
-    def close(self):
-        self._dataset_current.close()
-
-    def seek(self, pos):
-        if pos != 0:
-            raise NotImplementedError
-        self._reset_ladim_iterator()
 
     @property
     def attributes(self):
         if self._attributes is None:
             spec = self.datasets[0]
             self._attributes = dict()
-            with _open_spec(spec) as (dset, _):
+            with _open_spec(spec) as dset:
+                logger.info('Read attributes')
                 for k, v in dset.variables.items():
                     self._attributes[k] = v.attrs
         return self._attributes
-
-    def _reset_ladim_iterator(self):
-        if self._dataset_mustclose:
-            self._dataset_current.close()
-
-        def dataset_iterator():
-            for spec in self.datasets:
-                with _open_spec(spec) as (dset, is_file):
-                    self._dataset_mustclose = is_file
-                    self._dataset_current = dset
-                    for k in dset.variables:
-                        if dset[k].dims == ('particle', ):
-                            logger.info(f'Load particle variable "{k}"')
-                            dset[k].compute()
-
-                    yield dset
-
-        self._dataset_iterator = dataset_iterator()
-        self.ladim_iter = ladim_iterator(self._dataset_iterator)
-
-    @property
-    def filter(self):
-        return self._filter
-
-    @property
-    def weights(self):
-        return self._weights
-
-    @filter.setter
-    def filter(self, spec):
-        if spec is None:
-            return
-        elif isinstance(spec, str):
-            if '.' in spec:
-                self._filter = get_filter_func_from_funcstring(spec)
-            else:
-                self._filter = get_filter_func_from_numexpr(spec)
-        elif callable(spec):
-            self._filter = get_filter_func_from_callable(spec)
-        else:
-            raise TypeError(f'Unknown type: {type(spec)}')
-
-    @weights.setter
-    def weights(self, spec):
-        if spec is None:
-            return
-        elif isinstance(spec, str):
-            if '.' in spec:
-                self._weights = get_weight_func_from_funcstring(spec)
-            else:
-                self._weights = get_weight_func_from_numexpr(spec)
-        elif callable(spec):
-            self._weights = get_weight_func_from_callable(spec)
-        else:
-            raise TypeError(f'Unknown type: {type(spec)}')
 
     def scan(self, spec):
         """
@@ -137,52 +45,46 @@ class LadimInputStream:
             elif aggfunc == "min":
                 logger.info(f'Min value: {aggval}')
 
-        def update_output(dset, sub_spec):
+        def update_output(ddset, sub_spec):
             for varname, funclist in sub_spec.items():
                 logger.info(f'Load "{varname}" values')
-                data = dset.variables[varname].values
+                data = ddset.variables[varname].values
                 for fun in funclist:
                     out[varname][fun] = update_agg(out[varname][fun], fun, data)
                     agg_log(fun, out[varname][fun])
 
         # Particle variables do only need the first dataset
-        dataset_iterator = self.idatasets()
-        first_dset = next(dataset_iterator)
-        update_output(first_dset, spec)
+        with _open_spec(self.datasets[0]) as dset:
+            update_output(dset, spec)
 
         spec_without_particle_vars = {
-            k: v for k, v in spec.items() if first_dset[k].dims != ('particle', )}
+            k: v for k, v in spec.items() if self.datasets[0][k].dims != ('particle', )}
 
         if spec_without_particle_vars:
-            for next_dset in dataset_iterator:
-                update_output(next_dset, spec_without_particle_vars)
+            for dset in self.datasets[1:]:
+                update_output(dset, spec_without_particle_vars)
 
         return out
 
-    def idatasets(self) -> typing.Iterator:
-        for spec in self.datasets:
-            with _open_spec(spec) as (dset, _):
-                yield dset
+    def chunks(self, filters=None, newvars=None) -> typing.Iterator[xr.Dataset]:
+        newvars = newvars or dict()
+        filterfn = create_filter(filters)
+        newvarfn = {k: create_weights(v) for k, v in newvars.items()}
 
-    def read(self):
-        try:
-            chunk = next(self.ladim_iter)
-            logger.info("Apply filter")
-            chunk = self.filter(chunk)
+        for chunk in ladim_iterator(self.datasets):
             num_unfiltered = chunk.dims['pid']
-            logger.info(f'Number of remaining particles: {num_unfiltered}')
-            if self.weights and num_unfiltered:
-                logger.info("Apply weights")
-                chunk = chunk.assign(weights=self.weights(chunk))
-            return chunk
-        except StopIteration:
-            return None
+            if filterfn:
+                logger.info("Apply filter")
+                chunk = filterfn(chunk)
+                num_unfiltered = chunk.dims['pid']
+                logger.info(f'Number of remaining particles: {num_unfiltered}')
 
-    def chunks(self) -> typing.Iterator[xr.Dataset]:
-        chunk = self.read()
-        while chunk is not None:
+            if newvarfn and num_unfiltered:
+                for varname, fn in newvarfn.items():
+                    logger.info(f'Compute "{varname}"')
+                    chunk = chunk.assign(**{varname: fn(chunk)})
+
             yield chunk
-            chunk = self.read()
 
 
 def get_time(timevar):
@@ -254,8 +156,39 @@ def get_weight_func_from_funcstring(s: str):
     return get_weight_func_from_callable(func)
 
 
+def glob_files(spec):
+    """
+    Convert a set of glob patterns to a list of files
+
+    :param spec: One or more glob patterns
+    :return: A list of files
+    """
+
+    # Convert input spec to a sequence
+    if isinstance(spec, tuple) or isinstance(spec, list):
+        specs = spec
+    else:
+        specs = [spec]
+
+    # Expand glob patterns in spec
+    files = []
+    for s in specs:
+        if isinstance(s, str):
+            files += sorted(glob.glob(s))
+        else:
+            files.append(s)
+
+    return files
+
+
+def dset_iterator(specs):
+    for spec in specs:
+        with _open_spec(spec) as dset:
+            yield dset
+
+
 def ladim_iterator(ladim_dsets):
-    for dset in ladim_dsets:
+    for dset in dset_iterator(ladim_dsets):
         instance_offset = dset.get('instance_offset', 0)
         pcount_cum = np.concatenate([[0], np.cumsum(dset.particle_count.values)])
 
@@ -327,8 +260,36 @@ def _open_spec(spec):
     if isinstance(spec, str):
         logger.info(f'Open dataset "{spec}"')
         with xr.open_dataset(spec, decode_cf=False) as ddset:
-            yield ddset, True
+            yield ddset
             logger.info(f'Close dataset "{spec}"')
     else:
         logger.info(f'Enter new dataset')
-        yield spec, False
+        yield spec
+
+
+def create_filter(spec):
+    if spec is None:
+        return None
+    elif isinstance(spec, str):
+        if '.' in spec:
+            return get_filter_func_from_funcstring(spec)
+        else:
+            return get_filter_func_from_numexpr(spec)
+    elif callable(spec):
+        return get_filter_func_from_callable(spec)
+    else:
+        raise TypeError(f'Unknown type: {type(spec)}')
+
+
+def create_weights(spec):
+    if spec is None:
+        return None
+    elif isinstance(spec, str):
+        if '.' in spec:
+            return get_weight_func_from_funcstring(spec)
+        else:
+            return get_weight_func_from_numexpr(spec)
+    elif callable(spec):
+        return get_weight_func_from_callable(spec)
+    else:
+        raise TypeError(f'Unknown type: {type(spec)}')

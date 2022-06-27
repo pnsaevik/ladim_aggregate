@@ -88,13 +88,15 @@ def main(*args):
     with open(config_file, encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
+    logger.info(f'Input file pattern: "{config["infile"]}"')
     from .input import LadimInputStream
-    logger.info(f'Open ladim file "{config["infile"]}"')
-    with LadimInputStream(config['infile']) as dset_in:
-        from .output import MultiDataset
-        logger.info(f'Create output file "{config["outfile"]}"')
-        with MultiDataset(config['outfile']) as dset_out:
-            run(dset_in, config, dset_out)
+    dset_in = LadimInputStream(config['infile'])
+    logger.info(f'Number of input datasets: {len(dset_in.datasets)}')
+
+    logger.info(f'Create output file "{config["outfile"]}"')
+    from .output import MultiDataset
+    with MultiDataset(config['outfile']) as dset_out:
+        run(dset_in, config, dset_out)
 
 
 def run(dset_in, config, dset_out):
@@ -107,8 +109,10 @@ def run(dset_in, config, dset_out):
 
     filesplit_dims = config.get('filesplit_dims', [])
 
-    dset_in.filter = config.get('filter', None)
-    dset_in.weights = config.get('weights', None)
+    filter_spec = config.get('filter', None)
+    vars_spec = dict()
+    if 'weights' in config:
+        vars_spec['weights'] = config['weights']
 
     bins = autobins(config['bins'], dset_in)
     hist = Histogrammer(bins=bins)
@@ -134,7 +138,7 @@ def run(dset_in, config, dset_out):
 
     logger = logging.getLogger(__name__)
 
-    for chunk_in in dset_in.chunks():
+    for chunk_in in dset_in.chunks(filters=filter_spec, newvars=vars_spec):
         if chunk_in.dims['pid'] == 0:
             continue
 

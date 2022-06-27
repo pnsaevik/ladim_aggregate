@@ -72,108 +72,86 @@ class Test_ladim_iterator:
 
 class Test_LadimInputStream_scan:
     def test_can_return_min_value(self, ladim_dset):
-        with ladim_input.LadimInputStream(ladim_dset) as dset:
-            spec = dict(X=['min'])
-            out = dset.scan(spec)
-            assert out == dict(X=dict(min=5))
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        spec = dict(X=['min'])
+        out = dset.scan(spec)
+        assert out == dict(X=dict(min=5))
 
     def test_can_return_max_value(self, ladim_dset):
-        with ladim_input.LadimInputStream(ladim_dset) as dset:
-            spec = dict(X=['max'])
-            out = dset.scan(spec)
-            assert out == dict(X=dict(max=6))
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        spec = dict(X=['max'])
+        out = dset.scan(spec)
+        assert out == dict(X=dict(max=6))
 
     def test_can_return_multiple_stats(self, ladim_dset, ladim_dset2):
         ladim_dset3 = ladim_dset2.copy(deep=True)
         ladim_dset3['X'] += 10
         ladim_dset3['Y'] += 10
-        with ladim_input.LadimInputStream([ladim_dset, ladim_dset3]) as dset:
-            spec = dict(X=['max'], Y=['min', 'max'])
-            out = dset.scan(spec)
-            assert out == dict(X=dict(max=16), Y=dict(min=60, max=72))
+        dset = ladim_input.LadimInputStream([ladim_dset, ladim_dset3])
+        spec = dict(X=['max'], Y=['min', 'max'])
+        out = dset.scan(spec)
+        assert out == dict(X=dict(max=16), Y=dict(min=60, max=72))
 
 
 class Test_LadimInputStream:
     def test_can_initialise_from_xr_dataset(self, ladim_dset):
-        with ladim_input.LadimInputStream(ladim_dset) as dset:
-            dset.read()
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        next(dset.chunks())
 
     def test_can_initialise_from_multiple_xr_datasets(self, ladim_dset, ladim_dset2):
-        with ladim_input.LadimInputStream([ladim_dset, ladim_dset2]) as dset:
-            dset.read()
-
-    # def test_can_initialise_from_filename(self, fnames):
-    #     ladim_fname = fnames['outdata']
-    #     with ladim_input.LadimInputStream(ladim_fname) as dset:
-    #         dset.read()
-
-    # def test_can_initialise_from_multiple_filenames(self, fnames):
-    #     ladim_fname = fnames['outdata']
-    #     with ladim_input.LadimInputStream([ladim_fname, ladim_fname]) as dset:
-    #         dset.read()
-
-    def test_can_seek_to_dataset_beginning(self, ladim_dset):
-        with ladim_input.LadimInputStream(ladim_dset) as dset:
-            first_chunk = dset.read()
-            second_chunk = dset.read()
-            dset.seek(0)
-            third_chunk = dset.read()
-
-        assert first_chunk.pid.values.tolist() != second_chunk.pid.values.tolist()
-        assert first_chunk.pid.values.tolist() == third_chunk.pid.values.tolist()
+        dset = ladim_input.LadimInputStream([ladim_dset, ladim_dset2])
+        next(dset.chunks())
 
     def test_reads_one_timestep_at_the_time(self, ladim_dset, ladim_dset2):
-        with ladim_input.LadimInputStream([ladim_dset, ladim_dset2]) as dset:
-            pids = list(c.pid.values.tolist() for c in dset.chunks())
-            assert len(pids) == ladim_dset.dims['time'] + ladim_dset2.dims['time']
-            assert pids == [[0, 1, 2, 3], [1, 2], [0, 1, 2, 3], [1, 2]]
+        dset = ladim_input.LadimInputStream([ladim_dset, ladim_dset2])
+        pids = list(c.pid.values.tolist() for c in dset.chunks())
+        assert len(pids) == ladim_dset.dims['time'] + ladim_dset2.dims['time']
+        assert pids == [[0, 1, 2, 3], [1, 2], [0, 1, 2, 3], [1, 2]]
 
     def test_broadcasts_time_vars_when_reading(self, ladim_dset, ladim_dset2):
-        with ladim_input.LadimInputStream([ladim_dset, ladim_dset2]) as dset:
-            counts = list(c.particle_count.values.tolist() for c in dset.chunks())
-            assert counts == [[4, 4, 4, 4], [2, 2], [4, 4, 4, 4], [2, 2]]
+        dset = ladim_input.LadimInputStream([ladim_dset, ladim_dset2])
+        counts = list(c.particle_count.values.tolist() for c in dset.chunks())
+        assert counts == [[4, 4, 4, 4], [2, 2], [4, 4, 4, 4], [2, 2]]
 
     def test_broadcasts_particle_vars_when_reading(self, ladim_dset, ladim_dset2):
-        with ladim_input.LadimInputStream([ladim_dset, ladim_dset2]) as dset:
-            farmid = list(c.farm_id.values.tolist() for c in dset.chunks())
-            assert farmid == [
-                [12345, 12346, 12347, 12348],
-                [12346, 12347],
-                [12345, 12346, 12347, 12348],
-                [12346, 12347],
-            ]
+        dset = ladim_input.LadimInputStream([ladim_dset, ladim_dset2])
+        farmid = list(c.farm_id.values.tolist() for c in dset.chunks())
+        assert farmid == [
+            [12345, 12346, 12347, 12348],
+            [12346, 12347],
+            [12345, 12346, 12347, 12348],
+            [12346, 12347],
+        ]
 
     def test_can_apply_filter_string(self, ladim_dset):
-        with ladim_input.LadimInputStream(ladim_dset) as dset:
-            # No filter: 6 particle instances
-            chunks = xr.concat(dset.chunks(), dim='pid')
-            assert chunks.dims['pid'] == 6
+        dset = ladim_input.LadimInputStream(ladim_dset)
 
-            # With filter: 4 particle instances
-            dset.seek(0)
-            dset.filter = "farm_id != 12346"
-            chunks = xr.concat(dset.chunks(), dim='pid')
-            assert chunks.dims['pid'] == 4
+        # No filter: 6 particle instances
+        chunks = xr.concat(dset.chunks(), dim='pid')
+        assert chunks.dims['pid'] == 6
 
-            # A more complex filter expression
-            dset.seek(0)
-            dset.filter = "(farm_id > 12345) & (farm_id < 12347)"
-            chunks = xr.concat(dset.chunks(), dim='pid')
-            assert chunks.dims['pid'] == 2
+        # With filter: 4 particle instances
+        filters = "farm_id != 12346"
+        chunks = xr.concat(dset.chunks(filters=filters), dim='pid')
+        assert chunks.dims['pid'] == 4
+
+        # A more complex filter expression
+        filters = "(farm_id > 12345) & (farm_id < 12347)"
+        chunks = xr.concat(dset.chunks(filters=filters), dim='pid')
+        assert chunks.dims['pid'] == 2
 
     def test_can_add_weights_from_string_expression(self, ladim_dset):
-        with ladim_input.LadimInputStream(ladim_dset) as dset:
-            dset.weights = 'X + Y'
-            chunk = next(c for c in dset.chunks())
-            assert 'weights' in chunk
-            assert len(chunk['weights']) > 0
-            assert chunk['weights'].values.tolist() == list(
-                chunk['X'].values + chunk['Y'].values
-            )
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        chunk = next(c for c in dset.chunks(newvars=dict(weights='X + Y')))
+        assert 'weights' in chunk
+        assert len(chunk['weights']) > 0
+        assert chunk['weights'].values.tolist() == list(
+            chunk['X'].values + chunk['Y'].values
+        )
 
     def test_can_return_attributes_of_variables(self, ladim_dset):
-        with ladim_input.LadimInputStream(ladim_dset) as dset:
-            assert dset.attributes['Z']['standard_name'] == 'depth'
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        assert dset.attributes['Z']['standard_name'] == 'depth'
 
 
 class Test_update_agg:

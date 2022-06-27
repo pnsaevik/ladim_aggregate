@@ -146,20 +146,20 @@ class Test_LadimInputStream:
     def test_can_apply_filter_string(self, ladim_dset):
         with ladim_input.LadimInputStream(ladim_dset) as dset:
             # No filter: 6 particle instances
-            chunks = xr.concat(dset.chunks(), dim='particle_instance')
-            assert chunks.dims['particle_instance'] == 6
+            chunks = xr.concat(dset.chunks(), dim='pid')
+            assert chunks.dims['pid'] == 6
 
             # With filter: 4 particle instances
             dset.seek(0)
             dset.filter = "farm_id != 12346"
-            chunks = xr.concat(dset.chunks(), dim='particle_instance')
-            assert chunks.dims['particle_instance'] == 4
+            chunks = xr.concat(dset.chunks(), dim='pid')
+            assert chunks.dims['pid'] == 4
 
             # A more complex filter expression
             dset.seek(0)
             dset.filter = "(farm_id > 12345) & (farm_id < 12347)"
-            chunks = xr.concat(dset.chunks(), dim='particle_instance')
-            assert chunks.dims['particle_instance'] == 2
+            chunks = xr.concat(dset.chunks(), dim='pid')
+            assert chunks.dims['pid'] == 2
 
     def test_can_add_weights_from_string_expression(self, ladim_dset):
         with ladim_input.LadimInputStream(ladim_dset) as dset:

@@ -169,7 +169,7 @@ class LadimInputStream:
             chunk = next(self.ladim_iter)
             logger.info("Apply filter")
             chunk = self.filter(chunk)
-            num_unfiltered = chunk.dims['particle_instance']
+            num_unfiltered = chunk.dims['pid']
             logger.info(f'Number of remaining particles: {num_unfiltered}')
             if self.weights and num_unfiltered:
                 logger.info("Apply weights")
@@ -196,7 +196,7 @@ def get_filter_func_from_numexpr(spec):
     def filter_fn(chunk):
         args = [chunk[n].values for n in ex.input_names]
         idx = ex.run(*args)
-        return chunk.isel(particle_instance=idx)
+        return chunk.isel(pid=idx)
     return filter_fn
 
 
@@ -210,7 +210,7 @@ def get_weight_func_from_numexpr(spec):
             logger.info(f'Load variable "{n}"')
             args.append(chunk[n].values)
         logger.info(f'Compute weights expression "{spec}"')
-        return xr.Variable('particle_instance', ex.run(*args))
+        return xr.Variable('pid', ex.run(*args))
 
     return weight_fn
 
@@ -222,7 +222,7 @@ def get_filter_func_from_callable(fn):
     def filter_fn(chunk):
         args = [chunk[n].values for n in signature.parameters.keys()]
         idx = fn(*args)
-        return chunk.isel(particle_instance=idx)
+        return chunk.isel(pid=idx)
 
     return filter_fn
 
@@ -233,7 +233,7 @@ def get_weight_func_from_callable(fn):
 
     def weight_fn(chunk):
         args = [chunk[n].values for n in signature.parameters.keys()]
-        return xr.Variable('particle_instance', fn(*args))
+        return xr.Variable('pid', fn(*args))
 
     return weight_fn
 
@@ -267,7 +267,7 @@ def ladim_iterator(ladim_dsets):
             if iidx.stop == iidx.start:
                 continue
 
-            pid = xr.Variable('particle_instance', dset.pid[iidx].values, dset.pid.attrs)
+            pid = xr.Variable('pid', dset.pid[iidx].values, dset.pid.attrs)
 
             ddset = xr.Dataset(
                 data_vars=dict(instance_offset=instance_offset + iidx.start),

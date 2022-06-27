@@ -38,38 +38,6 @@ class Histogrammer:
         yield dict(indices=idx, values=values)
 
 
-def get_edges(a):
-    half_offset = 0.5 * (a[1:] - a[:-1])
-    first_edge = a[0] - half_offset[0]
-    last_edge = a[-1] + half_offset[-1]
-    mid_edges = a[:-1] + half_offset
-    return np.concatenate([[first_edge], mid_edges, [last_edge]])
-
-
-def get_centers_from_resolution_and_limits(resolution, limits):
-    start, stop = limits
-
-    # Check if limits is a datestring
-    if isinstance(start, str) and isinstance(stop, str):
-        try:
-            start, stop = np.array([start, stop]).astype('datetime64')
-        except ValueError:
-            pass
-
-    # Check if resolution is a timedelta specified as [value, unit]
-    if np.issubdtype(np.array(start).dtype, np.datetime64):
-        try:
-            t64val, t64unit = resolution
-            resolution = np.timedelta64(t64val, t64unit)
-        except TypeError:
-            pass
-
-    centers = np.arange(start, stop + resolution, resolution)
-    if centers[-1] > stop:
-        centers = centers[:-1]
-    return centers
-
-
 def get_centers_from_edges(edges):
     edgediff = edges[1:] - edges[:-1]
     return edges[:-1] + 0.5 * edgediff

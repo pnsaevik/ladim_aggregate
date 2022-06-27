@@ -88,13 +88,14 @@ def main(*args):
     with open(config_file, encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
+    logger.info(f'Input file pattern: "{config["infile"]}"')
     from .input import LadimInputStream
-    logger.info(f'Open ladim file "{config["infile"]}"')
-    with LadimInputStream(config['infile']) as dset_in:
-        from .output import MultiDataset
-        logger.info(f'Create output file "{config["outfile"]}"')
-        with MultiDataset(config['outfile']) as dset_out:
-            run(dset_in, config, dset_out)
+    dset_in = LadimInputStream(config['infile'])
+
+    logger.info(f'Create output file "{config["outfile"]}"')
+    from .output import MultiDataset
+    with MultiDataset(config['outfile']) as dset_out:
+        run(dset_in, config, dset_out)
 
 
 def run(dset_in, config, dset_out):

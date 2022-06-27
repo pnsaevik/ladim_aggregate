@@ -20,25 +20,8 @@ class LadimInputStream:
         self._dataset_iterator = None
         self._dataset_current = xr.Dataset()
         self._dataset_mustclose = False
-        self.ladim_iter = None
-        self._reset_ladim_iterator()
 
         self._attributes = None
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._dataset_mustclose:
-            self._dataset_current.close()
-
-    def close(self):
-        self._dataset_current.close()
-
-    def seek(self, pos):
-        if pos != 0:
-            raise NotImplementedError
-        self._reset_ladim_iterator()
 
     @property
     def attributes(self):
@@ -49,25 +32,6 @@ class LadimInputStream:
                 for k, v in dset.variables.items():
                     self._attributes[k] = v.attrs
         return self._attributes
-
-    def _reset_ladim_iterator(self):
-        if self._dataset_mustclose:
-            self._dataset_current.close()
-
-        def dataset_iterator():
-            for spec in self.datasets:
-                with _open_spec(spec) as (dset, is_file):
-                    self._dataset_mustclose = is_file
-                    self._dataset_current = dset
-                    for k in dset.variables:
-                        if dset[k].dims == ('particle', ):
-                            logger.info(f'Load particle variable "{k}"')
-                            dset[k].compute()
-
-                    yield dset
-
-        self._dataset_iterator = dataset_iterator()
-        self.ladim_iter = ladim_iterator(self._dataset_iterator)
 
     @property
     def filter(self):
@@ -151,20 +115,6 @@ class LadimInputStream:
         for spec in self.datasets:
             with _open_spec(spec) as (dset, _):
                 yield dset
-
-    def read(self):
-        try:
-            chunk = next(self.ladim_iter)
-            logger.info("Apply filter")
-            chunk = self.filter(chunk)
-            num_unfiltered = chunk.dims['pid']
-            logger.info(f'Number of remaining particles: {num_unfiltered}')
-            if self.weights and num_unfiltered:
-                logger.info("Apply weights")
-                chunk = chunk.assign(weights=self.weights(chunk))
-            return chunk
-        except StopIteration:
-            return None
 
     def chunks(self) -> typing.Iterator[xr.Dataset]:
         for chunk in ladim_iterator(self.datasets):

@@ -167,10 +167,15 @@ class LadimInputStream:
             return None
 
     def chunks(self) -> typing.Iterator[xr.Dataset]:
-        chunk = self.read()
-        while chunk is not None:
+        for chunk in ladim_iterator(self.datasets):
+            logger.info("Apply filter")
+            chunk = self.filter(chunk)
+            num_unfiltered = chunk.dims['pid']
+            logger.info(f'Number of remaining particles: {num_unfiltered}')
+            if self.weights and num_unfiltered:
+                logger.info("Apply weights")
+                chunk = chunk.assign(weights=self.weights(chunk))
             yield chunk
-            chunk = self.read()
 
 
 def get_time(timevar):
@@ -267,8 +272,14 @@ def glob_files(spec):
     return files
 
 
+def dset_iterator(specs):
+    for spec in specs:
+        with _open_spec(spec) as (dset, is_file):
+            yield dset
+
+
 def ladim_iterator(ladim_dsets):
-    for dset in ladim_dsets:
+    for dset in dset_iterator(ladim_dsets):
         instance_offset = dset.get('instance_offset', 0)
         pcount_cum = np.concatenate([[0], np.cumsum(dset.particle_count.values)])
 

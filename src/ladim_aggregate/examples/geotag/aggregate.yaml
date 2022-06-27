@@ -1,0 +1,37 @@
+# Label the particles according to geographical location
+
+# The `geotag` parameters classifies variables according to their
+# geographical location.
+geotag:
+  # GIS file of polygons, written in the .geojson format
+  file: areas.geojson
+
+  # We assume that the coordinates in the GIS files correspond to coordinates
+  # in the ladim file
+  coords:
+    x: lon  # Name of the particle variable containing x axis coordinate values
+    y: lat  # Name of the particle variable containing y axis coordinate values
+
+  # Name of the GIS attributes which should be included. Attributes can be used
+  # for grouping or in filter/weights. Attributes prefixed with `INIT_` refer
+  # to the initial position. The special attribute `inside` is True if the
+  # particle is inside any polygon, and False otherwise.
+  attrs:
+  - region
+  - INIT_region
+  - inside
+
+bins:
+  # The first grouping variable is "farm_id", which is the value of the
+  # variable `farm_id` at the start of the simulation
+  region: group_by
+  _INIT_region: group_by
+
+# Find the distribution of particles with a certain age
+filter: age == 10
+
+# Input file in netCDF format (ladim output format)
+infile: ladim.nc
+
+# Output file in netCDF format
+outfile: count.nc

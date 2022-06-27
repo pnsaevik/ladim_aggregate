@@ -1,0 +1,13 @@
+histogram:
+  dims: [region, _INIT_region]
+  data:
+    - [0, 0]
+    - [2, 0]
+
+region:
+  dims: region
+  data: [101, 102]
+
+INIT_region:
+  dims: INIT_region
+  data: [101, 102]

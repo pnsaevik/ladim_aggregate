@@ -17,10 +17,6 @@ class LadimInputStream:
         self._filter = lambda chunk: chunk
         self._weights = None
 
-        self._dataset_iterator = None
-        self._dataset_current = xr.Dataset()
-        self._dataset_mustclose = False
-
         self._attributes = None
 
     @property

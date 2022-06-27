@@ -28,7 +28,7 @@ class LadimInputStream:
         if self._attributes is None:
             spec = self.datasets[0]
             self._attributes = dict()
-            with _open_spec(spec) as (dset, _):
+            with _open_spec(spec) as dset:
                 for k, v in dset.variables.items():
                     self._attributes[k] = v.attrs
         return self._attributes
@@ -113,7 +113,7 @@ class LadimInputStream:
 
     def idatasets(self) -> typing.Iterator:
         for spec in self.datasets:
-            with _open_spec(spec) as (dset, _):
+            with _open_spec(spec) as dset:
                 yield dset
 
     def chunks(self) -> typing.Iterator[xr.Dataset]:
@@ -224,7 +224,7 @@ def glob_files(spec):
 
 def dset_iterator(specs):
     for spec in specs:
-        with _open_spec(spec) as (dset, is_file):
+        with _open_spec(spec) as dset:
             yield dset
 
 
@@ -301,8 +301,8 @@ def _open_spec(spec):
     if isinstance(spec, str):
         logger.info(f'Open dataset "{spec}"')
         with xr.open_dataset(spec, decode_cf=False) as ddset:
-            yield ddset, True
+            yield ddset
             logger.info(f'Close dataset "{spec}"')
     else:
         logger.info(f'Enter new dataset')
-        yield spec, False
+        yield spec

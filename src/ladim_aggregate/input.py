@@ -295,19 +295,6 @@ def ladim_iterator(ladim_dsets):
             yield ddset
 
 
-def _ladim_iterator_read_variable(dset, varname, tidx, iidx, pidx):
-    v = dset.variables[varname]
-    first_dim = v.dims[0]
-    if first_dim == 'particle_instance':
-        return v[iidx].values
-    elif first_dim == 'particle':
-        return v[pidx].values
-    elif first_dim == 'time':
-        return v[tidx].values
-    else:
-        raise ValueError(f'Unknown dimension type: {first_dim}')
-
-
 def update_agg(old, aggfun, data):
     funcs = dict(max=update_max, min=update_min, unique=update_unique)
     return funcs[aggfun](old, data)

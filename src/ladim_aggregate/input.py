@@ -71,6 +71,11 @@ class LadimInputStream:
                 with _open_spec(spec) as (dset, is_file):
                     self._dataset_mustclose = is_file
                     self._dataset_current = dset
+                    for k in dset.variables:
+                        if dset[k].dims == ('particle', ):
+                            logger.info(f'Load particle variable "{k}"')
+                            dset[k].compute()
+
                     yield dset
 
         self._dataset_iterator = dataset_iterator()

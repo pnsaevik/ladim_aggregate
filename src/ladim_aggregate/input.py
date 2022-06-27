@@ -39,31 +39,11 @@ class LadimInputStream:
 
     @filter.setter
     def filter(self, spec):
-        if spec is None:
-            return
-        elif isinstance(spec, str):
-            if '.' in spec:
-                self._filter = get_filter_func_from_funcstring(spec)
-            else:
-                self._filter = get_filter_func_from_numexpr(spec)
-        elif callable(spec):
-            self._filter = get_filter_func_from_callable(spec)
-        else:
-            raise TypeError(f'Unknown type: {type(spec)}')
+        self._filter = create_filter(spec)
 
     @weights.setter
     def weights(self, spec):
-        if spec is None:
-            return
-        elif isinstance(spec, str):
-            if '.' in spec:
-                self._weights = get_weight_func_from_funcstring(spec)
-            else:
-                self._weights = get_weight_func_from_numexpr(spec)
-        elif callable(spec):
-            self._weights = get_weight_func_from_callable(spec)
-        else:
-            raise TypeError(f'Unknown type: {type(spec)}')
+        self._weights = create_weights(spec)
 
     def scan(self, spec):
         """
@@ -302,3 +282,31 @@ def _open_spec(spec):
     else:
         logger.info(f'Enter new dataset')
         yield spec
+
+
+def create_filter(spec):
+    if spec is None:
+        return lambda chunk: chunk
+    elif isinstance(spec, str):
+        if '.' in spec:
+            return get_filter_func_from_funcstring(spec)
+        else:
+            return get_filter_func_from_numexpr(spec)
+    elif callable(spec):
+        return get_filter_func_from_callable(spec)
+    else:
+        raise TypeError(f'Unknown type: {type(spec)}')
+
+
+def create_weights(spec):
+    if spec is None:
+        return None
+    elif isinstance(spec, str):
+        if '.' in spec:
+            return get_weight_func_from_funcstring(spec)
+        else:
+            return get_weight_func_from_numexpr(spec)
+    elif callable(spec):
+        return get_weight_func_from_callable(spec)
+    else:
+        raise TypeError(f'Unknown type: {type(spec)}')

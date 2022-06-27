@@ -53,8 +53,13 @@ class LadimInputStream:
                     out[varname][fun] = update_agg(out[varname][fun], fun, data)
                     agg_log(fun, out[varname][fun])
 
+        def idatasets(specs) -> typing.Iterator:
+            for single_spec in specs:
+                with _open_spec(single_spec) as dset:
+                    yield dset
+
         # Particle variables do only need the first dataset
-        dataset_iterator = self.idatasets()
+        dataset_iterator = idatasets(self.datasets)
         first_dset = next(dataset_iterator)
         update_output(first_dset, spec)
 
@@ -66,11 +71,6 @@ class LadimInputStream:
                 update_output(next_dset, spec_without_particle_vars)
 
         return out
-
-    def idatasets(self) -> typing.Iterator:
-        for spec in self.datasets:
-            with _open_spec(spec) as dset:
-                yield dset
 
     def chunks(self, filters=None, weights=None) -> typing.Iterator[xr.Dataset]:
         filterfn = create_filter(filters)

@@ -14,9 +14,6 @@ class LadimInputStream:
         self.datasets = glob_files(spec)
         logger.info(f'Number of input datasets: {len(self.datasets)}')
 
-        self._filter = lambda chunk: chunk
-        self._weights = None
-
         self._attributes = None
 
     @property
@@ -29,22 +26,6 @@ class LadimInputStream:
                 for k, v in dset.variables.items():
                     self._attributes[k] = v.attrs
         return self._attributes
-
-    @property
-    def filter(self):
-        return self._filter
-
-    @property
-    def weights(self):
-        return self._weights
-
-    @filter.setter
-    def filter(self, spec):
-        self._filter = create_filter(spec)
-
-    @weights.setter
-    def weights(self, spec):
-        self._weights = create_weights(spec)
 
     def scan(self, spec):
         """
@@ -93,15 +74,18 @@ class LadimInputStream:
             with _open_spec(spec) as dset:
                 yield dset
 
-    def chunks(self) -> typing.Iterator[xr.Dataset]:
+    def chunks(self, filters=None, weights=None) -> typing.Iterator[xr.Dataset]:
+        filterfn = create_filter(filters)
+        weightfn = create_weights(weights)
+
         for chunk in ladim_iterator(self.datasets):
             logger.info("Apply filter")
-            chunk = self.filter(chunk)
+            chunk = filterfn(chunk)
             num_unfiltered = chunk.dims['pid']
             logger.info(f'Number of remaining particles: {num_unfiltered}')
-            if self.weights and num_unfiltered:
+            if weights and num_unfiltered:
                 logger.info("Apply weights")
-                chunk = chunk.assign(weights=self.weights(chunk))
+                chunk = chunk.assign(weights=weightfn(chunk))
             yield chunk
 
 

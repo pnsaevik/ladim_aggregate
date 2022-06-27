@@ -71,13 +71,17 @@ class LadimInputStream:
         weightfn = create_weights(weights)
 
         for chunk in ladim_iterator(self.datasets):
-            logger.info("Apply filter")
-            chunk = filterfn(chunk)
             num_unfiltered = chunk.dims['pid']
-            logger.info(f'Number of remaining particles: {num_unfiltered}')
+            if filterfn:
+                logger.info("Apply filter")
+                chunk = filterfn(chunk)
+                num_unfiltered = chunk.dims['pid']
+                logger.info(f'Number of remaining particles: {num_unfiltered}')
+
             if weights and num_unfiltered:
                 logger.info("Apply weights")
                 chunk = chunk.assign(weights=weightfn(chunk))
+
             yield chunk
 
 
@@ -263,7 +267,7 @@ def _open_spec(spec):
 
 def create_filter(spec):
     if spec is None:
-        return lambda chunk: chunk
+        return None
     elif isinstance(spec, str):
         if '.' in spec:
             return get_filter_func_from_funcstring(spec)

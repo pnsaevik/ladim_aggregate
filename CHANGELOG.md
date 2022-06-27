@@ -4,6 +4,10 @@
 ### Changed
 - Optimized particle filtering
 
+## [Unreleased]
+### Added
+- Geotagging feature
+
 ## [1.7] - 2022-06-24
 ### Added
 - More logging statements

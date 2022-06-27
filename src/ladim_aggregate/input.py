@@ -11,19 +11,7 @@ logger = logging.getLogger(__name__)
 
 class LadimInputStream:
     def __init__(self, spec):
-        # Convert input spec to a sequence
-        if isinstance(spec, tuple) or isinstance(spec, list):
-            specs = spec
-        else:
-            specs = [spec]
-
-        # Expand glob patterns in spec
-        self.datasets = []
-        for s in specs:
-            if isinstance(s, str):
-                self.datasets += sorted(glob.glob(s))
-            else:
-                self.datasets.append(s)
+        self.datasets = glob_files(spec)
         logger.info(f'Number of input datasets: {len(self.datasets)}')
 
         self._filter = lambda chunk: chunk
@@ -252,6 +240,31 @@ def get_weight_func_from_funcstring(s: str):
     module = importlib.import_module(module_name)
     func = getattr(module, func_name)
     return get_weight_func_from_callable(func)
+
+
+def glob_files(spec):
+    """
+    Convert a set of glob patterns to a list of files
+
+    :param spec: One or more glob patterns
+    :return: A list of files
+    """
+
+    # Convert input spec to a sequence
+    if isinstance(spec, tuple) or isinstance(spec, list):
+        specs = spec
+    else:
+        specs = [spec]
+
+    # Expand glob patterns in spec
+    files = []
+    for s in specs:
+        if isinstance(s, str):
+            files += sorted(glob.glob(s))
+        else:
+            files.append(s)
+
+    return files
 
 
 def ladim_iterator(ladim_dsets):

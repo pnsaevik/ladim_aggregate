@@ -1,5 +1,9 @@
 # Version history
 
+## [1.8] - 2022-06-27
+### Changed
+- Optimized particle filtering
+
 ## [1.7] - 2022-06-24
 ### Added
 - More logging statements

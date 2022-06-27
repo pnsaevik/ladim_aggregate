@@ -15,14 +15,9 @@ class Histogrammer:
     def _get_coords_from_bins(bins_dict):
         crd = dict()
         for crd_name, bins in bins_dict.items():
-            if isinstance(bins, dict):
-                edges = bins['edges']
-                centers = bins['centers']
-                attrs = bins.get('attrs', dict())
-            else:
-                edges = np.asarray(bins)
-                centers = get_centers_from_edges(edges)
-                attrs = dict()
+            edges = bins['edges']
+            centers = bins['centers']
+            attrs = bins.get('attrs', dict())
             crd[crd_name] = dict(centers=centers, edges=edges, attrs=attrs)
         return crd
 
@@ -43,44 +38,12 @@ class Histogrammer:
         yield dict(indices=idx, values=values)
 
 
-def get_edges(a):
-    half_offset = 0.5 * (a[1:] - a[:-1])
-    first_edge = a[0] - half_offset[0]
-    last_edge = a[-1] + half_offset[-1]
-    mid_edges = a[:-1] + half_offset
-    return np.concatenate([[first_edge], mid_edges, [last_edge]])
-
-
-def get_centers_from_resolution_and_limits(resolution, limits):
-    start, stop = limits
-
-    # Check if limits is a datestring
-    if isinstance(start, str) and isinstance(stop, str):
-        try:
-            start, stop = np.array([start, stop]).astype('datetime64')
-        except ValueError:
-            pass
-
-    # Check if resolution is a timedelta specified as [value, unit]
-    if np.issubdtype(np.array(start).dtype, np.datetime64):
-        try:
-            t64val, t64unit = resolution
-            resolution = np.timedelta64(t64val, t64unit)
-        except TypeError:
-            pass
-
-    centers = np.arange(start, stop + resolution, resolution)
-    if centers[-1] > stop:
-        centers = centers[:-1]
-    return centers
-
-
 def get_centers_from_edges(edges):
     edgediff = edges[1:] - edges[:-1]
     return edges[:-1] + 0.5 * edgediff
 
 
-def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
+def adaptive_histogram(sample, bins, **kwargs):
     """
     Return an adaptive histogram
 
@@ -97,7 +60,6 @@ def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
     :param sample:
     :param bins:
     :param kwargs:
-    :param exact_dims:
     :return:
     """
 
@@ -109,19 +71,12 @@ def adaptive_histogram(sample, bins, exact_dims=(), **kwargs):
 
     num_entries = next(len(s) for s in sample)
     included = np.ones(num_entries, dtype=bool)
-    is_exact = np.zeros(len(bins), dtype=bool)
-    is_exact[list(exact_dims)] = True
 
     # Find histogram coordinates of each entry
     binned_sample = []
-    for s, b, ex in zip(sample, bins, is_exact):
-        if ex:
-            mapping = {k: i for i, k in enumerate(b)}
-            coords = np.asarray([mapping.get(k, 0) for k in s])
-            included = included & np.asarray([k in mapping for k in s])
-        else:
-            coords = np.searchsorted(b, s, side='right') - 1
-            included = included & (0 <= coords) & (coords < len(b) - 1)
+    for s, b in zip(sample, bins):
+        coords = np.searchsorted(b, s, side='right') - 1
+        included = included & (0 <= coords) & (coords < len(b) - 1)
         binned_sample.append(coords)
 
     # Filter out coordinates outside interval
@@ -185,8 +140,6 @@ def autobins(spec, dset):
                    if v in scan_params_template}
     scan_output = {k: None for k in spec}
     if scan_params:
-        import logging
-        logger = logging.getLogger(__name__)
         logger.info('Perform preliminary scan of the input dataset to find the following info:')
         for k, v in scan_params.items():
             logger.info(f'{k}: {v}')

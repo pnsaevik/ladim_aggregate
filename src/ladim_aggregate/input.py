@@ -71,9 +71,11 @@ class LadimInputStream:
                 with _open_spec(spec) as (dset, is_file):
                     self._dataset_mustclose = is_file
                     self._dataset_current = dset
-                    logtext = f'Open input dataset {spec}' if is_file else "Enter new dataset"
-                    logger.info(logtext)
-                    logger.info(f'Number of particle instances: {dset.dims["particle_instance"]}')
+                    for k in dset.variables:
+                        if dset[k].dims == ('particle', ):
+                            logger.info(f'Load particle variable "{k}"')
+                            dset[k].compute()
+
                     yield dset
 
         self._dataset_iterator = dataset_iterator()
@@ -167,7 +169,7 @@ class LadimInputStream:
             chunk = next(self.ladim_iter)
             logger.info("Apply filter")
             chunk = self.filter(chunk)
-            num_unfiltered = chunk.dims['particle_instance']
+            num_unfiltered = chunk.dims['pid']
             logger.info(f'Number of remaining particles: {num_unfiltered}')
             if self.weights and num_unfiltered:
                 logger.info("Apply weights")
@@ -176,7 +178,7 @@ class LadimInputStream:
         except StopIteration:
             return None
 
-    def chunks(self) -> typing.Iterable[xr.Dataset]:
+    def chunks(self) -> typing.Iterator[xr.Dataset]:
         chunk = self.read()
         while chunk is not None:
             yield chunk
@@ -194,7 +196,7 @@ def get_filter_func_from_numexpr(spec):
     def filter_fn(chunk):
         args = [chunk[n].values for n in ex.input_names]
         idx = ex.run(*args)
-        return chunk.isel(particle_instance=idx)
+        return chunk.isel(pid=idx)
     return filter_fn
 
 
@@ -208,7 +210,7 @@ def get_weight_func_from_numexpr(spec):
             logger.info(f'Load variable "{n}"')
             args.append(chunk[n].values)
         logger.info(f'Compute weights expression "{spec}"')
-        return xr.Variable('particle_instance', ex.run(*args))
+        return xr.Variable('pid', ex.run(*args))
 
     return weight_fn
 
@@ -220,7 +222,7 @@ def get_filter_func_from_callable(fn):
     def filter_fn(chunk):
         args = [chunk[n].values for n in signature.parameters.keys()]
         idx = fn(*args)
-        return chunk.isel(particle_instance=idx)
+        return chunk.isel(pid=idx)
 
     return filter_fn
 
@@ -231,7 +233,7 @@ def get_weight_func_from_callable(fn):
 
     def weight_fn(chunk):
         args = [chunk[n].values for n in signature.parameters.keys()]
-        return xr.Variable('particle_instance', fn(*args))
+        return xr.Variable('pid', fn(*args))
 
     return weight_fn
 
@@ -264,27 +266,33 @@ def ladim_iterator(ladim_dsets):
             logger.info(f'Number of particles: {iidx.stop - iidx.start}')
             if iidx.stop == iidx.start:
                 continue
-            pidx = xr.Variable('particle_instance', dset.pid[iidx].values)
-            ttidx = xr.Variable('particle_instance', np.broadcast_to(tidx, (len(pidx), )))
-            ddset = dset.isel(time=ttidx, particle_instance=iidx)
-            if 'particle' in dset.dims:
-                ddset = ddset.isel(particle=pidx)
 
-            ddset = ddset.assign(instance_offset=instance_offset + iidx.start)
+            pid = xr.Variable('pid', dset.pid[iidx].values, dset.pid.attrs)
+
+            ddset = xr.Dataset(
+                data_vars=dict(instance_offset=instance_offset + iidx.start),
+                coords=dict({pid.dims[0]: pid}),
+                attrs=dset.attrs,
+            )
+
+            for k, v in dset.variables.items():
+                if k in ('pid', 'instance_offset'):
+                    continue
+
+                logger.info(f'Load variable "{k}"')
+                if v.dims == ('particle_instance', ):
+                    new_var = xr.Variable(pid.dims[0], v[iidx].values, v.attrs)
+                elif v.dims == ('particle', ):
+                    new_var = xr.Variable(pid.dims[0], v.values[pid.values], v.attrs)
+                elif v.dims == ('time', ):
+                    data = np.broadcast_to(v.values[tidx], (iidx.stop - iidx.start, ))
+                    new_var = xr.Variable(pid.dims[0], data, v.attrs)
+                else:
+                    raise ValueError(f'Unknkown dimension: "{v.dims}"')
+
+                ddset = ddset.assign(**{k: new_var})
+
             yield ddset
-
-
-def _ladim_iterator_read_variable(dset, varname, tidx, iidx, pidx):
-    v = dset.variables[varname]
-    first_dim = v.dims[0]
-    if first_dim == 'particle_instance':
-        return v[iidx].values
-    elif first_dim == 'particle':
-        return v[pidx].values
-    elif first_dim == 'time':
-        return v[tidx].values
-    else:
-        raise ValueError(f'Unknown dimension type: {first_dim}')
 
 
 def update_agg(old, aggfun, data):
@@ -320,6 +328,7 @@ def _open_spec(spec):
         logger.info(f'Open dataset "{spec}"')
         with xr.open_dataset(spec, decode_cf=False) as ddset:
             yield ddset, True
+            logger.info(f'Close dataset "{spec}"')
     else:
         logger.info(f'Enter new dataset')
         yield spec, False

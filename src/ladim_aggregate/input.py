@@ -66,9 +66,10 @@ class LadimInputStream:
 
         return out
 
-    def chunks(self, filters=None, weights=None) -> typing.Iterator[xr.Dataset]:
+    def chunks(self, filters=None, newvars=None) -> typing.Iterator[xr.Dataset]:
+        newvars = newvars or dict()
         filterfn = create_filter(filters)
-        weightfn = create_weights(weights)
+        newvarfn = {k: create_weights(v) for k, v in newvars.items()}
 
         for chunk in ladim_iterator(self.datasets):
             num_unfiltered = chunk.dims['pid']
@@ -78,9 +79,10 @@ class LadimInputStream:
                 num_unfiltered = chunk.dims['pid']
                 logger.info(f'Number of remaining particles: {num_unfiltered}')
 
-            if weights and num_unfiltered:
-                logger.info("Apply weights")
-                chunk = chunk.assign(weights=weightfn(chunk))
+            if newvarfn and num_unfiltered:
+                for varname, fn in newvarfn.items():
+                    logger.info(f'Compute "{varname}"')
+                    chunk = chunk.assign(**{varname: fn(chunk)})
 
             yield chunk
 

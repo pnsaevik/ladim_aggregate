@@ -110,7 +110,9 @@ def run(dset_in, config, dset_out):
     filesplit_dims = config.get('filesplit_dims', [])
 
     filter_spec = config.get('filter', None)
-    weight_spec = config.get('weights', None)
+    vars_spec = dict()
+    if 'weights' in config:
+        vars_spec['weights'] = config['weights']
 
     bins = autobins(config['bins'], dset_in)
     hist = Histogrammer(bins=bins)
@@ -136,7 +138,7 @@ def run(dset_in, config, dset_out):
 
     logger = logging.getLogger(__name__)
 
-    for chunk_in in dset_in.chunks(filters=filter_spec, weights=weight_spec):
+    for chunk_in in dset_in.chunks(filters=filter_spec, newvars=vars_spec):
         if chunk_in.dims['pid'] == 0:
             continue
 

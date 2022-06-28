@@ -108,6 +108,12 @@ class Test_LadimInputStream_assign:
         assert chunk.MAX_X.values.tolist() == ladim_dset.X.max().values.tolist()
         assert chunk.MIN_Y.values.tolist() == ladim_dset.Y.min().values.tolist()
 
+    def test_can_add_unique(self, ladim_dset):
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        dset.add_special_variable('X', 'unique')
+        unique_x = dset.special_value('UNIQUE_X')
+        assert unique_x.values.tolist() == np.unique(ladim_dset.X.values).tolist()
+
 
 class Test_LadimInputStream:
     def test_can_initialise_from_xr_dataset(self, ladim_dset):

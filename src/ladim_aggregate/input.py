@@ -15,7 +15,6 @@ class LadimInputStream:
         self._attributes = None
         self.new_variables = dict()
         self.special_variables = dict()
-        self._special_variables_dataset = None
 
     @property
     def attributes(self):
@@ -53,6 +52,11 @@ class LadimInputStream:
             value=None,
         )
 
+    def special_value(self, key):
+        if self.special_variables[key]['value'] is None:
+            self._update_special_variables()
+        return self.special_variables[key]['value']
+
     def _assign(self, varname, expression):
         self.new_variables[varname] = create_newvar(expression)
 
@@ -76,13 +80,11 @@ class LadimInputStream:
             value = out[vname][opname]
             if opname in ['max', 'min']:
                 xr_var = xr.Variable((), value)
+            elif opname == 'unique':
+                xr_var = xr.Variable(k, value)
             else:
                 raise NotImplementedError
             self.special_variables[k]['value'] = xr_var
-
-        self._special_variables_dataset = xr.Dataset(
-            data_vars={k: self.special_variables[k]['value'] for k in self.special_variables}
-        )
 
     def scan(self, spec):
         """
@@ -126,7 +128,6 @@ class LadimInputStream:
         return out
 
     def chunks(self, filters=None) -> typing.Iterator[xr.Dataset]:
-        self._update_special_variables()
         filterfn = create_filter(filters)
 
         for chunk in ladim_iterator(self.datasets):
@@ -142,9 +143,11 @@ class LadimInputStream:
                     logger.info(f'Compute "{varname}"')
                     chunk = chunk.assign(**{varname: fn(chunk)})
 
-            if self.special_variables:
-                specials = self.special_variables
-                chunk = chunk.assign(**{k: specials[k]['value'] for k in specials})
+            if self.special_variables and num_unfiltered:
+                for varname in self.special_variables:
+                    logger.info(f'Compute "{varname}"')
+                    xr_var = self.special_value(varname)
+                    chunk = chunk.assign(**{varname: xr_var})
 
             yield chunk
 

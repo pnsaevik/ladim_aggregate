@@ -93,6 +93,14 @@ class Test_LadimInputStream_scan:
         assert out == dict(X=dict(max=16), Y=dict(min=60, max=72))
 
 
+class Test_LadimInputStream_assign:
+    def test_can_add_numexpr_variables(self, ladim_dset):
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        dset.assign(sumcoords="X + Y")
+        chunk = next(dset.chunks())
+        assert chunk.sumcoords.values.tolist() == (chunk.X + chunk.Y).values.tolist()
+
+
 class Test_LadimInputStream:
     def test_can_initialise_from_xr_dataset(self, ladim_dset):
         dset = ladim_input.LadimInputStream(ladim_dset)
@@ -142,7 +150,8 @@ class Test_LadimInputStream:
 
     def test_can_add_weights_from_string_expression(self, ladim_dset):
         dset = ladim_input.LadimInputStream(ladim_dset)
-        chunk = next(c for c in dset.chunks(newvars=dict(weights='X + Y')))
+        dset.assign(weights='X + Y')
+        chunk = next(c for c in dset.chunks())
         assert 'weights' in chunk
         assert len(chunk['weights']) > 0
         assert chunk['weights'].values.tolist() == list(

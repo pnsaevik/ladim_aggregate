@@ -13,6 +13,7 @@ class LadimInputStream:
     def __init__(self, spec):
         self.datasets = glob_files(spec)
         self._attributes = None
+        self.new_variables = dict()
 
     @property
     def attributes(self):
@@ -24,6 +25,17 @@ class LadimInputStream:
                 for k, v in dset.variables.items():
                     self._attributes[k] = v.attrs
         return self._attributes
+
+    def assign(self, **mapping):
+        """
+        Define new variables from expressions based on the old variables
+        :param mapping: A mapping of variable names to functional expressions
+        """
+        for k, v in mapping.items():
+            self._assign(k, v)
+
+    def _assign(self, varname, expression):
+        self.new_variables[varname] = create_newvar(expression)
 
     def scan(self, spec):
         """
@@ -66,10 +78,8 @@ class LadimInputStream:
 
         return out
 
-    def chunks(self, filters=None, newvars=None) -> typing.Iterator[xr.Dataset]:
-        newvars = newvars or dict()
+    def chunks(self, filters=None) -> typing.Iterator[xr.Dataset]:
         filterfn = create_filter(filters)
-        newvarfn = {k: create_newvar(v) for k, v in newvars.items()}
 
         for chunk in ladim_iterator(self.datasets):
             num_unfiltered = chunk.dims['pid']
@@ -79,8 +89,8 @@ class LadimInputStream:
                 num_unfiltered = chunk.dims['pid']
                 logger.info(f'Number of remaining particles: {num_unfiltered}')
 
-            if newvarfn and num_unfiltered:
-                for varname, fn in newvarfn.items():
+            if self.new_variables and num_unfiltered:
+                for varname, fn in self.new_variables.items():
                     logger.info(f'Compute "{varname}"')
                     chunk = chunk.assign(**{varname: fn(chunk)})
 

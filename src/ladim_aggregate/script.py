@@ -115,22 +115,22 @@ def run(dset_in, config, dset_out):
     # Read some params
     filesplit_dims = config.get('filesplit_dims', [])
     filter_spec = config.get('filter', None)
-    vars_spec = dict()
 
     # Add geotagging
     if 'geotag' in config:
         for k in config['geotag']['attrs']:
-            vars_spec[k] = ('geotag', dict(
+            spec = ('geotag', dict(
                 attribute=k,
                 x_var=config['geotag']['coords']['x'],
                 y_var=config['geotag']['coords']['y'],
                 geojson=config['geotag']['geojson'],
                 missing=config['geotag']['outside_value'],
             ))
+            dset_in.assign(**{k: spec})
 
     # Add weights
     if 'weights' in config:
-        vars_spec['weights'] = config['weights']
+        dset_in.assign(weights=config['weights'])
 
     # Prepare histogram bins
     bins = autobins(config['bins'], dset_in)
@@ -162,7 +162,7 @@ def run(dset_in, config, dset_out):
     logger = logging.getLogger(__name__)
 
     # Read ladim file timestep by timestep
-    for chunk_in in dset_in.chunks(filters=filter_spec, newvars=vars_spec):
+    for chunk_in in dset_in.chunks(filters=filter_spec):
         if chunk_in.dims['pid'] == 0:
             continue
 

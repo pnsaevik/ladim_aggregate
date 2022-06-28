@@ -18,17 +18,13 @@ geotag:
   # particle is inside any polygon, and False otherwise.
   attrs:
   - region
-  - INIT_region
 
   # Value to use if particle is outside the polygona
   outside_value: -1
 
 bins:
-  # Count the number of particles in each region, grouped by initial region
+  # Count the number of particles in each region, grouped by region
   region:
-    edges: [101, 102, 103]
-    labels: [101, 102]
-  INIT_region:
     edges: [101, 102, 103]
     labels: [101, 102]
 

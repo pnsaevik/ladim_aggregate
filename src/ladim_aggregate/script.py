@@ -147,9 +147,10 @@ def run(dset_in, config, dset_out):
         )
 
     # Create aggregation variable
+    hist_dtype = np.float32 if 'weights' in config else np.int32
     dset_out.createVariable(
         varname='histogram',
-        data=np.array(0, dtype=np.float32),
+        data=np.array(0, dtype=hist_dtype),
         dims=tuple(coords.keys()),
     )
 

@@ -5,10 +5,10 @@ time:
     units: days since 2000-01-01
 lon:
   dims: particle_instance
-  data: [1, 2, 3, 1, 2, 3, 1, 2]
+  data: [1, 2, 3, 1, 2, 3, 0.5, 10.5]
 lat:
   dims: particle_instance
-  data: [60, 61, 62, 63, 64, 65, 66, 67]
+  data: [60, 61, 62, 63, 64, 65, 60.5, 70.5]
 age:
   dims: particle_instance
   data: [0, 0, 0, 0, 1, 1, 2, 2]

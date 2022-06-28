@@ -69,7 +69,7 @@ class LadimInputStream:
     def chunks(self, filters=None, newvars=None) -> typing.Iterator[xr.Dataset]:
         newvars = newvars or dict()
         filterfn = create_filter(filters)
-        newvarfn = {k: create_weights(v) for k, v in newvars.items()}
+        newvarfn = {k: create_newvar(v) for k, v in newvars.items()}
 
         for chunk in ladim_iterator(self.datasets):
             num_unfiltered = chunk.dims['pid']
@@ -281,9 +281,12 @@ def create_filter(spec):
         raise TypeError(f'Unknown type: {type(spec)}')
 
 
-def create_weights(spec):
+def create_newvar(spec):
     if spec is None:
         return None
+    elif isinstance(spec, tuple) and spec[0] == 'geotag':
+        from .geotag import create_geotagger
+        return create_geotagger(**spec[1])
     elif isinstance(spec, str):
         if '.' in spec:
             return get_weight_func_from_funcstring(spec)

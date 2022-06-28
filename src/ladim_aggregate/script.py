@@ -88,6 +88,11 @@ def main(*args):
     with open(config_file, encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
+    if 'geotag' in config:
+        with open(config['geotag']['file'], encoding='utf-8') as f:
+            import json
+            config['geotag']['geojson'] = json.load(f)
+
     logger.info(f'Input file pattern: "{config["infile"]}"')
     from .input import LadimInputStream
     dset_in = LadimInputStream(config['infile'])
@@ -107,17 +112,32 @@ def run(dset_in, config, dset_out):
     # Modify configuration dict by reformatting and appending default values
     config = parse_config(config)
 
+    # Read some params
     filesplit_dims = config.get('filesplit_dims', [])
-
     filter_spec = config.get('filter', None)
     vars_spec = dict()
+
+    # Add geotagging
+    if 'geotag' in config:
+        for k in config['geotag']['attrs']:
+            vars_spec[k] = ('geotag', dict(
+                attribute=k,
+                x_var=config['geotag']['coords']['x'],
+                y_var=config['geotag']['coords']['y'],
+                geojson=config['geotag']['geojson'],
+                missing=config['geotag']['outside_value'],
+            ))
+
+    # Add weights
     if 'weights' in config:
         vars_spec['weights'] = config['weights']
 
+    # Prepare histogram bins
     bins = autobins(config['bins'], dset_in)
     hist = Histogrammer(bins=bins)
     coords = hist.coords
 
+    # Create output coordinate variables
     for coord_name, coord_info in coords.items():
         dset_out.createCoord(
             varname=coord_name,
@@ -126,22 +146,27 @@ def run(dset_in, config, dset_out):
             cross_dataset=coord_name in filesplit_dims,
         )
 
+    # Create aggregation variable
+    hist_dtype = np.float32 if 'weights' in config else np.int32
     dset_out.createVariable(
         varname='histogram',
-        data=np.array(0, dtype=np.float32),
+        data=np.array(0, dtype=hist_dtype),
         dims=tuple(coords.keys()),
     )
 
+    # Add projection information
     if 'projection' in config:
         from .proj import write_projection
         write_projection(dset_out, config['projection'])
 
     logger = logging.getLogger(__name__)
 
+    # Read ladim file timestep by timestep
     for chunk_in in dset_in.chunks(filters=filter_spec, newvars=vars_spec):
         if chunk_in.dims['pid'] == 0:
             continue
 
+        # Write histogram values to file
         for chunk_out in hist.make(chunk_in):
             txt = ", ".join([f'{a.start}:{a.stop}' for a in chunk_out['indices']])
             logger.info(f'Write output chunk [{txt}]')

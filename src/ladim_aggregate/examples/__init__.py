@@ -124,10 +124,12 @@ def extract(example_name):
     files = get_file_list(example_name)
     outdir = Path('.')
 
-    # Save config file
-    logger.info(f'Extract config file: "{files["config"]}"')
-    with open(outdir / files['config'], 'bw') as f:
-        f.write(pkgutil.get_data(pkg, files['config']))
+    # Save verbatim files
+    for file in files['all']:
+        if file.endswith('.geojson') or file == files['config']:
+            logger.info(f'Extract file: "{file}"')
+            with open(outdir / file, 'bw') as f:
+                f.write(pkgutil.get_data(pkg, file))
 
     # Save input datasets (as xarray objects)
     for input_file in files['input']:

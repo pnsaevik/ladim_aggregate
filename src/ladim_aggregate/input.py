@@ -14,6 +14,8 @@ class LadimInputStream:
         self.datasets = glob_files(spec)
         self._attributes = None
         self.new_variables = dict()
+        self.special_variables = dict()
+        self._special_variables_dataset = None
 
     @property
     def attributes(self):
@@ -34,8 +36,53 @@ class LadimInputStream:
         for k, v in mapping.items():
             self._assign(k, v)
 
+    def add_special_variable(self, varname, operator):
+        """
+        Special variables are the result of aggregation operations such as `max` or
+        `min`. They often require a scanning of the whole dataset.
+
+        :param varname: Name of the variable
+        :param operator: Name of the operator
+        :return: None
+        """
+        key = operator.upper() + '_' + varname
+        self.special_variables[key] = dict(
+            key=key,
+            varname=varname,
+            operator=operator,
+            value=None,
+        )
+
     def _assign(self, varname, expression):
         self.new_variables[varname] = create_newvar(expression)
+
+    def _update_special_variables(self):
+        # Find all unassigned aggfuncs and store them variable-wise
+        spec_keys = [k for k, v in self.special_variables.items() if v['value'] is None]
+        spec = {}
+        for k in spec_keys:
+            opname = self.special_variables[k]['operator']
+            vname = self.special_variables[k]['varname']
+            spec[vname] = spec.get(vname, []) + [opname]
+
+        if spec == {}:
+            return
+
+        out = self.scan(spec)
+
+        for k in spec_keys:
+            opname = self.special_variables[k]['operator']
+            vname = self.special_variables[k]['varname']
+            value = out[vname][opname]
+            if opname in ['max', 'min']:
+                xr_var = xr.Variable((), value)
+            else:
+                raise NotImplementedError
+            self.special_variables[k]['value'] = xr_var
+
+        self._special_variables_dataset = xr.Dataset(
+            data_vars={k: self.special_variables[k]['value'] for k in self.special_variables}
+        )
 
     def scan(self, spec):
         """
@@ -79,6 +126,7 @@ class LadimInputStream:
         return out
 
     def chunks(self, filters=None) -> typing.Iterator[xr.Dataset]:
+        self._update_special_variables()
         filterfn = create_filter(filters)
 
         for chunk in ladim_iterator(self.datasets):
@@ -93,6 +141,10 @@ class LadimInputStream:
                 for varname, fn in self.new_variables.items():
                     logger.info(f'Compute "{varname}"')
                     chunk = chunk.assign(**{varname: fn(chunk)})
+
+            if self.special_variables:
+                specials = self.special_variables
+                chunk = chunk.assign(**{k: specials[k]['value'] for k in specials})
 
             yield chunk
 

@@ -100,6 +100,14 @@ class Test_LadimInputStream_assign:
         chunk = next(dset.chunks())
         assert chunk.sumcoords.values.tolist() == (chunk.X + chunk.Y).values.tolist()
 
+    def test_can_add_agg_variable(self, ladim_dset):
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        dset.add_special_variable('X', 'max')
+        dset.add_special_variable('Y', 'min')
+        chunk = next(dset.chunks())
+        assert chunk.MAX_X.values.tolist() == ladim_dset.X.max().values.tolist()
+        assert chunk.MIN_Y.values.tolist() == ladim_dset.Y.min().values.tolist()
+
 
 class Test_LadimInputStream:
     def test_can_initialise_from_xr_dataset(self, ladim_dset):

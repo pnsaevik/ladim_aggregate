@@ -48,7 +48,7 @@ class Test_create_geotagger:
             x_var='lon',
             y_var='lat',
             geojson=geojson,
-            missing_val=-1,
+            missing=-1,
         )
 
         region = geotagger(chunk)

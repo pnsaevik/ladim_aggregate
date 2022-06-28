@@ -120,6 +120,7 @@ def run(dset_in, config, dset_out):
                 x_var=config['geotag']['coords']['x'],
                 y_var=config['geotag']['coords']['y'],
                 geojson=dict(),
+                missing=config['geotag']['outside_value'],
             ))
 
     # Add weights

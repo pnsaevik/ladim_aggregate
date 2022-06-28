@@ -19,7 +19,9 @@ geotag:
   attrs:
   - region
   - INIT_region
-  - inside
+
+  # Value to use if particle is outside the polygona
+  outside_value: -1
 
 bins:
   # Count the number of particles in each region, grouped by initial region

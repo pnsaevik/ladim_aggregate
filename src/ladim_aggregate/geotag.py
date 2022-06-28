@@ -3,7 +3,7 @@ from matplotlib.path import Path
 import numpy as np
 
 
-def create_geotagger(attribute, x_var, y_var, geojson, missing_val=np.nan):
+def create_geotagger(attribute, x_var, y_var, geojson, missing=np.nan):
     """
     Create geotagger function.
 
@@ -11,10 +11,10 @@ def create_geotagger(attribute, x_var, y_var, geojson, missing_val=np.nan):
     :param x_var: Name of x coordinate variable
     :param y_var: Name of y coordinate variable
     :param geojson: A dict representation of a geojson file
-    :param missing_val: Value to return if coordinates does not match a polygon
+    :param missing: Value to return if coordinates does not match a polygon
     :return: A geotagger function
     """
-    props = np.array([f['properties'][attribute] for f in geojson['features']] + [missing_val])
+    props = np.array([f['properties'][attribute] for f in geojson['features']] + [missing])
     coords = [
         np.asarray(f['geometry']['coordinates']).reshape((-1, 2))
         for f in geojson['features']

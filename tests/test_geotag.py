@@ -13,15 +13,34 @@ class Test_create_geotagger:
         )
 
         geojson = json.loads("""
-{
-"type": "FeatureCollection",
-"name": "layer_name",
-"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
-"features": [
-{ "type": "Feature", "properties": { "region": 101 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0, 60 ], [ 1, 60 ], [ 1, 61 ], [ 0, 61 ], [ 0, 60 ] ] ] ] } },
-{ "type": "Feature", "properties": { "region": 102 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 10, 70 ], [ 11, 70 ], [ 11, 71 ], [ 10, 71 ], [ 10, 70 ] ] ] ] } }
-]
-}
+        {
+            "type": "FeatureCollection",
+            "name": "layer_name",
+            "crs": {
+                "type": "name",
+                "properties": {
+                    "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+                }
+            },
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": { "region": 101 },
+                    "geometry": {
+                        "type": "MultiPolygon",
+                        "coordinates": [ [ [ [ 0, 60 ], [ 1, 60 ], [ 1, 61 ], [ 0, 61 ], [ 0, 60 ] ] ] ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": { "region": 102 },
+                    "geometry": {
+                        "type": "MultiPolygon",
+                        "coordinates": [ [ [ [ 10, 70 ], [ 11, 70 ], [ 11, 71 ], [ 10, 71 ], [ 10, 70 ] ] ] ]
+                    }
+                }
+            ]
+        }
         """)
 
         geotagger = geotag.create_geotagger(

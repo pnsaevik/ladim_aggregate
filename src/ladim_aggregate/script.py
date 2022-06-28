@@ -88,6 +88,11 @@ def main(*args):
     with open(config_file, encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
+    if 'geotag' in config:
+        with open(config['geotag']['file'], encoding='utf-8') as f:
+            import json
+            config['geotag']['geojson'] = json.load(f)
+
     logger.info(f'Input file pattern: "{config["infile"]}"')
     from .input import LadimInputStream
     dset_in = LadimInputStream(config['infile'])
@@ -119,7 +124,7 @@ def run(dset_in, config, dset_out):
                 attribute=k,
                 x_var=config['geotag']['coords']['x'],
                 y_var=config['geotag']['coords']['y'],
-                geojson=dict(),
+                geojson=config['geotag']['geojson'],
                 missing=config['geotag']['outside_value'],
             ))
 

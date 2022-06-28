@@ -35,6 +35,8 @@ def run(example_name):
 
     # Load config file
     config = load_yaml(files['config'])
+    if 'geotag' in config:
+        config['geotag']['geojson'] = load_yaml(config['geotag']['file'])
 
     # Load input datasets (as xarray objects)
     import xarray as xr

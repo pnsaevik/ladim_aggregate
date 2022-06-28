@@ -4,7 +4,7 @@
 # geographical location.
 geotag:
   # GIS file of polygons, written in the .geojson format
-  file: areas.geojson
+  file: regions.geojson
 
   # We assume that the coordinates in the GIS files correspond to coordinates
   # in the ladim file

@@ -39,8 +39,10 @@ class MultiDataset:
         self.close()
 
     def close(self):
+        logger.info(f'Close dataset "{self.main_dataset.filepath()}"')
         self.main_dataset.close()
         for d in self.datasets.values():
+            logger.info(f'Close dataset "{d.filepath()}"')
             d.close()
 
     def createCoord(self, varname, data, attrs=None, cross_dataset=False):

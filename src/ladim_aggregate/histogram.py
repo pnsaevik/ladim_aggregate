@@ -113,6 +113,12 @@ def adaptive_histogram(sample, bins, **kwargs):
 
 
 def autobins(spec, dset):
+    # Add INIT bins, if any
+    for k in spec:
+        if k.endswith('_INIT'):
+            varname, opname = k.rsplit(sep='_', maxsplit=1)
+            dset.init_variables.append(varname)
+
     # Find bin specification type
     spec_types = dict()
     for k, v in spec.items():

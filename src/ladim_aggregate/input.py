@@ -15,6 +15,7 @@ class LadimInputStream:
         self._attributes = None
         self.new_variables = dict()
         self.special_variables = dict()
+        self.init_variables = []
 
     @property
     def attributes(self):
@@ -168,25 +169,44 @@ class LadimInputStream:
         """
         filterfn = create_newvar(filters)
 
+        # Initialize the "init variables"
+        init_variables = {k: None for k in self.init_variables}
+
         for chunk in ladim_iterator(self.datasets):
+            # Apply filter
+            filter_idx = None
             num_unfiltered = chunk.dims['pid']
             if filterfn:
                 logger.info("Apply filter")
-                idx = filterfn(chunk).values
-                chunk = chunk.isel(pid=idx)
-                num_unfiltered = chunk.dims['pid']
+                filter_idx = filterfn(chunk).values
+                num_unfiltered = np.count_nonzero(filter_idx)
                 logger.info(f'Number of remaining particles: {num_unfiltered}')
 
-            if self.new_variables and num_unfiltered:
-                for varname, fn in self.new_variables.items():
-                    logger.info(f'Compute "{varname}"')
-                    chunk = chunk.assign(**{varname: fn(chunk)})
+            if (num_unfiltered == 0) and (len(init_variables) == 0):
+                continue
 
-            if self.special_variables and num_unfiltered:
-                for varname in self.special_variables:
-                    logger.info(f'Compute "{varname}"')
-                    xr_var = self.special_value(varname)
-                    chunk = chunk.assign(**{varname: xr_var})
+            # Add derived variables (such as weights and geotags)
+            for varname, fn in self.new_variables.items():
+                logger.info(f'Compute "{varname}"')
+                chunk = chunk.assign(**{varname: fn(chunk)})
+
+            # Add init variables (such as region_INIT)
+            for varname, data_and_mask in init_variables.items():
+                pid = chunk['pid'].values
+                input_data = (chunk[varname].values, pid)
+                data, mask = update_init(data_and_mask, input_data)
+                init_variables[varname] = (data, mask)
+                xr_var = xr.Variable('pid', data[pid])
+                chunk = chunk.assign(**{f"{varname}_INIT": xr_var})
+
+            # Add aggregation variables (such as MAX_temp)
+            for varname in self.special_variables:
+                xr_var = self.special_value(varname)
+                chunk = chunk.assign(**{varname: xr_var})
+
+            # Do actual filtering
+            if filter_idx is not None:
+                chunk = chunk.isel(pid=filter_idx)
 
             yield chunk
 

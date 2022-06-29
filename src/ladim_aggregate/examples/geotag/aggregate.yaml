@@ -1,4 +1,4 @@
-# Label the particles according to geographical location
+# Compute connectivity between geographical locations
 
 # The `geotag` parameters classifies variables according to their
 # geographical location.
@@ -13,9 +13,7 @@ geotag:
     y: lat  # Name of the particle variable containing y axis coordinate values
 
   # Name of the GIS attributes which should be included. Attributes can be used
-  # for grouping or in filter/weights. Attributes prefixed with `INIT_` refer
-  # to the initial position. The special attribute `inside` is True if the
-  # particle is inside any polygon, and False otherwise.
+  # for grouping or in filter/weights.
   attrs:
   - region
 
@@ -25,8 +23,13 @@ geotag:
 bins:
   # Count the number of particles in each region, grouped by region
   region:
-    edges: [101, 102, 103]
-    labels: [101, 102]
+    edges: [-1, 101, 102, 103]
+    labels: [-1, 101, 102]
+
+  # The postfix INIT means the initial region of the particles
+  region_INIT:
+    edges: [-1, 101, 102, 103]
+    labels: [-1, 101, 102]
 
 # Find the distribution of particles with a certain age
 filter: age == 2

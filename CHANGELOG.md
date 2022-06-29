@@ -4,6 +4,8 @@
 ### Added
 - Geotagging feature
 - Connectivity computation
+### Fixed
+- Example "complex" now works from command line
 
 ## [1.8] - 2022-06-27
 ### Changed

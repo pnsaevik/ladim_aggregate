@@ -145,8 +145,9 @@ class LadimInputStream:
             spec_without_particle_vars = {k: v for k, v in spec.items() if k not in pvars}
 
         if spec_without_particle_vars:
-            for dset in self.datasets[1:]:
-                update_output(dset, spec_without_particle_vars)
+            for dset_name in self.datasets[1:]:
+                with _open_spec(dset_name) as dset:
+                    update_output(dset, spec_without_particle_vars)
 
         return out
 

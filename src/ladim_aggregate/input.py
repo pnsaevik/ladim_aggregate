@@ -160,13 +160,14 @@ class LadimInputStream:
         :param filters: A filtering expression
         :return: An xarray dataset indexed by "pid" for each time step.
         """
-        filterfn = create_filter(filters)
+        filterfn = create_newvar(filters)
 
         for chunk in ladim_iterator(self.datasets):
             num_unfiltered = chunk.dims['pid']
             if filterfn:
                 logger.info("Apply filter")
-                chunk = filterfn(chunk)
+                idx = filterfn(chunk).values
+                chunk = chunk.isel(pid=idx)
                 num_unfiltered = chunk.dims['pid']
                 logger.info(f'Number of remaining particles: {num_unfiltered}')
 
@@ -188,18 +189,7 @@ def get_time(timevar):
     return xr.decode_cf(timevar.to_dataset(name='timevar')).timevar.values
 
 
-def get_filter_func_from_numexpr(spec):
-    import numexpr
-    ex = numexpr.NumExpr(spec)
-
-    def filter_fn(chunk):
-        args = [chunk[n].values for n in ex.input_names]
-        idx = ex.run(*args)
-        return chunk.isel(pid=idx)
-    return filter_fn
-
-
-def get_weight_func_from_numexpr(spec):
+def get_newvar_func_from_numexpr(spec):
     import numexpr
     ex = numexpr.NumExpr(spec)
 
@@ -208,25 +198,13 @@ def get_weight_func_from_numexpr(spec):
         for n in ex.input_names:
             logger.info(f'Load variable "{n}"')
             args.append(chunk[n].values)
-        logger.info(f'Compute weights expression "{spec}"')
+        logger.info(f'Compute expression "{spec}"')
         return xr.Variable('pid', ex.run(*args))
 
     return weight_fn
 
 
-def get_filter_func_from_callable(fn):
-    import inspect
-    signature = inspect.signature(fn)
-
-    def filter_fn(chunk):
-        args = [chunk[n].values for n in signature.parameters.keys()]
-        idx = fn(*args)
-        return chunk.isel(pid=idx)
-
-    return filter_fn
-
-
-def get_weight_func_from_callable(fn):
+def get_newvar_func_from_callable(fn):
     import inspect
     signature = inspect.signature(fn)
 
@@ -237,20 +215,12 @@ def get_weight_func_from_callable(fn):
     return weight_fn
 
 
-def get_filter_func_from_funcstring(s: str):
+def get_newvar_func_from_funcstring(s: str):
     import importlib
     module_name, func_name = s.rsplit('.', 1)
     module = importlib.import_module(module_name)
     func = getattr(module, func_name)
-    return get_filter_func_from_callable(func)
-
-
-def get_weight_func_from_funcstring(s: str):
-    import importlib
-    module_name, func_name = s.rsplit('.', 1)
-    module = importlib.import_module(module_name)
-    func = getattr(module, func_name)
-    return get_weight_func_from_callable(func)
+    return get_newvar_func_from_callable(func)
 
 
 def glob_files(spec):
@@ -397,20 +367,6 @@ def _open_spec(spec):
         yield spec
 
 
-def create_filter(spec):
-    if spec is None:
-        return None
-    elif isinstance(spec, str):
-        if '.' in spec:
-            return get_filter_func_from_funcstring(spec)
-        else:
-            return get_filter_func_from_numexpr(spec)
-    elif callable(spec):
-        return get_filter_func_from_callable(spec)
-    else:
-        raise TypeError(f'Unknown type: {type(spec)}')
-
-
 def create_newvar(spec):
     if spec is None:
         return None
@@ -419,10 +375,10 @@ def create_newvar(spec):
         return create_geotagger(**spec[1])
     elif isinstance(spec, str):
         if '.' in spec:
-            return get_weight_func_from_funcstring(spec)
+            return get_newvar_func_from_funcstring(spec)
         else:
-            return get_weight_func_from_numexpr(spec)
+            return get_newvar_func_from_numexpr(spec)
     elif callable(spec):
-        return get_weight_func_from_callable(spec)
+        return get_newvar_func_from_callable(spec)
     else:
         raise TypeError(f'Unknown type: {type(spec)}')

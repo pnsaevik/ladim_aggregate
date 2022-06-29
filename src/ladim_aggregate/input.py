@@ -61,7 +61,7 @@ class LadimInputStream:
         return self._agg_variables[key]['value']
 
     def _assign(self, varname, expression):
-        self.derived_variables[varname] = create_newvar(expression)
+        self.derived_variables[varname] = create_varfunc(expression)
 
     def _update_agg_variables(self):
         # Find all unassigned aggfuncs and store them variable-wise
@@ -150,7 +150,7 @@ class LadimInputStream:
         :param filters: A filtering expression
         :return: An xarray dataset indexed by "pid" for each time step.
         """
-        filterfn = create_newvar(filters)
+        filterfn = create_varfunc(filters)
 
         # Initialize the "init variables"
         init_variables = {k: None for k in self.init_variables}
@@ -198,7 +198,7 @@ def get_time(timevar):
     return xr.decode_cf(timevar.to_dataset(name='timevar')).timevar.values
 
 
-def get_newvar_func_from_numexpr(spec):
+def get_varfunc_from_numexpr(spec):
     import numexpr
     ex = numexpr.NumExpr(spec)
 
@@ -213,7 +213,7 @@ def get_newvar_func_from_numexpr(spec):
     return weight_fn
 
 
-def get_newvar_func_from_callable(fn):
+def get_varfunc_from_callable(fn):
     import inspect
     signature = inspect.signature(fn)
 
@@ -224,12 +224,12 @@ def get_newvar_func_from_callable(fn):
     return weight_fn
 
 
-def get_newvar_func_from_funcstring(s: str):
+def get_varfunc_from_funcstring(s: str):
     import importlib
     module_name, func_name = s.rsplit('.', 1)
     module = importlib.import_module(module_name)
     func = getattr(module, func_name)
-    return get_newvar_func_from_callable(func)
+    return get_varfunc_from_callable(func)
 
 
 def glob_files(spec):
@@ -382,7 +382,7 @@ def _open_spec(spec):
         yield spec
 
 
-def create_newvar(spec):
+def create_varfunc(spec):
     if spec is None:
         return None
     elif isinstance(spec, tuple) and spec[0] == 'geotag':
@@ -390,10 +390,10 @@ def create_newvar(spec):
         return create_geotagger(**spec[1])
     elif isinstance(spec, str):
         if '.' in spec:
-            return get_newvar_func_from_funcstring(spec)
+            return get_varfunc_from_funcstring(spec)
         else:
-            return get_newvar_func_from_numexpr(spec)
+            return get_varfunc_from_numexpr(spec)
     elif callable(spec):
-        return get_newvar_func_from_callable(spec)
+        return get_varfunc_from_callable(spec)
     else:
         raise TypeError(f'Unknown type: {type(spec)}')

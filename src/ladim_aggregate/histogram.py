@@ -117,7 +117,7 @@ def autobins(spec, dset):
     for k in spec:
         if k.endswith('_INIT'):
             varname, opname = k.rsplit(sep='_', maxsplit=1)
-            dset.init_variables.append(varname)
+            dset.add_init_variable(varname)
 
     # Find bin specification type
     spec_types = dict()

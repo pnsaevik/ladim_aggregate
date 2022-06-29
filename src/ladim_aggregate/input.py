@@ -15,7 +15,7 @@ class LadimInputStream:
         self._attributes = None
         self._derived_variables = dict()
         self._agg_variables = dict()
-        self.init_variables = []
+        self._init_variables = []
 
     @property
     def attributes(self):
@@ -59,6 +59,9 @@ class LadimInputStream:
         if self._agg_variables[key]['value'] is None:
             self._update_agg_variables()
         return self._agg_variables[key]['value']
+
+    def add_init_variable(self, varname):
+        self._init_variables.append(varname)
 
     def _assign(self, varname, expression):
         self._derived_variables[varname] = create_varfunc(expression)
@@ -153,7 +156,7 @@ class LadimInputStream:
         filterfn = create_varfunc(filters)
 
         # Initialize the "init variables"
-        init_variables = {k: None for k in self.init_variables}
+        init_variables = {k: None for k in self._init_variables}
 
         for chunk in ladim_iterator(self.datasets):
             # Apply filter

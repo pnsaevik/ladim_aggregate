@@ -1,0 +1,37 @@
+# Compute connectivity between geographical locations
+
+# The `geotag` parameters classifies variables according to their
+# geographical location.
+geotag:
+  # GIS file of polygons, written in the .geojson format
+  file: regions.geojson
+
+  # We assume that the coordinates in the GIS file correspond to coordinates
+  # in the ladim file. They do not need to be lat, lon values; the coordinates
+  # in the GIS file may very well be grid coordinate values.
+  coords:
+    x: lon  # `lon` is the ladim variable containing x axis coordinate values
+    y: lat  # `lat` is the ladim variable containing y axis coordinate values
+
+  # Name of the GIS attributes which should be included.
+  attrs:
+  - region
+
+  # Value to use if particle is outside the polygons
+  outside_value: -1
+
+bins:
+  # Count the number of particles in each region, grouped by region
+  region: group_by
+
+  # The postfix INIT means the initial region of the particles
+  region_INIT: group_by
+
+# Find the distribution of particles with a certain age
+filter: age == 2
+
+# Input file in netCDF format (ladim output format)
+infile: ladim.nc
+
+# Output file in netCDF format
+outfile: count.nc

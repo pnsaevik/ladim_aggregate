@@ -1,7 +1,0 @@
-histogram:
-  dims: region
-  data: [1, 1]
-
-region:
-  dims: region
-  data: [101, 102]

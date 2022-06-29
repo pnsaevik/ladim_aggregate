@@ -13,6 +13,9 @@ class LadimInputStream:
     def __init__(self, spec):
         self.datasets = glob_files(spec)
         self._attributes = None
+        self._derived_variables = dict()
+        self._agg_variables = dict()
+        self._init_variables = []
 
     @property
     def attributes(self):
@@ -24,6 +27,80 @@ class LadimInputStream:
                 for k, v in dset.variables.items():
                     self._attributes[k] = v.attrs
         return self._attributes
+
+    def add_derived_variable(self, varname, definition):
+        """
+        Define new variables from expressions based on the old variables
+        :param varname: Variable name
+        :param definition: Variable definition
+        """
+        self._derived_variables[varname] = create_varfunc(definition)
+
+    def add_aggregation_variable(self, varname, operator):
+        """
+        Aggregation variables are the result of aggregation operations such as `max` or
+        `min`. They require a scanning of the whole dataset. The scanning is deferred
+        until a specific aggregate value is requested.
+
+        Variables defined here are available through the function get_aggregation_value
+
+        :param varname: Name of the variable
+        :param operator: Name of the operator
+        :return: The name of the aggregate variable (e.g., MAX_temp)
+        """
+        key = operator.upper() + '_' + varname
+        self._agg_variables[key] = dict(
+            key=key,
+            varname=varname,
+            operator=operator,
+            value=None,
+        )
+        return key
+
+    def get_aggregation_value(self, key):
+        if self._agg_variables[key]['value'] is None:
+            self._update_agg_variables()
+        return self._agg_variables[key]['value']
+
+    def add_init_variable(self, varname):
+        """
+        Init variables are derived variables that do not need a pre-scanning of the
+        dataset. The value of an init variable is the first value found when looping
+        through the time steps.
+
+        Variables added here are available through the chunks() function as variables
+        named like `<varname>_INIT`.
+
+        :param varname: Variable name
+        :return: None
+        """
+        self._init_variables.append(varname)
+
+    def _update_agg_variables(self):
+        # Find all unassigned aggfuncs and store them variable-wise
+        spec_keys = [k for k, v in self._agg_variables.items() if v['value'] is None]
+        spec = {}
+        for k in spec_keys:
+            opname = self._agg_variables[k]['operator']
+            vname = self._agg_variables[k]['varname']
+            spec[vname] = spec.get(vname, []) + [opname]
+
+        if spec == {}:
+            return
+
+        out = self.scan(spec)
+
+        for k in spec_keys:
+            opname = self._agg_variables[k]['operator']
+            vname = self._agg_variables[k]['varname']
+            value = out[vname][opname]
+            if opname in ['max', 'min']:
+                xr_var = xr.Variable((), value)
+            elif opname == 'unique':
+                xr_var = xr.Variable(k, value)
+            else:
+                raise NotImplementedError
+            self._agg_variables[k]['value'] = xr_var
 
     def scan(self, spec):
         """
@@ -47,8 +124,16 @@ class LadimInputStream:
 
         def update_output(ddset, sub_spec):
             for varname, funclist in sub_spec.items():
-                logger.info(f'Load "{varname}" values')
-                data = ddset.variables[varname].values
+                if varname in ddset.variables:
+                    logger.info(f'Load "{varname}" values')
+                    data = ddset.variables[varname].values
+                elif varname in self._derived_variables:
+                    logger.info(f'Compute "{varname}" values')
+                    fn = self._derived_variables[varname]
+                    data = fn(ddset).values
+                else:
+                    raise ValueError(f'Unknown variable name: "{varname}"')
+
                 for fun in funclist:
                     out[varname][fun] = update_agg(out[varname][fun], fun, data)
                     agg_log(fun, out[varname][fun])
@@ -56,9 +141,8 @@ class LadimInputStream:
         # Particle variables do only need the first dataset
         with _open_spec(self.datasets[0]) as dset:
             update_output(dset, spec)
-
-        spec_without_particle_vars = {
-            k: v for k, v in spec.items() if self.datasets[0][k].dims != ('particle', )}
+            pvars = [k for k in spec if k in dset and dset[k].dims == ('particle', )]
+            spec_without_particle_vars = {k: v for k, v in spec.items() if k not in pvars}
 
         if spec_without_particle_vars:
             for dset in self.datasets[1:]:
@@ -66,23 +150,59 @@ class LadimInputStream:
 
         return out
 
-    def chunks(self, filters=None, newvars=None) -> typing.Iterator[xr.Dataset]:
-        newvars = newvars or dict()
-        filterfn = create_filter(filters)
-        newvarfn = {k: create_newvar(v) for k, v in newvars.items()}
+    def chunks(self, filters=None) -> typing.Iterator[xr.Dataset]:
+        """
+        Return one ladim timestep at a time.
+
+        Variables associated with "time" or "particle" are distributed correctly over
+        the particles present in the current timestep.
+
+        For each time step, an optional filter is applied. Furthermore, the derived
+        variables added to the dataset are computed.
+
+        :param filters: A filtering expression
+        :return: An xarray dataset indexed by "pid" for each time step.
+        """
+        filterfn = create_varfunc(filters)
+
+        # Initialize the "init variables"
+        init_variables = {k: None for k in self._init_variables}
 
         for chunk in ladim_iterator(self.datasets):
+            # Apply filter
+            filter_idx = None
             num_unfiltered = chunk.dims['pid']
             if filterfn:
                 logger.info("Apply filter")
-                chunk = filterfn(chunk)
-                num_unfiltered = chunk.dims['pid']
+                filter_idx = filterfn(chunk).values
+                num_unfiltered = np.count_nonzero(filter_idx)
                 logger.info(f'Number of remaining particles: {num_unfiltered}')
 
-            if newvarfn and num_unfiltered:
-                for varname, fn in newvarfn.items():
-                    logger.info(f'Compute "{varname}"')
-                    chunk = chunk.assign(**{varname: fn(chunk)})
+            if (num_unfiltered == 0) and (len(init_variables) == 0):
+                continue
+
+            # Add derived variables (such as weights and geotags)
+            for varname, fn in self._derived_variables.items():
+                logger.info(f'Compute "{varname}"')
+                chunk = chunk.assign(**{varname: fn(chunk)})
+
+            # Add init variables (such as region_INIT)
+            for varname, data_and_mask in init_variables.items():
+                pid = chunk['pid'].values
+                input_data = (chunk[varname].values, pid)
+                data, mask = update_init(data_and_mask, input_data)
+                init_variables[varname] = (data, mask)
+                xr_var = xr.Variable('pid', data[pid])
+                chunk = chunk.assign(**{f"{varname}_INIT": xr_var})
+
+            # Add aggregation variables (such as MAX_temp)
+            for varname in self._agg_variables:
+                xr_var = self.get_aggregation_value(varname)
+                chunk = chunk.assign(**{varname: xr_var})
+
+            # Do actual filtering
+            if filter_idx is not None:
+                chunk = chunk.isel(pid=filter_idx)
 
             yield chunk
 
@@ -91,18 +211,7 @@ def get_time(timevar):
     return xr.decode_cf(timevar.to_dataset(name='timevar')).timevar.values
 
 
-def get_filter_func_from_numexpr(spec):
-    import numexpr
-    ex = numexpr.NumExpr(spec)
-
-    def filter_fn(chunk):
-        args = [chunk[n].values for n in ex.input_names]
-        idx = ex.run(*args)
-        return chunk.isel(pid=idx)
-    return filter_fn
-
-
-def get_weight_func_from_numexpr(spec):
+def get_varfunc_from_numexpr(spec):
     import numexpr
     ex = numexpr.NumExpr(spec)
 
@@ -111,25 +220,13 @@ def get_weight_func_from_numexpr(spec):
         for n in ex.input_names:
             logger.info(f'Load variable "{n}"')
             args.append(chunk[n].values)
-        logger.info(f'Compute weights expression "{spec}"')
+        logger.info(f'Compute expression "{spec}"')
         return xr.Variable('pid', ex.run(*args))
 
     return weight_fn
 
 
-def get_filter_func_from_callable(fn):
-    import inspect
-    signature = inspect.signature(fn)
-
-    def filter_fn(chunk):
-        args = [chunk[n].values for n in signature.parameters.keys()]
-        idx = fn(*args)
-        return chunk.isel(pid=idx)
-
-    return filter_fn
-
-
-def get_weight_func_from_callable(fn):
+def get_varfunc_from_callable(fn):
     import inspect
     signature = inspect.signature(fn)
 
@@ -140,20 +237,12 @@ def get_weight_func_from_callable(fn):
     return weight_fn
 
 
-def get_filter_func_from_funcstring(s: str):
+def get_varfunc_from_funcstring(s: str):
     import importlib
     module_name, func_name = s.rsplit('.', 1)
     module = importlib.import_module(module_name)
     func = getattr(module, func_name)
-    return get_filter_func_from_callable(func)
-
-
-def get_weight_func_from_funcstring(s: str):
-    import importlib
-    module_name, func_name = s.rsplit('.', 1)
-    module = importlib.import_module(module_name)
-    func = getattr(module, func_name)
-    return get_weight_func_from_callable(func)
+    return get_varfunc_from_callable(func)
 
 
 def glob_files(spec):
@@ -229,8 +318,47 @@ def ladim_iterator(ladim_dsets):
 
 
 def update_agg(old, aggfun, data):
-    funcs = dict(max=update_max, min=update_min, unique=update_unique)
+    funcs = dict(
+        max=update_max, min=update_min, unique=update_unique, init=update_init,
+        final=update_final,
+    )
     return funcs[aggfun](old, data)
+
+
+def update_init(old, data, final=False):
+    if old is None:
+        old = (np.zeros(0, dtype=data[0].dtype), np.zeros(0, dtype=bool))
+
+    # Unpack input arguments
+    old_data, old_mask = old
+    new_data, new_pid = data
+
+    # Expand array if necessary
+    max_pid = np.max(new_pid)
+    if max_pid >= len(old_data):
+        old_data2 = np.zeros(max_pid + 1, dtype=old_data.dtype)
+        old_data2[:len(old_data)] = old_data
+        old_mask2 = np.zeros(max_pid + 1, dtype=bool)
+        old_mask2[:len(old_mask)] = old_mask
+        old_data = old_data2
+        old_mask = old_mask2
+
+    if not final:
+        # Filter out the new particles
+        # Flip because the least recent pid number should be used
+        is_unexisting_pid = ~old_mask[new_pid]
+        new_data = np.flip(new_data[is_unexisting_pid])
+        new_pid = np.flip(new_pid[is_unexisting_pid])
+
+    # Store the new particles
+    old_data[new_pid] = new_data
+    old_mask[new_pid] = True
+
+    return old_data, old_mask
+
+
+def update_final(old, data):
+    return update_init(old, data, final=True)
 
 
 def update_max(old, data):
@@ -267,21 +395,7 @@ def _open_spec(spec):
         yield spec
 
 
-def create_filter(spec):
-    if spec is None:
-        return None
-    elif isinstance(spec, str):
-        if '.' in spec:
-            return get_filter_func_from_funcstring(spec)
-        else:
-            return get_filter_func_from_numexpr(spec)
-    elif callable(spec):
-        return get_filter_func_from_callable(spec)
-    else:
-        raise TypeError(f'Unknown type: {type(spec)}')
-
-
-def create_newvar(spec):
+def create_varfunc(spec):
     if spec is None:
         return None
     elif isinstance(spec, tuple) and spec[0] == 'geotag':
@@ -289,10 +403,10 @@ def create_newvar(spec):
         return create_geotagger(**spec[1])
     elif isinstance(spec, str):
         if '.' in spec:
-            return get_weight_func_from_funcstring(spec)
+            return get_varfunc_from_funcstring(spec)
         else:
-            return get_weight_func_from_numexpr(spec)
+            return get_varfunc_from_numexpr(spec)
     elif callable(spec):
-        return get_weight_func_from_callable(spec)
+        return get_varfunc_from_callable(spec)
     else:
         raise TypeError(f'Unknown type: {type(spec)}')

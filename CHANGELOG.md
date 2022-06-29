@@ -1,12 +1,13 @@
 # Version history
 
+## [1.9] - 2022-06-29
+### Added
+- Geotagging feature
+- Connectivity computation
+
 ## [1.8] - 2022-06-27
 ### Changed
 - Optimized particle filtering
-
-## [Unreleased]
-### Added
-- Geotagging feature
 
 ## [1.7] - 2022-06-24
 ### Added

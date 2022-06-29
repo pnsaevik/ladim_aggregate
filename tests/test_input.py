@@ -93,6 +93,28 @@ class Test_LadimInputStream_scan:
         assert out == dict(X=dict(max=16), Y=dict(min=60, max=72))
 
 
+class Test_LadimInputStream_assign:
+    def test_can_add_numexpr_variables(self, ladim_dset):
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        dset.add_derived_variable('sumcoords', "X + Y")
+        chunk = next(dset.chunks())
+        assert chunk.sumcoords.values.tolist() == (chunk.X + chunk.Y).values.tolist()
+
+    def test_can_add_agg_variable(self, ladim_dset):
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        dset.add_aggregation_variable('X', 'max')
+        dset.add_aggregation_variable('Y', 'min')
+        chunk = next(dset.chunks())
+        assert chunk.MAX_X.values.tolist() == ladim_dset.X.max().values.tolist()
+        assert chunk.MIN_Y.values.tolist() == ladim_dset.Y.min().values.tolist()
+
+    def test_can_add_unique(self, ladim_dset):
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        dset.add_aggregation_variable('X', 'unique')
+        unique_x = dset.get_aggregation_value('UNIQUE_X')
+        assert unique_x.values.tolist() == np.unique(ladim_dset.X.values).tolist()
+
+
 class Test_LadimInputStream:
     def test_can_initialise_from_xr_dataset(self, ladim_dset):
         dset = ladim_input.LadimInputStream(ladim_dset)
@@ -142,7 +164,8 @@ class Test_LadimInputStream:
 
     def test_can_add_weights_from_string_expression(self, ladim_dset):
         dset = ladim_input.LadimInputStream(ladim_dset)
-        chunk = next(c for c in dset.chunks(newvars=dict(weights='X + Y')))
+        dset.add_derived_variable('weights', 'X + Y')
+        chunk = next(c for c in dset.chunks())
         assert 'weights' in chunk
         assert len(chunk['weights']) > 0
         assert chunk['weights'].values.tolist() == list(
@@ -169,3 +192,47 @@ class Test_update_agg:
         assert ladim_input.update_agg(None, 'unique', [1, 1, 3]) == [1, 3]
         assert ladim_input.update_agg([], 'unique', [1, 1, 3]) == [1, 3]
         assert ladim_input.update_agg([2, 3, 4], 'unique', [1, 1, 3]) == [1, 2, 3, 4]
+
+    def test_can_update_init_if_old_data_is_supplied(self):
+        old_data = np.array([1, 0, 0, 0, 0])
+        old_mask = (old_data > 0)
+        new_data = np.array([5, 6, 7, 8])
+        new_pid = np.array([0, 2, 0, 2])
+
+        data, mask = ladim_input.update_agg(
+            old=(old_data, old_mask), aggfun='init', data=(new_data, new_pid))
+
+        assert data.tolist() == [1, 0, 6, 0, 0]
+        assert mask.tolist() == (data > 0).tolist()
+
+    def test_can_update_final_if_old_data_is_supplied(self):
+        old_data = np.array([1, 0, 0, 0, 0])
+        old_mask = (old_data > 0)
+        new_data = np.array([3, 4, 5, 6])
+        new_pid = np.array([0, 2, 0, 2])
+
+        data, mask = ladim_input.update_agg(
+            old=(old_data, old_mask), aggfun='final', data=(new_data, new_pid))
+
+        assert data.tolist() == [5, 0, 6, 0, 0]
+        assert mask.tolist() == (data > 0).tolist()
+
+    def test_can_initialize_init(self):
+        new_data = np.array([5, 6, 7, 8])
+        new_pid = np.array([0, 2, 0, 2])
+
+        data, mask = ladim_input.update_agg(
+            old=None, aggfun='init', data=(new_data, new_pid))
+
+        assert data.tolist() == [5, 0, 6]
+        assert mask.tolist() == (data > 0).tolist()
+
+    def test_can_initialize_final(self):
+        new_data = np.array([5, 6, 7, 8])
+        new_pid = np.array([0, 2, 0, 2])
+
+        data, mask = ladim_input.update_agg(
+            old=None, aggfun='final', data=(new_data, new_pid))
+
+        assert data.tolist() == [7, 0, 8]
+        assert mask.tolist() == (data > 0).tolist()

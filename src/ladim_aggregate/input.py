@@ -13,7 +13,7 @@ class LadimInputStream:
     def __init__(self, spec):
         self.datasets = glob_files(spec)
         self._attributes = None
-        self.new_variables = dict()
+        self.derived_variables = dict()
         self._agg_variables = dict()
         self.init_variables = []
 
@@ -61,7 +61,7 @@ class LadimInputStream:
         return self._agg_variables[key]['value']
 
     def _assign(self, varname, expression):
-        self.new_variables[varname] = create_newvar(expression)
+        self.derived_variables[varname] = create_newvar(expression)
 
     def _update_agg_variables(self):
         # Find all unassigned aggfuncs and store them variable-wise
@@ -114,9 +114,9 @@ class LadimInputStream:
                 if varname in ddset.variables:
                     logger.info(f'Load "{varname}" values')
                     data = ddset.variables[varname].values
-                elif varname in self.new_variables:
+                elif varname in self.derived_variables:
                     logger.info(f'Compute "{varname}" values')
-                    fn = self.new_variables[varname]
+                    fn = self.derived_variables[varname]
                     data = fn(ddset).values
                 else:
                     raise ValueError(f'Unknown variable name: "{varname}"')
@@ -169,7 +169,7 @@ class LadimInputStream:
                 continue
 
             # Add derived variables (such as weights and geotags)
-            for varname, fn in self.new_variables.items():
+            for varname, fn in self.derived_variables.items():
                 logger.info(f'Compute "{varname}"')
                 chunk = chunk.assign(**{varname: fn(chunk)})
 

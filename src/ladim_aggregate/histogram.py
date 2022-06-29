@@ -150,14 +150,14 @@ def autobins(spec, dset):
         specials = []
         for varname, aggfuncs in scan_params.items():
             for aggfun in aggfuncs:
-                special = dset.add_special_variable(varname, aggfun)
+                special = dset.add_aggregation_variable(varname, aggfun)
                 specials.append((special, varname, aggfun))
 
         logger.info(f'Scan input dataset to find {", ".join([s[0] for s in specials])}')
 
         # ... then trigger the scanning of the dataset
         for special, varname, aggfun in specials:
-            scan_output[varname][aggfun] = dset.special_value(special)
+            scan_output[varname][aggfun] = dset.get_aggregation_value(special)
 
     # Put the specs and the result of the pre-scanning into the bin generator
     bins = {k: bin_generator(spec[k], spec_types[k], scan_output[k]) for k in spec}

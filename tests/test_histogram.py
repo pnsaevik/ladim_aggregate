@@ -148,9 +148,9 @@ class Test_autobins:
         class MockLadimDataset:
             def __init__(self):
                 self._specials = {'MIN_x': 10, 'MAX_x': 19}
-                self.add_special_variable = lambda v, op: f'{op.upper()}_{v}'
+                self.add_aggregation_variable = lambda v, op: f'{op.upper()}_{v}'
 
-            def special_value(self, key):
+            def get_aggregation_value(self, key):
                 return self._specials[key]
 
         spec = dict(x=3)
@@ -161,9 +161,9 @@ class Test_autobins:
         class MockLadimDataset:
             def __init__(self):
                 self._specials = {'UNIQUE_x': [1, 2, 5]}
-                self.add_special_variable = lambda v, op: f'{op.upper()}_{v}'
+                self.add_aggregation_variable = lambda v, op: f'{op.upper()}_{v}'
 
-            def special_value(self, key):
+            def get_aggregation_value(self, key):
                 return self._specials[key]
 
         spec = dict(x='unique')

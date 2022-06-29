@@ -102,30 +102,30 @@ class Test_LadimInputStream_assign:
 
     def test_can_add_agg_variable(self, ladim_dset):
         dset = ladim_input.LadimInputStream(ladim_dset)
-        dset.add_special_variable('X', 'max')
-        dset.add_special_variable('Y', 'min')
+        dset.add_aggregation_variable('X', 'max')
+        dset.add_aggregation_variable('Y', 'min')
         chunk = next(dset.chunks())
         assert chunk.MAX_X.values.tolist() == ladim_dset.X.max().values.tolist()
         assert chunk.MIN_Y.values.tolist() == ladim_dset.Y.min().values.tolist()
 
     def test_can_add_unique(self, ladim_dset):
         dset = ladim_input.LadimInputStream(ladim_dset)
-        dset.add_special_variable('X', 'unique')
-        unique_x = dset.special_value('UNIQUE_X')
+        dset.add_aggregation_variable('X', 'unique')
+        unique_x = dset.get_aggregation_value('UNIQUE_X')
         assert unique_x.values.tolist() == np.unique(ladim_dset.X.values).tolist()
 
     def test_can_add_init(self, ladim_dset):
         dset = ladim_input.LadimInputStream(ladim_dset)
-        dset.add_special_variable('Z', 'init')
-        first_z = dset.special_value('INIT_Z')
+        dset.add_aggregation_variable('Z', 'init')
+        first_z = dset.get_aggregation_value('INIT_Z')
         assert first_z.dims == ('particle', )
         assert len(first_z) == ladim_dset.dims['particle']
         assert first_z.values.tolist() == [0, 1, 2, 3]
 
     def test_can_add_final(self, ladim_dset):
         dset = ladim_input.LadimInputStream(ladim_dset)
-        dset.add_special_variable('Z', 'final')
-        first_z = dset.special_value('FINAL_Z')
+        dset.add_aggregation_variable('Z', 'final')
+        first_z = dset.get_aggregation_value('FINAL_Z')
         assert first_z.dims == ('particle', )
         assert len(first_z) == ladim_dset.dims['particle']
         assert first_z.values.tolist() == [0, 4, 5, 3]

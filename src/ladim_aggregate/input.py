@@ -14,7 +14,7 @@ class LadimInputStream:
         self.datasets = glob_files(spec)
         self._attributes = None
         self.new_variables = dict()
-        self.special_variables = dict()
+        self._agg_variables = dict()
         self.init_variables = []
 
     @property
@@ -36,17 +36,18 @@ class LadimInputStream:
         for k, v in mapping.items():
             self._assign(k, v)
 
-    def add_special_variable(self, varname, operator):
+    def add_aggregation_variable(self, varname, operator):
         """
-        Special variables are the result of aggregation operations such as `max` or
-        `min`. They often require a scanning of the whole dataset.
+        Aggregation variables are the result of aggregation operations such as `max` or
+        `min`. They require a scanning of the whole dataset. The scanning is deferred
+        until a specific aggregate value is requested.
 
         :param varname: Name of the variable
         :param operator: Name of the operator
         :return: None
         """
         key = operator.upper() + '_' + varname
-        self.special_variables[key] = dict(
+        self._agg_variables[key] = dict(
             key=key,
             varname=varname,
             operator=operator,
@@ -54,21 +55,21 @@ class LadimInputStream:
         )
         return key
 
-    def special_value(self, key):
-        if self.special_variables[key]['value'] is None:
-            self._update_special_variables()
-        return self.special_variables[key]['value']
+    def get_aggregation_value(self, key):
+        if self._agg_variables[key]['value'] is None:
+            self._update_agg_variables()
+        return self._agg_variables[key]['value']
 
     def _assign(self, varname, expression):
         self.new_variables[varname] = create_newvar(expression)
 
-    def _update_special_variables(self):
+    def _update_agg_variables(self):
         # Find all unassigned aggfuncs and store them variable-wise
-        spec_keys = [k for k, v in self.special_variables.items() if v['value'] is None]
+        spec_keys = [k for k, v in self._agg_variables.items() if v['value'] is None]
         spec = {}
         for k in spec_keys:
-            opname = self.special_variables[k]['operator']
-            vname = self.special_variables[k]['varname']
+            opname = self._agg_variables[k]['operator']
+            vname = self._agg_variables[k]['varname']
             spec[vname] = spec.get(vname, []) + [opname]
 
         if spec == {}:
@@ -77,8 +78,8 @@ class LadimInputStream:
         out = self.scan(spec)
 
         for k in spec_keys:
-            opname = self.special_variables[k]['operator']
-            vname = self.special_variables[k]['varname']
+            opname = self._agg_variables[k]['operator']
+            vname = self._agg_variables[k]['varname']
             value = out[vname][opname]
             if opname in ['max', 'min']:
                 xr_var = xr.Variable((), value)
@@ -89,7 +90,7 @@ class LadimInputStream:
                 xr_var = xr.Variable('particle', data)
             else:
                 raise NotImplementedError
-            self.special_variables[k]['value'] = xr_var
+            self._agg_variables[k]['value'] = xr_var
 
     def scan(self, spec):
         """
@@ -200,8 +201,8 @@ class LadimInputStream:
                 chunk = chunk.assign(**{f"{varname}_INIT": xr_var})
 
             # Add aggregation variables (such as MAX_temp)
-            for varname in self.special_variables:
-                xr_var = self.special_value(varname)
+            for varname in self._agg_variables:
+                xr_var = self.get_aggregation_value(varname)
                 chunk = chunk.assign(**{varname: xr_var})
 
             # Do actual filtering

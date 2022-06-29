@@ -85,9 +85,6 @@ class LadimInputStream:
                 xr_var = xr.Variable((), value)
             elif opname == 'unique':
                 xr_var = xr.Variable(k, value)
-            elif opname in ['init', 'final']:
-                data, mask = value
-                xr_var = xr.Variable('particle', data)
             else:
                 raise NotImplementedError
             self._agg_variables[k]['value'] = xr_var
@@ -117,33 +114,11 @@ class LadimInputStream:
                 logger.info(f'Load "{varname}" values')
                 data = ddset.variables[varname].values
                 for fun in funclist:
-                    # The "pid aggfuncs" require a special type of input data
-                    if fun in ['init', 'final']:
-                        data = (data, ddset.variables['pid'].values)
                     out[varname][fun] = update_agg(out[varname][fun], fun, data)
                     agg_log(fun, out[varname][fun])
 
-        def initialize_pid_aggfuncs(num_particles, out_dict):
-            # The "pid_aggfuncs" ('init' and 'final') both require a special type of
-            # initialization, where the total number of particles must be known.
-
-            # If there are no pid_aggfuncs, abort function
-            if not [f for v in out_dict for f in out_dict[v] if f in ['init', 'final']]:
-                return
-
-            dtype = np.float32
-            fill_value = np.nan
-            init_data = np.empty(num_particles, dtype=dtype)
-            init_data[:] = fill_value
-            init_mask = np.zeros(num_particles, dtype=bool)
-            for varname in out_dict:
-                for fun in out_dict[varname]:
-                    if fun in ['init', 'final']:
-                        out_dict[varname][fun] = (init_data, init_mask)
-
         # Particle variables do only need the first dataset
         with _open_spec(self.datasets[0]) as dset:
-            initialize_pid_aggfuncs(dset.dims.get('particle', 0), out)
             update_output(dset, spec)
 
         spec_without_particle_vars = {

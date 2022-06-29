@@ -114,22 +114,6 @@ class Test_LadimInputStream_assign:
         unique_x = dset.get_aggregation_value('UNIQUE_X')
         assert unique_x.values.tolist() == np.unique(ladim_dset.X.values).tolist()
 
-    def test_can_add_init(self, ladim_dset):
-        dset = ladim_input.LadimInputStream(ladim_dset)
-        dset.add_aggregation_variable('Z', 'init')
-        first_z = dset.get_aggregation_value('INIT_Z')
-        assert first_z.dims == ('particle', )
-        assert len(first_z) == ladim_dset.dims['particle']
-        assert first_z.values.tolist() == [0, 1, 2, 3]
-
-    def test_can_add_final(self, ladim_dset):
-        dset = ladim_input.LadimInputStream(ladim_dset)
-        dset.add_aggregation_variable('Z', 'final')
-        first_z = dset.get_aggregation_value('FINAL_Z')
-        assert first_z.dims == ('particle', )
-        assert len(first_z) == ladim_dset.dims['particle']
-        assert first_z.values.tolist() == [0, 4, 5, 3]
-
 
 class Test_LadimInputStream:
     def test_can_initialise_from_xr_dataset(self, ladim_dset):

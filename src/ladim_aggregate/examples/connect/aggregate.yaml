@@ -12,8 +12,7 @@ geotag:
     x: lon  # Name of the particle variable containing x axis coordinate values
     y: lat  # Name of the particle variable containing y axis coordinate values
 
-  # Name of the GIS attributes which should be included. Attributes can be used
-  # for grouping or in filter/weights.
+  # Name of the GIS attributes which should be included.
   attrs:
   - region
 

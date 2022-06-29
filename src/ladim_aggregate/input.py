@@ -123,6 +123,11 @@ class LadimInputStream:
         def initialize_pid_aggfuncs(num_particles, out_dict):
             # The "pid_aggfuncs" ('init' and 'final') both require a special type of
             # initialization, where the total number of particles must be known.
+
+            # If there are no pid_aggfuncs, abort function
+            if not [f for v in out_dict for f in out_dict[v] if f in ['init', 'final']]:
+                return
+
             dtype = np.float32
             fill_value = np.nan
             init_data = np.empty(num_particles, dtype=dtype)
@@ -135,7 +140,7 @@ class LadimInputStream:
 
         # Particle variables do only need the first dataset
         with _open_spec(self.datasets[0]) as dset:
-            initialize_pid_aggfuncs(dset.dims['particle'], out)
+            initialize_pid_aggfuncs(dset.dims.get('particle', 0), out)
             update_output(dset, spec)
 
         spec_without_particle_vars = {
@@ -303,34 +308,40 @@ def update_agg(old, aggfun, data):
     return funcs[aggfun](old, data)
 
 
-def update_init(old, data):
+def update_init(old, data, final=False):
+    if old is None:
+        old = (np.zeros(0, dtype=data[0].dtype), np.zeros(0, dtype=bool))
+
     # Unpack input arguments
     old_data, old_mask = old
     new_data, new_pid = data
 
-    # Filter out the new particles
-    # Flip because the least recent pid number should be used
-    is_unexisting_pid = ~old_mask[new_pid]
-    new_data2 = np.flip(new_data[is_unexisting_pid])
-    new_pid2 = np.flip(new_pid[is_unexisting_pid])
+    # Expand array if necessary
+    max_pid = np.max(new_pid)
+    if max_pid >= len(old_data):
+        old_data2 = np.zeros(max_pid + 1, dtype=old_data.dtype)
+        old_data2[:len(old_data)] = old_data
+        old_mask2 = np.zeros(max_pid + 1, dtype=bool)
+        old_mask2[:len(old_mask)] = old_mask
+        old_data = old_data2
+        old_mask = old_mask2
 
-    # Store the new particles
-    old_data[new_pid2] = new_data2
-    old_mask[new_pid2] = True
-
-    return old_data, old_mask
-
-
-def update_final(old, data):
-    # Unpack input arguments
-    old_data, old_mask = old
-    new_data, new_pid = data
+    if not final:
+        # Filter out the new particles
+        # Flip because the least recent pid number should be used
+        is_unexisting_pid = ~old_mask[new_pid]
+        new_data = np.flip(new_data[is_unexisting_pid])
+        new_pid = np.flip(new_pid[is_unexisting_pid])
 
     # Store the new particles
     old_data[new_pid] = new_data
     old_mask[new_pid] = True
 
     return old_data, old_mask
+
+
+def update_final(old, data):
+    return update_init(old, data, final=True)
 
 
 def update_max(old, data):

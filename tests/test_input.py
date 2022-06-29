@@ -232,3 +232,23 @@ class Test_update_agg:
 
         assert data.tolist() == [5, 0, 6, 0, 0]
         assert mask.tolist() == (data > 0).tolist()
+
+    def test_can_initialize_init(self):
+        new_data = np.array([5, 6, 7, 8])
+        new_pid = np.array([0, 2, 0, 2])
+
+        data, mask = ladim_input.update_agg(
+            old=None, aggfun='init', data=(new_data, new_pid))
+
+        assert data.tolist() == [5, 0, 6]
+        assert mask.tolist() == (data > 0).tolist()
+
+    def test_can_initialize_final(self):
+        new_data = np.array([5, 6, 7, 8])
+        new_pid = np.array([0, 2, 0, 2])
+
+        data, mask = ladim_input.update_agg(
+            old=None, aggfun='final', data=(new_data, new_pid))
+
+        assert data.tolist() == [7, 0, 8]
+        assert mask.tolist() == (data > 0).tolist()

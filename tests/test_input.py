@@ -114,6 +114,22 @@ class Test_LadimInputStream_assign:
         unique_x = dset.special_value('UNIQUE_X')
         assert unique_x.values.tolist() == np.unique(ladim_dset.X.values).tolist()
 
+    def test_can_add_init(self, ladim_dset):
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        dset.add_special_variable('Z', 'init')
+        first_z = dset.special_value('INIT_Z')
+        assert first_z.dims == ('particle', )
+        assert len(first_z) == ladim_dset.dims['particle']
+        assert first_z.values.tolist() == [0, 1, 2, 3]
+
+    def test_can_add_final(self, ladim_dset):
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        dset.add_special_variable('Z', 'final')
+        first_z = dset.special_value('FINAL_Z')
+        assert first_z.dims == ('particle', )
+        assert len(first_z) == ladim_dset.dims['particle']
+        assert first_z.values.tolist() == [0, 4, 5, 3]
+
 
 class Test_LadimInputStream:
     def test_can_initialise_from_xr_dataset(self, ladim_dset):
@@ -192,3 +208,27 @@ class Test_update_agg:
         assert ladim_input.update_agg(None, 'unique', [1, 1, 3]) == [1, 3]
         assert ladim_input.update_agg([], 'unique', [1, 1, 3]) == [1, 3]
         assert ladim_input.update_agg([2, 3, 4], 'unique', [1, 1, 3]) == [1, 2, 3, 4]
+
+    def test_can_update_init_if_old_data_is_supplied(self):
+        old_data = np.array([1, 0, 0, 0, 0])
+        old_mask = (old_data > 0)
+        new_data = np.array([5, 6, 7, 8])
+        new_pid = np.array([0, 2, 0, 2])
+
+        data, mask = ladim_input.update_agg(
+            old=(old_data, old_mask), aggfun='init', data=(new_data, new_pid))
+
+        assert data.tolist() == [1, 0, 6, 0, 0]
+        assert mask.tolist() == (data > 0).tolist()
+
+    def test_can_update_final_if_old_data_is_supplied(self):
+        old_data = np.array([1, 0, 0, 0, 0])
+        old_mask = (old_data > 0)
+        new_data = np.array([3, 4, 5, 6])
+        new_pid = np.array([0, 2, 0, 2])
+
+        data, mask = ladim_input.update_agg(
+            old=(old_data, old_mask), aggfun='final', data=(new_data, new_pid))
+
+        assert data.tolist() == [5, 0, 6, 0, 0]
+        assert mask.tolist() == (data > 0).tolist()

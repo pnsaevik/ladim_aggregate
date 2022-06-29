@@ -82,6 +82,9 @@ class LadimInputStream:
                 xr_var = xr.Variable((), value)
             elif opname == 'unique':
                 xr_var = xr.Variable(k, value)
+            elif opname in ['init', 'final']:
+                data, mask = value
+                xr_var = xr.Variable('particle', data)
             else:
                 raise NotImplementedError
             self.special_variables[k]['value'] = xr_var
@@ -111,11 +114,28 @@ class LadimInputStream:
                 logger.info(f'Load "{varname}" values')
                 data = ddset.variables[varname].values
                 for fun in funclist:
+                    # The "pid aggfuncs" require a special type of input data
+                    if fun in ['init', 'final']:
+                        data = (data, ddset.variables['pid'].values)
                     out[varname][fun] = update_agg(out[varname][fun], fun, data)
                     agg_log(fun, out[varname][fun])
 
+        def initialize_pid_aggfuncs(num_particles, out_dict):
+            # The "pid_aggfuncs" ('init' and 'final') both require a special type of
+            # initialization, where the total number of particles must be known.
+            dtype = np.float32
+            fill_value = np.nan
+            init_data = np.empty(num_particles, dtype=dtype)
+            init_data[:] = fill_value
+            init_mask = np.zeros(num_particles, dtype=bool)
+            for varname in out_dict:
+                for fun in out_dict[varname]:
+                    if fun in ['init', 'final']:
+                        out_dict[varname][fun] = (init_data, init_mask)
+
         # Particle variables do only need the first dataset
         with _open_spec(self.datasets[0]) as dset:
+            initialize_pid_aggfuncs(dset.dims['particle'], out)
             update_output(dset, spec)
 
         spec_without_particle_vars = {
@@ -128,6 +148,18 @@ class LadimInputStream:
         return out
 
     def chunks(self, filters=None) -> typing.Iterator[xr.Dataset]:
+        """
+        Return one ladim timestep at a time.
+
+        Variables associated with "time" or "particle" are distributed correctly over
+        the particles present in the current timestep.
+
+        For each time step, an optional filter is applied. Furthermore, the derived
+        variables added to the dataset are computed.
+
+        :param filters: A filtering expression
+        :return: An xarray dataset indexed by "pid" for each time step.
+        """
         filterfn = create_filter(filters)
 
         for chunk in ladim_iterator(self.datasets):
@@ -294,8 +326,41 @@ def ladim_iterator(ladim_dsets):
 
 
 def update_agg(old, aggfun, data):
-    funcs = dict(max=update_max, min=update_min, unique=update_unique)
+    funcs = dict(
+        max=update_max, min=update_min, unique=update_unique, init=update_init,
+        final=update_final,
+    )
     return funcs[aggfun](old, data)
+
+
+def update_init(old, data):
+    # Unpack input arguments
+    old_data, old_mask = old
+    new_data, new_pid = data
+
+    # Filter out the new particles
+    # Flip because the least recent pid number should be used
+    is_unexisting_pid = ~old_mask[new_pid]
+    new_data2 = np.flip(new_data[is_unexisting_pid])
+    new_pid2 = np.flip(new_pid[is_unexisting_pid])
+
+    # Store the new particles
+    old_data[new_pid2] = new_data2
+    old_mask[new_pid2] = True
+
+    return old_data, old_mask
+
+
+def update_final(old, data):
+    # Unpack input arguments
+    old_data, old_mask = old
+    new_data, new_pid = data
+
+    # Store the new particles
+    old_data[new_pid] = new_data
+    old_mask[new_pid] = True
+
+    return old_data, old_mask
 
 
 def update_max(old, data):

@@ -7,6 +7,7 @@
 ## [Unreleased]
 ### Added
 - Geotagging feature
+- Connectivity computation
 
 ## [1.7] - 2022-06-24
 ### Added

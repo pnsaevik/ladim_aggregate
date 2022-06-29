@@ -28,13 +28,13 @@ class LadimInputStream:
                     self._attributes[k] = v.attrs
         return self._attributes
 
-    def assign(self, **mapping):
+    def add_derived_variable(self, varname, definition):
         """
         Define new variables from expressions based on the old variables
-        :param mapping: A mapping of variable names to functional expressions
+        :param varname: Variable name
+        :param definition: Variable definition
         """
-        for k, v in mapping.items():
-            self._assign(k, v)
+        self._derived_variables[varname] = create_varfunc(definition)
 
     def add_aggregation_variable(self, varname, operator):
         """
@@ -75,9 +75,6 @@ class LadimInputStream:
         :return: None
         """
         self._init_variables.append(varname)
-
-    def _assign(self, varname, expression):
-        self._derived_variables[varname] = create_varfunc(expression)
 
     def _update_agg_variables(self):
         # Find all unassigned aggfuncs and store them variable-wise

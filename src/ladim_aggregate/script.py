@@ -126,11 +126,11 @@ def run(dset_in, config, dset_out):
                 geojson=config['geotag']['geojson'],
                 missing=config['geotag']['outside_value'],
             ))
-            dset_in.assign(**{k: spec})
+            dset_in.add_derived_variable(varname=k, definition=spec)
 
     # Add weights
     if 'weights' in config:
-        dset_in.assign(weights=config['weights'])
+        dset_in.add_derived_variable(varname='weights', definition=config['weights'])
 
     # Prepare histogram bins
     bins = autobins(config['bins'], dset_in)

@@ -42,9 +42,11 @@ class LadimInputStream:
         `min`. They require a scanning of the whole dataset. The scanning is deferred
         until a specific aggregate value is requested.
 
+        Variables defined here are available through the function get_aggregation_value
+
         :param varname: Name of the variable
         :param operator: Name of the operator
-        :return: None
+        :return: The name of the aggregate variable (e.g., MAX_temp)
         """
         key = operator.upper() + '_' + varname
         self._agg_variables[key] = dict(
@@ -61,6 +63,17 @@ class LadimInputStream:
         return self._agg_variables[key]['value']
 
     def add_init_variable(self, varname):
+        """
+        Init variables are derived variables that do not need a pre-scanning of the
+        dataset. The value of an init variable is the first value found when looping
+        through the time steps.
+
+        Variables added here are available through the chunks() function as variables
+        named like `<varname>_INIT`.
+
+        :param varname: Variable name
+        :return: None
+        """
         self._init_variables.append(varname)
 
     def _assign(self, varname, expression):

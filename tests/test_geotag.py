@@ -13,7 +13,7 @@ class Test_create_geotagger:
             )
         )
 
-        pkg = 'ladim_aggregate.examples.geotag'
+        pkg = 'ladim_aggregate.examples.connect'
         geojson = json.loads(pkgutil.get_data(pkg, 'regions.geojson').decode('utf-8'))
 
         geotagger = geotag.create_geotagger(

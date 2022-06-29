@@ -21,9 +21,7 @@ geotag:
 
 bins:
   # Count the number of particles in each region, grouped by region
-  region:
-    edges: [-1, 101, 102, 103]
-    labels: [-1, 101, 102]
+  region: group_by
 
   # The postfix INIT means the initial region of the particles
   region_INIT:

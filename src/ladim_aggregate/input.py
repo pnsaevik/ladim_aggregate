@@ -111,8 +111,16 @@ class LadimInputStream:
 
         def update_output(ddset, sub_spec):
             for varname, funclist in sub_spec.items():
-                logger.info(f'Load "{varname}" values')
-                data = ddset.variables[varname].values
+                if varname in ddset.variables:
+                    logger.info(f'Load "{varname}" values')
+                    data = ddset.variables[varname].values
+                elif varname in self.new_variables:
+                    logger.info(f'Compute "{varname}" values')
+                    fn = self.new_variables[varname]
+                    data = fn(ddset).values
+                else:
+                    raise ValueError(f'Unknown variable name: "{varname}"')
+
                 for fun in funclist:
                     out[varname][fun] = update_agg(out[varname][fun], fun, data)
                     agg_log(fun, out[varname][fun])
@@ -120,9 +128,8 @@ class LadimInputStream:
         # Particle variables do only need the first dataset
         with _open_spec(self.datasets[0]) as dset:
             update_output(dset, spec)
-
-        spec_without_particle_vars = {
-            k: v for k, v in spec.items() if self.datasets[0][k].dims != ('particle', )}
+            pvars = [k for k in spec if k in dset and dset[k].dims == ('particle', )]
+            spec_without_particle_vars = {k: v for k, v in spec.items() if k not in pvars}
 
         if spec_without_particle_vars:
             for dset in self.datasets[1:]:

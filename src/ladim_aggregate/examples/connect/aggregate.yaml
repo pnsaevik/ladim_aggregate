@@ -6,17 +6,18 @@ geotag:
   # GIS file of polygons, written in the .geojson format
   file: regions.geojson
 
-  # We assume that the coordinates in the GIS files correspond to coordinates
-  # in the ladim file
+  # We assume that the coordinates in the GIS file correspond to coordinates
+  # in the ladim file. They do not need to be lat, lon values; the coordinates
+  # in the GIS file may very well be grid coordinate values.
   coords:
-    x: lon  # Name of the particle variable containing x axis coordinate values
-    y: lat  # Name of the particle variable containing y axis coordinate values
+    x: lon  # `lon` is the ladim variable containing x axis coordinate values
+    y: lat  # `lat` is the ladim variable containing y axis coordinate values
 
   # Name of the GIS attributes which should be included.
   attrs:
   - region
 
-  # Value to use if particle is outside the polygona
+  # Value to use if particle is outside the polygons
   outside_value: -1
 
 bins:
@@ -24,9 +25,7 @@ bins:
   region: group_by
 
   # The postfix INIT means the initial region of the particles
-  region_INIT:
-    edges: [-1, 101, 102, 103]
-    labels: [-1, 101, 102]
+  region_INIT: group_by
 
 # Find the distribution of particles with a certain age
 filter: age == 2

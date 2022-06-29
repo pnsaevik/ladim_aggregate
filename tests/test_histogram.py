@@ -146,10 +146,12 @@ class Test_autobins:
 
     def test_returns_aligned_range_if_resolution(self):
         class MockLadimDataset:
-            @staticmethod
-            def scan(arg):
-                assert arg == dict(x=['min', 'max'])
-                return dict(x=dict(min=10, max=19))
+            def __init__(self):
+                self._specials = {'MIN_x': 10, 'MAX_x': 19}
+                self.add_special_variable = lambda v, op: f'{op.upper()}_{v}'
+
+            def special_value(self, key):
+                return self._specials[key]
 
         spec = dict(x=3)
         bins = histogram.autobins(spec, dset=MockLadimDataset())
@@ -157,10 +159,12 @@ class Test_autobins:
 
     def test_returns_bins_if_unique(self):
         class MockLadimDataset:
-            @staticmethod
-            def scan(arg):
-                assert arg == dict(x=['unique'])
-                return dict(x=dict(unique=[1, 2, 5]))
+            def __init__(self):
+                self._specials = {'UNIQUE_x': [1, 2, 5]}
+                self.add_special_variable = lambda v, op: f'{op.upper()}_{v}'
+
+            def special_value(self, key):
+                return self._specials[key]
 
         spec = dict(x='unique')
         bins = histogram.autobins(spec, dset=MockLadimDataset())

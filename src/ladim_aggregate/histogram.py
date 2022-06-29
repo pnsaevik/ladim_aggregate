@@ -138,12 +138,20 @@ def autobins(spec, dset):
     scan_params_template = dict(unique=['unique'], resolution=['min', 'max'])
     scan_params = {k: scan_params_template[v] for k, v in spec_types.items()
                    if v in scan_params_template}
-    scan_output = {k: None for k in spec}
+    scan_output = {k: dict() for k in spec}
     if scan_params:
-        logger.info('Perform preliminary scan of the input dataset to find the following info:')
-        for k, v in scan_params.items():
-            logger.info(f'{k}: {v}')
-        scan_output = {**scan_output, **dset.scan(scan_params)}
+        # First add all the variable definitions...
+        specials = []
+        for varname, aggfuncs in scan_params.items():
+            for aggfun in aggfuncs:
+                special = dset.add_special_variable(varname, aggfun)
+                specials.append((special, varname, aggfun))
+
+        logger.info(f'Scan input dataset to find {", ".join([s[0] for s in specials])}')
+
+        # ... then trigger the scanning of the dataset
+        for special, varname, aggfun in specials:
+            scan_output[varname][aggfun] = dset.special_value(special)
 
     # Put the specs and the result of the pre-scanning into the bin generator
     bins = {k: bin_generator(spec[k], spec_types[k], scan_output[k]) for k in spec}

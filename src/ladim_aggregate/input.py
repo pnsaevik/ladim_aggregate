@@ -51,6 +51,7 @@ class LadimInputStream:
             operator=operator,
             value=None,
         )
+        return key
 
     def special_value(self, key):
         if self.special_variables[key]['value'] is None:

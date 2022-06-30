@@ -24,7 +24,7 @@ jobs:
       - install_conda_environment
       - run:
           name: "Install current package"
-          command: conda install -n testenv python -m pip install .
+          command: conda run -n testenv python -m pip install .
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows

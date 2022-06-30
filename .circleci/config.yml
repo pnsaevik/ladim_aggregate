@@ -6,13 +6,7 @@ orbs:
   docker-publish: circleci/docker@1.7.0
 
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
-jobs:
-  python_3_10:
-    environment:
-      - PYTHON_VERSION=3.10
-
+test-template: &test-template
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
@@ -35,6 +29,12 @@ jobs:
       - run:
           name: "Run command line example"
           command: conda run -n testenv ladim_aggregate aggregate.yaml
+
+
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
+jobs:
+  python_3_10: {<<: *test-template, environment: [PYTHON_VERSION=3.10]}
 
 
 # Invoke jobs via workflows

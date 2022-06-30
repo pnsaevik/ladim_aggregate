@@ -26,6 +26,16 @@ jobs:
       - run:
           name: "Install current package"
           command: conda run -n testenv python -m pip install .
+      - run:
+          name: "Run tests"
+          command: conda run -n testenv python -m pytest -Wignore
+      - run:
+          name: "Extract command line example"
+          command: conda run -n testenv ladim_aggregate --example grid_2D
+      - run:
+          name: "Run command line example"
+          command: conda run -n testenv ladim_aggregate aggregate.yaml
+
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows

@@ -2,18 +2,26 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
+orbs:
+  docker-publish: circleci/docker@1.7.0
+
+
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  say-hello:
+  python_3_10:
+    environment:
+      - PYTHON_VERSION=3.10
+
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
-      - image: cimg/base:stable
+    - image: continuumio/miniconda3
     # Add steps to the job
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
     steps:
       - checkout
+      - install_conda_environment
       - run:
           name: "Say hello"
           command: "echo Hello, World!"
@@ -21,6 +29,40 @@ jobs:
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
-  say-hello-workflow:
+  main-workflow:
     jobs:
-      - say-hello
+      - python_3_10
+
+
+commands:
+  install_conda_environment:
+    steps:
+      - run:
+          name: Checksum environment
+          command: |
+            echo "python=${PYTHON_VERSION}" > envconfig
+            cat envconfig
+
+      - restore_cache:
+          key: v1-deps1-{{ checksum "envconfig" }}
+
+      - run:
+          name: Install requirements
+          no_output_timeout: 30m
+          command: |
+            if [ ! -e /opt/conda/envs/testenv ]; then
+              conda create -n testenv -y "python=${PYTHON_VERSION}" numpy netCDF4 pandas xarray matplotlib pyproj skyfield triangle scipy cftime pytest pyyaml
+            fi
+            conda activate testenv
+            pip install git+https://github.com/pnsaevik/ladim
+
+      - save_cache:
+          key: v1-deps1-{{ checksum "envconfig" }}
+          paths:
+            - "/opt/conda/envs"
+
+      - run:
+          name: List environment
+          command: |
+            conda activate testenv
+            conda list

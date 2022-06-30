@@ -23,8 +23,8 @@ jobs:
       - checkout
       - install_conda_environment
       - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
+          name: "Install current package"
+          command: conda -n testenv python -m pip install .
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows

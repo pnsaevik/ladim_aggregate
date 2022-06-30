@@ -52,11 +52,9 @@ commands:
           command: |
             if [ ! -e /opt/conda/envs/testenv ]; then
               conda create -n testenv -y "python=${PYTHON_VERSION}" numpy netCDF4 pandas xarray matplotlib pyproj scipy cftime pytest pyyaml
-              conda activate testenv
-              pip install skyfield triangle
+              conda run -n testenv python -m pip install skyfield triangle
+              conda run -n testenv python -m pip install git+https://github.com/pnsaevik/ladim
             fi
-            conda activate testenv
-            pip install git+https://github.com/pnsaevik/ladim
 
       - save_cache:
           key: v1-deps1-{{ checksum "envconfig" }}
@@ -66,5 +64,4 @@ commands:
       - run:
           name: List environment
           command: |
-            conda activate testenv
-            conda list
+            conda list -n testenv

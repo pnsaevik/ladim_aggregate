@@ -51,7 +51,9 @@ commands:
           no_output_timeout: 30m
           command: |
             if [ ! -e /opt/conda/envs/testenv ]; then
-              conda create -n testenv -y "python=${PYTHON_VERSION}" numpy netCDF4 pandas xarray matplotlib pyproj skyfield triangle scipy cftime pytest pyyaml
+              conda create -n testenv -y "python=${PYTHON_VERSION}" numpy netCDF4 pandas xarray matplotlib pyproj scipy cftime pytest pyyaml
+              conda activate testenv
+              pip install skyfield triangle
             fi
             conda activate testenv
             pip install git+https://github.com/pnsaevik/ladim

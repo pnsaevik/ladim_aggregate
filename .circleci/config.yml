@@ -46,6 +46,9 @@ workflows:
   main-workflow:
     jobs:
       - python_3_10
+      - python_3_9
+      - python_3_8
+      - python_3_7
 
 
 commands:

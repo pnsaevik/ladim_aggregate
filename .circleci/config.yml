@@ -1,0 +1,83 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine.
+# See: https://circleci.com/docs/2.0/configuration-reference
+version: 2.1
+
+orbs:
+  docker-publish: circleci/docker@1.7.0
+
+
+test-template: &test-template
+    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+    docker:
+    - image: continuumio/miniconda3
+    resource_class: small
+    # Add steps to the job
+    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+    steps:
+      - checkout
+      - install_conda_environment
+      - run:
+          name: "Install current package"
+          command: conda run -n testenv python -m pip install .
+      - run:
+          name: "Run tests"
+          command: conda run -n testenv python -m pytest -Wignore
+      - run:
+          name: "Extract command line example"
+          command: conda run -n testenv ladim_aggregate --example grid_2D
+      - run:
+          name: "Run command line example"
+          command: conda run -n testenv ladim_aggregate aggregate.yaml
+
+
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
+jobs:
+  python_3_10: {<<: *test-template, environment: [PYTHON_VERSION=3.10]}
+  python_3_9: {<<: *test-template, environment: [PYTHON_VERSION=3.9]}
+  python_3_8: {<<: *test-template, environment: [PYTHON_VERSION=3.8]}
+  python_3_7: {<<: *test-template, environment: [PYTHON_VERSION=3.7]}
+
+
+# Invoke jobs via workflows
+# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
+workflows:
+  main-workflow:
+    jobs:
+      - python_3_10
+      - python_3_9
+      - python_3_8
+
+
+commands:
+  install_conda_environment:
+    steps:
+      - run:
+          name: Checksum environment
+          command: |
+            echo "python=${PYTHON_VERSION}" > envconfig
+            cat envconfig
+
+      - restore_cache:
+          key: v1-deps1-{{ checksum "envconfig" }}
+
+      - run:
+          name: Install requirements
+          no_output_timeout: 30m
+          command: |
+            if [ ! -e /opt/conda/envs/testenv ]; then
+              conda create -n testenv -y "python=${PYTHON_VERSION}" numpy netCDF4 pandas xarray matplotlib pyproj scipy cftime pytest pyyaml
+              conda run -n testenv python -m pip install skyfield triangle
+              conda run -n testenv python -m pip install git+https://github.com/pnsaevik/ladim
+            fi
+
+      - save_cache:
+          key: v1-deps1-{{ checksum "envconfig" }}
+          paths:
+            - "/opt/conda/envs"
+
+      - run:
+          name: List environment
+          command: |
+            conda list -n testenv

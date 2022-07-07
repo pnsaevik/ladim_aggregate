@@ -1,4 +1,4 @@
-# Use a weighting variable (or expression)
+# Use a weighting variable, or import weighting from file
 
 # In this example, we use a simple 1-dimensional binning
 bins:
@@ -6,7 +6,19 @@ bins:
 
 # Here we specify the weights expression. This must be a valid numeric
 # expression containing variable names defined in the input file.
-weights: mass
+# Variables imported from external files can also be used in the expression.
+# In the expression below, `spec` and `super` is imported from a file
+weights: mass * spec * super
+
+# Import variables from file. The file is expected to be a netCDF file, with
+# variables defined on a grid. Each particle samples the grid file variables by
+# bilinear interpolation.
+grid:
+  - file: external.nc
+    variable: spec
+  - file: external.nc
+    variable: super
+
 
 outfile: count.nc
 infile: ladim.nc

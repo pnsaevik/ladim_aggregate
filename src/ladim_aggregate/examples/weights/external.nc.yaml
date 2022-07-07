@@ -1,0 +1,17 @@
+X:
+  data: [0, 50, 100]
+  dims: X
+
+Z:
+  data: [0, 10]
+  dims: Z
+
+super:
+  data:
+  - [10, 100, 1000]
+  - [100, 1000, 10000]
+  dims: [Z, X]
+
+spec:
+  data: [1, -1]
+  dims: Z

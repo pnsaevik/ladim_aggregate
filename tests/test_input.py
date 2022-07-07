@@ -177,6 +177,20 @@ class Test_LadimInputStream:
         assert dset.attributes['Z']['standard_name'] == 'depth'
 
 
+class Test_LadimInputStream_grid:
+    def test_can_add_grid_variables(self, ladim_dset):
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        grid = xr.DataArray(
+            data=[100, 200, 300],
+            coords=dict(X=[0, 5, 10]),
+            name="multiplier",
+        )
+        dset.add_grid_variable(grid)
+        chunk = next(dset.chunks())
+        assert "multiplier" in chunk.variables
+        assert chunk.multiplier.values.tolist() == [200, 200, 220, 220]
+
+
 class Test_update_agg:
     def test_can_compute_max(self):
         assert ladim_input.update_agg(None, 'max', [1, 2, 3]) == 3

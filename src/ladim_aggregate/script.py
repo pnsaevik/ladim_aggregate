@@ -88,23 +88,6 @@ def main(*args):
     with open(config_file, encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
-    # Load geotag file
-    if 'geotag' in config:
-        with open(config['geotag']['file'], encoding='utf-8') as f:
-            import json
-            config['geotag']['geojson'] = json.load(f)
-
-    # Load grid files
-    if 'grid' in config:
-        # Convert to list if single element
-        config_grid = config['grid']
-        if isinstance(config_grid, dict):
-            config_grid = [config_grid]
-
-        # Load data into config
-        for grid_spec in config_grid:
-            grid_spec['data'] = load_dataarray(grid_spec['file'], grid_spec['variable'])
-
     logger.info(f'Input file pattern: "{config["infile"]}"')
     from .input import LadimInputStream
     dset_in = LadimInputStream(config['infile'])
@@ -116,13 +99,14 @@ def main(*args):
         run(dset_in, config, dset_out)
 
 
-def run(dset_in, config, dset_out):
+def run(dset_in, config, dset_out, filedata=None):
     from .histogram import Histogrammer, autobins
-    from .parseconfig import parse_config
+    from .parseconfig import parse_config, load_config
     import numpy as np
 
     # Modify configuration dict by reformatting and appending default values
     config = parse_config(config)
+    config = load_config(config, filedata)
 
     # Read some params
     filesplit_dims = config.get('filesplit_dims', [])
@@ -208,14 +192,3 @@ def init_logger(loglevel=None):
     formatter = logging.Formatter('%(asctime)s  %(name)s:%(levelname)s - %(message)s')
     ch.setFormatter(formatter)
     package_logger.addHandler(ch)
-
-
-def load_dataarray(file_name, variable):
-    import xarray as xr
-    with xr.open_dataset(file_name) as dset:
-        v = dset[variable]
-        vv = v.copy(deep=True)
-        pass
-
-    return vv
-

@@ -17,29 +17,13 @@ class Test_Example:
         ex = examples.Example('grid_2D')
         assert ex.package == 'ladim_aggregate.examples.grid_2D'
 
-    def test_files(self):
-        ex = examples.Example('grid_2D')
-        assert 'aggregate.yaml' in ex.files
-        assert 'count.nc.yaml' in ex.files
-
-    def test_infiles(self):
-        ex = examples.Example('grid_2D')
-        assert 'aggregate.yaml' in ex.infiles
-        assert 'count.nc.yaml' not in ex.infiles
-
-    def test_outfiles(self):
-        ex = examples.Example('grid_2D')
-        assert 'aggregate.yaml' not in ex.outfiles
-        assert 'count.nc.yaml' in ex.outfiles
-
     def test_descr(self):
         ex = examples.Example('grid_2D')
         assert ex.descr.startswith('Basic example')
 
-    def test_load(self):
+    def test_files(self):
         ex = examples.Example('grid_2D')
-        data_dict = ex.load(['aggregate.yaml', 'ladim.nc.yaml'])
-        assert set(data_dict.keys()) == {'aggregate.yaml', 'ladim.nc.yaml', 'ladim.nc'}
+        data_dict = ex.files()
         assert hasattr(data_dict['aggregate.yaml'], 'decode')  # byte object
         assert hasattr(data_dict['ladim.nc.yaml'], 'decode')  # byte object
         assert hasattr(data_dict['ladim.nc'], 'to_netcdf')  # xarray object
@@ -71,11 +55,12 @@ class Test_nc_dump:
         )
 
 
-named_examples = examples.available()
+named_examples = examples.Example.available()
 
 
 class Test_run:
-    @pytest.mark.parametrize("named_example", named_examples)
-    def test_matches_output(self, named_example):
-        result, expected = examples.run(named_example)
+    @pytest.mark.parametrize("name", named_examples)
+    def test_matches_output(self, name):
+        ex = examples.Example(name)
+        result, expected = ex.run()
         assert result == expected

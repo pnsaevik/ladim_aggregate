@@ -12,6 +12,8 @@ projection:
   # Specify projection as a proj4 string
   proj4: +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs
   # Specify variable names for the coordinates
+  # Right hand side: Name of the coordinate in the Ladim file
+  # Left hand side: Either x or y
   x: X
   y: Y
 

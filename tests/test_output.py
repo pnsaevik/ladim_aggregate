@@ -143,6 +143,35 @@ class Test_MultiDataset:
         mdset.setData('y', 8)
         assert mdset.getData('y').tolist() == [8, 8, 8]
 
+    def test_cannot_set_crossvar_attributes_after_subdataset_creation(self, mdset):
+        # Create main-dataset coordinate (does not lock dataset)
+        mdset.createCoord('main_coord', [1, 2])
+        # Set main-dataset coordinate attributes (does not lock dataset)
+        mdset.setAttrs('main_coord', dict(main_coord_att=2))
+        # Create main-dataset variable (does not lock datset)
+        mdset.createVariable('main_var', 1, 'main_coord')
+        # Set main-dataset variable attributes (does not lock dataset)
+        mdset.setAttrs('main_var', dict(main_var_att=3))
+        # Create cross-dataset coordinate (does not lock dataset)
+        mdset.createCoord('cross_coord', [1, 2, 3], cross_dataset=True)
+        # Set cross-dataset coordinate attributes (does not lock dataset)
+        mdset.setAttrs('cross_coord', dict(cross_coord_att=4))
+        # Create cross-dataset variable (does not lock dataset)
+        mdset.createVariable('cross_var', 3, 'cross_coord')
+        # Set cross-dataset variable attributes (does not lock dataset)
+        mdset.setAttrs('cross_var', dict(cross_var_att=5))
+        # Access cross-dataset variable (DOES lock dataset)
+        mdset.setData('cross_var', 4)
+        # Cannot edit any attributes when locked
+        with pytest.raises(TypeError):
+            mdset.setAttrs('main_coord', dict(newatt=3))
+        with pytest.raises(TypeError):
+            mdset.setAttrs('main_var', dict(newatt=3))
+        with pytest.raises(TypeError):
+            mdset.setAttrs('cross_var', dict(newatt=3))
+        with pytest.raises(TypeError):
+            mdset.setAttrs('cross_coord', dict(newatt=3))
+
 
 class Test_nc_to_dict:
     def test_returns_valid_xarray_dict_representation(self):

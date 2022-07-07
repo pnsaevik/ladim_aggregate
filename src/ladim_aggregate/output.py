@@ -94,18 +94,17 @@ class MultiDataset:
         :return:
         """
         if not self._editable:
-            # It's probably safe to edit attributes anyway (at least for
-            # non-cross-dataset variables), but I don't have the time to test it just now
+            # We cannot edit attributes of any variables. If we were to allow this, we
+            # would need to change attributes of all sub-datasets as well.
             raise TypeError(
                 "Setting attributes must be done before accessing cross-dataset data")
 
-        # Get cross-dataset variable attributes
+        # Set cross-dataset variable attributes
         if varname in self._cross_vars:
-            # It's probably not difficult to implement this, but I don't have the time
-            # right now
-            raise NotImplementedError
+            old_attrs = self._cross_vars[varname]['attrs']
+            self._cross_vars[varname]['attrs'] = {**old_attrs, **attrs}
 
-        # Get regular variable attributes
+        # Set regular variable attributes
         else:
             v = self.main_dataset.variables[varname]
             v = v  # type: nc.Variable
@@ -156,6 +155,10 @@ class MultiDataset:
                 "Adding new variables must be done before accessing cross-dataset data")
 
         data = np.array(data)
+
+        # A single dimension should be converted to list
+        if isinstance(dims, str):
+            dims = [dims]
 
         # Create cross-dataset variable
         if any(d in self._cross_coords for d in dims):

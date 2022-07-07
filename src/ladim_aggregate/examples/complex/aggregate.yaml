@@ -3,9 +3,12 @@
 # In this example, we use 5 binning categories, illustrating different ways
 # of specifying bins. The order of the bins matter.
 bins:
-  # We don't specify bins for `farm_id` since it's already included in
+  # We don't need to specify bins for `farm_id` since it's already included in
   # filesplit_dims. A binning of the type "group_by" is added automatically.
-  # farm_id: group_by
+  # But if we want to, we can add the bin specification explicitly.
+  # `group_by` means that the program performs an initial scan of the dataset
+  # and creates one bin for each unique value.
+  farm_id: group_by
 
   # The variable `time` is also included in filesplit_dims, but here we show
   # that it's possible to include bins explicitly.

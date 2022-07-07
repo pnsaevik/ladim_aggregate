@@ -1,5 +1,9 @@
 # Version history
 
+## [Unreleased]
+### Added
+- Allow projection information in multifile outputs 
+
 ## [1.9] - 2022-06-29
 ### Added
 - Geotagging feature

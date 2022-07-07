@@ -53,6 +53,16 @@ weights: 2*farm_id - farm_id - farm_id + 1
 # match.
 infile: ladim_*.nc
 
+# Add projection information
+projection:
+  # Specify projection as a proj4 string
+  proj4: +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs
+  # Specify variable names for the coordinates
+  # Right hand side: Name of the coordinate in the Ladim file
+  # Left hand side: Either x or y
+  x: X
+  y: Y
+
 # Output file in netCDF format. This is the name of the *main* dataset file.
 # Since the binning variables `time` and `farm_id` are split across multiple
 # files, there will be generated files named count_<timeval>_<firstFarmID>.nc,

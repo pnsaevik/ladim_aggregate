@@ -1,6 +1,109 @@
 from typing import Any
 
 
+class Example:
+    def __init__(self, name):
+        self.name = name
+        self._config = None
+        self._all_files = None
+        self._output_files = None
+        self._data = None
+        self._module = None
+
+    @staticmethod
+    def available():
+        import pkgutil
+        return [m.name for m in pkgutil.iter_modules(__path__) if m.ispkg]
+
+    @property
+    def package(self):
+        return __name__ + '.' + self.name
+
+    @property
+    def config(self):
+        if self._config is None:
+            import pkgutil
+            import yaml
+            fname = 'aggregate.yaml'
+            data = pkgutil.get_data(self.package, fname)
+            self._config = yaml.safe_load(data.decode('utf-8'))
+        return self._config
+
+    @property
+    def files(self):
+        if self._all_files is None:
+            import importlib.resources
+            self._all_files = [
+                f for f in importlib.resources.contents(self.package)
+                if not f.startswith('__')
+            ]
+        return self._all_files
+
+    @property
+    def outfiles(self):
+        if self._output_files is None:
+            import re
+            pattern = self.config['outfile'].replace('.nc', '.*\\.nc\\.yaml')
+            self._output_files = [f for f in self.files if re.match(pattern, f)]
+        return self._output_files
+
+    @property
+    def infiles(self):
+        return [f for f in self.files if f not in self.outfiles]
+
+    @property
+    def descr(self):
+        import re
+        config_file = 'aggregate.yaml'
+        config_txt = self.load(names=[config_file])[config_file].decode(encoding='utf-8')
+        match = re.match('^# (.*)', config_txt)
+        if match:
+            return match.group(1)
+        else:
+            return ""
+
+    def load(self, names: Any = 'all'):
+        data = dict()
+
+        if names in ['all', 'input', 'output']:
+            names = dict(all=self.files, input=self.infiles, output=self.outfiles)[names]
+
+        for fname in names:
+            import pkgutil
+            data[fname] = pkgutil.get_data(self.package, fname)
+
+            if fname.endswith('.nc.yaml'):
+                import yaml
+                import xarray as xr
+                key = fname[:-5]
+                yaml_text = data[fname].decode(encoding='utf-8')
+                xr_dict = yaml.safe_load(yaml_text)
+                xr_dset = xr.Dataset.from_dict(xr_dict)
+                data[key] = xr_dset
+
+        return data
+
+    def extract(self, dirname='.'):
+        import logging
+        from pathlib import Path
+        import xarray as xr
+        logger = logging.getLogger(__name__)
+        outdir = Path(dirname)
+
+        for fname, data in self.load('input').items():
+            if fname.endswith('.nc.yaml'):
+                continue
+
+            logger.info(f'Extract input file: "{fname}"')
+            path = outdir / fname
+            if fname.endswith('.nc'):
+                assert isinstance(data, xr.Dataset)
+                data.to_netcdf(path)
+            else:
+                with open(path, 'bw') as f:
+                    f.write(data)
+
+
 def nc_dump(dset):
     """Returns the contents of an open netCDF4 dataset as a dict"""
 

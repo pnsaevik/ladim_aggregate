@@ -88,10 +88,22 @@ def main(*args):
     with open(config_file, encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
+    # Load geotag file
     if 'geotag' in config:
         with open(config['geotag']['file'], encoding='utf-8') as f:
             import json
             config['geotag']['geojson'] = json.load(f)
+
+    # Load grid files
+    if 'grid' in config:
+        # Convert to list if single element
+        config_grid = config['grid']
+        if isinstance(config_grid, dict):
+            config_grid = [config_grid]
+
+        # Load data into config
+        for grid_spec in config_grid:
+            grid_spec['data'] = load_dataarray(grid_spec['file'], grid_spec['variable'])
 
     logger.info(f'Input file pattern: "{config["infile"]}"')
     from .input import LadimInputStream
@@ -127,6 +139,10 @@ def run(dset_in, config, dset_out):
                 missing=config['geotag']['outside_value'],
             ))
             dset_in.add_derived_variable(varname=k, definition=spec)
+
+    # Add grid variables
+    for gridvar_spec in config.get('grid', []):
+        dset_in.add_grid_variable(data_array=gridvar_spec['data'])
 
     # Add weights
     if 'weights' in config:
@@ -192,3 +208,14 @@ def init_logger(loglevel=None):
     formatter = logging.Formatter('%(asctime)s  %(name)s:%(levelname)s - %(message)s')
     ch.setFormatter(formatter)
     package_logger.addHandler(ch)
+
+
+def load_dataarray(file_name, variable):
+    import xarray as xr
+    with xr.open_dataset(file_name) as dset:
+        v = dset[variable]
+        vv = v.copy(deep=True)
+        pass
+
+    return vv
+

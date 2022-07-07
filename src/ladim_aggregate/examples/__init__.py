@@ -45,6 +45,13 @@ def run(example_name):
         xr_dict = load_yaml(input_file)
         input_dsets.append(xr.Dataset.from_dict(xr_dict))
 
+    # Load grid datasets (as xarray objects)
+    import xarray as xr
+    grid_dsets = []
+    for file in files['grid']:
+        xr_dict = load_yaml(file)
+        grid_dsets.append(xr.Dataset.from_dict(xr_dict))
+
     # Load output datasets (as dict objects)
     output_dsets = dict()
     for output_file in files['output']:
@@ -112,7 +119,12 @@ def get_file_list(example_name):
     output_pattern = config['outfile'].replace('.nc', '.*\\.nc\\.yaml')
     output_files = [f for f in all_files if re.match(output_pattern, f)]
 
-    return dict(all=all_files, config=config_file, input=input_files, output=output_files)
+    grid_files = [spec['file'] for spec in config.get('grid', [])]
+
+    return dict(
+        all=all_files, config=config_file, input=input_files, output=output_files,
+        grid=grid_files,
+    )
 
 
 def extract(example_name):
@@ -133,8 +145,8 @@ def extract(example_name):
             with open(outdir / file, 'bw') as f:
                 f.write(pkgutil.get_data(pkg, file))
 
-    # Save input datasets (as xarray objects)
-    for input_file in files['input']:
+    # Save input datasets and grid files (as xarray objects)
+    for input_file in files['input'] + files['grid']:
         new_file = input_file[:-5]  # Remove .yaml extension
         logger.info(f'Extract input data file: "{new_file}"')
         yaml_str = pkgutil.get_data(pkg, input_file).decode('utf-8')

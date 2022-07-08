@@ -1,11 +1,16 @@
-import logging
+SCRIPT_NAME = "ladim_aggregate"
 
 
-def main(*args):
+def main():
+    import sys
+    main2(*sys.argv[1:])
+
+
+def main2(*args):
     import argparse
 
-    from . import examples
-    available = examples.available()
+    from .examples import Example
+    available = Example.available()
     sort_order = [
         'grid_2D', 'grid_3D', 'time', 'filter', 'weights', 'wgt_tab', 'last', 'groupby',
         'multi', 'blur', 'crs', 'density', 'geotag', 'connect',
@@ -31,8 +36,8 @@ def main(*args):
 
     example_list = []
     for name in example_names:
-        descr = examples.get_descr(name)
-        example_list.append(f'  {name:8}  {descr}')
+        ex = Example(name)
+        example_list.append(f'  {name:8}  {ex.descr}')
 
     parser = argparse.ArgumentParser(
         prog='ladim_aggregate',
@@ -59,11 +64,6 @@ def main(*args):
         help="Run a built-in example"
     )
 
-    # If no explicit arguments, use command line arguments
-    if not args:
-        import sys
-        args = sys.argv[1:]
-
     # If called with too few arguments, print usage information
     if len(args) < 1:
         parser.print_help()
@@ -80,8 +80,8 @@ def main(*args):
 
     # Extract example if requested
     if parsed_args.example:
-        from .examples import extract
-        config_file = extract(example_name=config_file)
+        ex = Example(config_file)
+        config_file = ex.extract()
 
     import yaml
     logger.info(f'Open config file "{config_file}"')
@@ -159,6 +159,7 @@ def run(dset_in, config, dset_out, filedata=None):
         from .proj import write_projection
         write_projection(dset_out, config['projection'])
 
+    import logging
     logger = logging.getLogger(__name__)
 
     # Read ladim file timestep by timestep

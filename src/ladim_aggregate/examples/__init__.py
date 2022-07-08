@@ -32,8 +32,9 @@ class Example:
     @property
     def descr(self):
         import re
-        config_file = 'aggregate.yaml'
-        config_txt = self.files()[config_file].decode(encoding='utf-8')
+        import pkgutil
+        data = pkgutil.get_data(self.package, 'aggregate.yaml')
+        config_txt = data.decode(encoding='utf-8')
         match = re.match('^# (.*)', config_txt)
         if match:
             return match.group(1)
@@ -92,6 +93,8 @@ class Example:
             else:
                 with open(path, 'bw') as f:
                     f.write(data)
+
+        return 'aggregate.yaml'
 
     def run(self):
         from .. import script

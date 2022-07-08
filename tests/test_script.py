@@ -2,23 +2,22 @@ import subprocess
 from ladim_aggregate.script import SCRIPT_NAME
 from ladim_aggregate import script
 import pytest
-import subprocess
 
 
-class Test_run:
+class Test_main:
     def test_prints_help_message_when_no_arguments(self, capsys):
-        script.main2()
+        script.main()
         out = capsys.readouterr().out
         assert out.startswith('usage: ' + SCRIPT_NAME)
 
     def test_prints_help_message_when_help_argument(self, capsys):
         with pytest.raises(SystemExit):
-            script.main2('--help')
+            script.main('--help')
         out = capsys.readouterr().out
         assert out.startswith('usage: ' + SCRIPT_NAME)
 
 
-class Test_main:
+class Test_command_line_script:
     def test_can_extract_and_run_example(self, tmp_path):
         import os
         os.chdir(tmp_path)

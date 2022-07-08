@@ -1,12 +1,12 @@
 SCRIPT_NAME = "ladim_aggregate"
 
 
-def main():
+def main_from_command_line():
     import sys
-    main2(*sys.argv[1:])
+    main(*sys.argv[1:])
 
 
-def main2(*args):
+def main(*args):
     import argparse
 
     from .examples import Example

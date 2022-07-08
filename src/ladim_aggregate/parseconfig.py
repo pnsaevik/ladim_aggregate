@@ -45,14 +45,3 @@ def load_config(config, filedata):
             grid_spec['data'] = data[grid_spec['variable']].copy(deep=True)
 
     return config
-
-
-def load_dataarray(file_name, variable):
-    import xarray as xr
-    with xr.open_dataset(file_name) as dset:
-        v = dset[variable]
-        vv = v.copy(deep=True)
-        pass
-
-    return vv
-

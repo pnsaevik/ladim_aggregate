@@ -1,8 +1,9 @@
 # Version history
 
-## [Unreleased]
+## [1.10] - 2022-07-08
 ### Added
-- Allow projection information in multifile outputs 
+- Allow projection information in multifile outputs
+- Allow sampling of variables from grid files
 
 ## [1.9] - 2022-06-29
 ### Added

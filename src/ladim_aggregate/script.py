@@ -1,11 +1,16 @@
-import logging
+SCRIPT_NAME = "ladim_aggregate"
+
+
+def main_from_command_line():
+    import sys
+    main(*sys.argv[1:])
 
 
 def main(*args):
     import argparse
 
-    from . import examples
-    available = examples.available()
+    from .examples import Example
+    available = Example.available()
     sort_order = [
         'grid_2D', 'grid_3D', 'time', 'filter', 'weights', 'wgt_tab', 'last', 'groupby',
         'multi', 'blur', 'crs', 'density', 'geotag', 'connect',
@@ -31,8 +36,8 @@ def main(*args):
 
     example_list = []
     for name in example_names:
-        descr = examples.get_descr(name)
-        example_list.append(f'  {name:8}  {descr}')
+        ex = Example(name)
+        example_list.append(f'  {name:8}  {ex.descr}')
 
     parser = argparse.ArgumentParser(
         prog='ladim_aggregate',
@@ -59,11 +64,6 @@ def main(*args):
         help="Run a built-in example"
     )
 
-    # If no explicit arguments, use command line arguments
-    if not args:
-        import sys
-        args = sys.argv[1:]
-
     # If called with too few arguments, print usage information
     if len(args) < 1:
         parser.print_help()
@@ -80,18 +80,13 @@ def main(*args):
 
     # Extract example if requested
     if parsed_args.example:
-        from .examples import extract
-        config_file = extract(example_name=config_file)
+        ex = Example(config_file)
+        config_file = ex.extract()
 
     import yaml
     logger.info(f'Open config file "{config_file}"')
     with open(config_file, encoding='utf-8') as f:
         config = yaml.safe_load(f)
-
-    if 'geotag' in config:
-        with open(config['geotag']['file'], encoding='utf-8') as f:
-            import json
-            config['geotag']['geojson'] = json.load(f)
 
     logger.info(f'Input file pattern: "{config["infile"]}"')
     from .input import LadimInputStream
@@ -104,13 +99,14 @@ def main(*args):
         run(dset_in, config, dset_out)
 
 
-def run(dset_in, config, dset_out):
+def run(dset_in, config, dset_out, filedata=None):
     from .histogram import Histogrammer, autobins
-    from .parseconfig import parse_config
+    from .parseconfig import parse_config, load_config
     import numpy as np
 
     # Modify configuration dict by reformatting and appending default values
     config = parse_config(config)
+    config = load_config(config, filedata)
 
     # Read some params
     filesplit_dims = config.get('filesplit_dims', [])
@@ -127,6 +123,10 @@ def run(dset_in, config, dset_out):
                 missing=config['geotag']['outside_value'],
             ))
             dset_in.add_derived_variable(varname=k, definition=spec)
+
+    # Add grid variables
+    for gridvar_spec in config.get('grid', []):
+        dset_in.add_grid_variable(data_array=gridvar_spec['data'])
 
     # Add weights
     if 'weights' in config:
@@ -159,6 +159,7 @@ def run(dset_in, config, dset_out):
         from .proj import write_projection
         write_projection(dset_out, config['projection'])
 
+    import logging
     logger = logging.getLogger(__name__)
 
     # Read ladim file timestep by timestep

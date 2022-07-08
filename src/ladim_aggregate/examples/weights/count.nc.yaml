@@ -3,5 +3,5 @@ X:
   dims: X
 
 histogram:
-  data: [400, 40]
+  data: [32680, -23656]
   dims: X

@@ -76,6 +76,16 @@ class LadimInputStream:
         """
         self._init_variables.append(varname)
 
+    def add_grid_variable(self, data_array):
+        """
+        Grid variables are derived variables that are interpolated from a grid. They
+        are added to the dataset through the chunks() function.
+
+        :param data_array: A named xarray DataArray defining the variable values on a grid
+        :return: None
+        """
+        self._derived_variables[data_array.name] = create_varfunc(data_array)
+
     def _update_agg_variables(self):
         # Find all unassigned aggfuncs and store them variable-wise
         spec_keys = [k for k, v in self._agg_variables.items() if v['value'] is None]
@@ -246,6 +256,14 @@ def get_varfunc_from_funcstring(s: str):
     return get_varfunc_from_callable(func)
 
 
+def get_varfunc_from_grid(darr: xr.DataArray):
+    def fn(chunk):
+        coords = {d: chunk.variables[d] for d in darr.dims}
+        return darr.interp(coords).variable
+
+    return fn
+
+
 def glob_files(spec):
     """
     Convert a set of glob patterns to a list of files
@@ -407,6 +425,8 @@ def create_varfunc(spec):
             return get_varfunc_from_funcstring(spec)
         else:
             return get_varfunc_from_numexpr(spec)
+    elif isinstance(spec, xr.DataArray):
+        return get_varfunc_from_grid(spec)
     elif callable(spec):
         return get_varfunc_from_callable(spec)
     else:

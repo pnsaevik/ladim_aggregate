@@ -1,6 +1,6 @@
 import subprocess
 from ladim_aggregate.script import SCRIPT_NAME
-from ladim_aggregate import script
+from ladim_aggregate import script, examples
 import pytest
 
 
@@ -17,13 +17,17 @@ class Test_main:
         assert out.startswith('usage: ' + SCRIPT_NAME)
 
 
+named_examples_all = examples.Example.available()
+named_examples = ['grid_2D']
+
+
 class Test_command_line_script:
-    def test_can_extract_and_run_example(self, tmp_path):
+    @pytest.mark.parametrize("name", named_examples)
+    def test_can_extract_and_run_example(self, name, tmp_path):
         import os
         os.chdir(tmp_path)
-        r = subprocess.run([SCRIPT_NAME, '--example', 'grid_2D'], stdout=subprocess.PIPE)
+        r = subprocess.run([SCRIPT_NAME, '--example', name], stdout=subprocess.PIPE)
         assert r.stdout.decode('utf-8') == ''
-        # script.main('--example', 'complex')
         files = {f.name for f in tmp_path.glob('*')}
         assert 'aggregate.yaml' in files
         assert 'count.nc' in files

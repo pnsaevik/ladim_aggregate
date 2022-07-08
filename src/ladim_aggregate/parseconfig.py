@@ -20,6 +20,7 @@ def parse_config(conf):
 
 
 def load_config(config, filedata):
+    import xarray as xr
     filedata = filedata or dict()
 
     # Load geotag file
@@ -36,11 +37,12 @@ def load_config(config, filedata):
     # Load grid files
     for grid_spec in config['grid']:
         fname = grid_spec['file']
-        data = filedata.get(fname, None)
+        data = filedata.get(fname, None)  # type: xr.Dataset
         if data is None:
-            data = load_dataarray(grid_spec['file'], grid_spec['variable'])
-
-        grid_spec['data'] = data
+            with xr.open_dataset(grid_spec['file']) as data:
+                grid_spec['data'] = data[grid_spec['variable']].copy(deep=True)
+        else:
+            grid_spec['data'] = data[grid_spec['variable']].copy(deep=True)
 
     return config
 

@@ -27,7 +27,7 @@ class Test_Histogrammer:
         h = histogram.Histogrammer(bins=dict(x=dict(
             edges=[0, 2, 6], centers=[1, 4],
         )))
-        chunk = xr.Dataset(dict(x=[1, 3, 5], weights=[10, 100, 1000]))
+        chunk = xr.Dataset(dict(x=[1, 3, 5], _auto_weights=[10, 100, 1000]))
         hist_piece = next(h.make(chunk))
         assert hist_piece['values'].tolist() == [10, 1100]
 

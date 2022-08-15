@@ -21,6 +21,9 @@ def parse_config(conf):
 
 def load_config(config, filedata):
     import xarray as xr
+    import logging
+    logger = logging.getLogger(__name__)
+
     filedata = filedata or dict()
 
     # Load geotag file
@@ -28,6 +31,7 @@ def load_config(config, filedata):
         fname = config['geotag']['file']
         data = filedata.get(fname, None)
         if data is None:
+            logger.info(f'Load geotag file "{fname}"')
             with open(fname, 'br') as f:
                 data = f.read()
 
@@ -39,6 +43,7 @@ def load_config(config, filedata):
         fname = grid_spec['file']
         data = filedata.get(fname, None)  # type: xr.Dataset
         if data is None:
+            logger.info(f'Load grid file "{grid_spec["file"]}"')
             with xr.open_dataset(grid_spec['file']) as data:
                 grid_spec['data'] = data[grid_spec['variable']].copy(deep=True)
         else:

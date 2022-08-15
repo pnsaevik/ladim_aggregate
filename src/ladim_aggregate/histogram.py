@@ -29,8 +29,8 @@ class Histogrammer:
             logger.info(f'Load variable "{k}"')
             coords.append(chunk[k].values)
 
-        if 'weights' in chunk.variables:
-            weights = chunk.weights.values
+        if '_auto_weights' in chunk.variables:
+            weights = chunk['_auto_weights'].values
         else:
             weights = None
 

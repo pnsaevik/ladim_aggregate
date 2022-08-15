@@ -1,5 +1,9 @@
 # Version history
 
+## [1.11] - 2022-08-15
+### Fixed
+- The variable name "weights" is no longer reserved
+
 ## [1.10] - 2022-07-08
 ### Added
 - Allow projection information in multifile outputs

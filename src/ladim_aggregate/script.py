@@ -119,7 +119,7 @@ def run(dset_in, config, dset_out, filedata=None):
 
     # Add weights
     if 'weights' in config:
-        dset_in.add_derived_variable(varname='weights', definition=config['weights'])
+        dset_in.add_derived_variable(varname='_auto_weights', definition=config['weights'])
 
     # Prepare histogram bins
     bins = autobins(config['bins'], dset_in)

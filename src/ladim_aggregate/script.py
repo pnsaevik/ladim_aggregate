@@ -19,30 +19,19 @@ def main(*args):
     example_names += [n for n in available if n not in example_names]
 
     # Planned for the future:
-    # '  grid_2D:  Basic example summing up particles in a two-dimensional grid\n'
-    # '  grid_3D:  Shows different ways of specifying grid bins\n'
-    # '  time:     Make one aggregation for every time step\n'
-    # '  filter:   Filter out particles prior to aggregation\n'
-    # '  weights:  Use a weighting variable (or expression)\n'
-    # '  wgt_tab:  Use an external table to assign weights\n'
-    # '  last:     Use only last particle position\n'
-    # '  groupby:  Group by specific attribute, such as farm id etc.\n'
-    # '  multi:    Data is spread across multiple input and output files\n'
     # '  blur:     Apply a blurring filter the output grid\n'
-    # '  crs:      Use a georeferenced output grid\n'
-    # '  density:  Divide by volume (or area)\n'
-    # '  geotag:   Assign geographic region based on location\n'
-    # '  connect:  Group by start and stop region\n'
 
     example_list = []
     for name in example_names:
         ex = Example(name)
         example_list.append(f'  {name:8}  {ex.descr}')
 
+    from . import __version__ as version_str
+
     parser = argparse.ArgumentParser(
         prog='ladim_aggregate',
         description=(
-            "Aggregate particles from LADiM simulations\n\n"
+            f"Aggregate particles from LADiM simulations (v. {version_str})\n\n"
         ),
         epilog=(
             'The program includes several built-in examples:\n'

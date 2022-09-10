@@ -1,4 +1,4 @@
-SCRIPT_NAME = "ladim_aggregate"
+SCRIPT_NAME = "crecon"
 
 
 def main_from_command_line():
@@ -29,14 +29,16 @@ def main(*args):
     from . import __version__ as version_str
 
     parser = argparse.ArgumentParser(
-        prog='ladim_aggregate',
+        prog='crecon',
         description=(
-            f"Aggregate particles from LADiM simulations (v. {version_str})\n\n"
+            f"CRECON - CREate CONcentration files (v. {version_str})\n\n"
+            "This script converts LADiM particle files to netCDF\n"
+            "concentration files.\n\n"
         ),
         epilog=(
             'The program includes several built-in examples:\n'
             + "\n".join(example_list) +
-            '\n\nUse "ladim_aggregate --example name_of_example" to run any of these.\n'
+            '\n\nUse "crecon --example name_of_example" to run any of these.\n'
             'Example files and output files are extracted to the current directory.\n'
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -65,7 +67,7 @@ def main(*args):
     from . import __version__ as version_str
     init_logger()
     logger = logging.getLogger(__name__)
-    logger.info(f'Starting ladim_aggregate, version {version_str}')
+    logger.info(f'Starting CRECON, version {version_str}')
 
     # Extract example if requested
     if parsed_args.example:

@@ -1,5 +1,9 @@
 # Version history
 
+## [1.12] - 2022-09-10
+### Changed
+- The main script name is now "crecon"
+
 ## [1.11] - 2022-08-15
 ### Fixed
 - The variable name "weights" is no longer reserved

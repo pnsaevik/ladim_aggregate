@@ -10,5 +10,11 @@ bins:
 # `==` (equality), `!=` (not equal) as well as `+`, `-`, `*`, `/`, `**`.
 filter: Y <= 60
 
+# Here we specify which time steps should be a part of the aggregation, using
+# a list of timestep indices. Step 0 is the first step. Negative steps are
+# counted from the end, i.e., step -1 is the last step and step -2 is the
+# second last step.
+filter_timestep: [0, -1]
+
 outfile: count.nc
 infile: ladim.nc

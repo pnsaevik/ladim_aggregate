@@ -1,6 +1,6 @@
 histogram:
   dims: 'X'
-  data: [4, 2]
+  data: [4, 0]
 X:
   dims: 'X'
   data: [25, 75]

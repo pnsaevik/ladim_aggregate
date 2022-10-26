@@ -161,7 +161,7 @@ class LadimInputStream:
 
         return out
 
-    def chunks(self, filters=None) -> typing.Iterator[xr.Dataset]:
+    def chunks(self, filters=None, timestep_filter=None) -> typing.Iterator[xr.Dataset]:
         """
         Return one ladim timestep at a time.
 
@@ -172,6 +172,9 @@ class LadimInputStream:
         variables added to the dataset are computed.
 
         :param filters: A filtering expression
+        :param timestep_filter: A set of time steps indices to return. If None (default),
+        return all timesteps. The time steps list is sorted before being applied, and
+        nonunique elements are disregarded.
         :return: An xarray dataset indexed by "pid" for each time step.
         """
         filterfn = create_varfunc(filters)
@@ -179,7 +182,7 @@ class LadimInputStream:
         # Initialize the "init variables"
         init_variables = {k: None for k in self._init_variables}
 
-        for chunk in ladim_iterator(self.datasets):
+        for chunk in ladim_iterator(self.datasets, timestep_filter):
             # Apply filter
             filter_idx = None
             num_unfiltered = chunk.dims['pid']

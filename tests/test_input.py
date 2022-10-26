@@ -189,6 +189,21 @@ class Test_LadimInputStream:
         chunks = xr.concat(dset.chunks(filters=filters), dim='pid')
         assert chunks.dims['pid'] == 2
 
+    def test_can_apply_timestep_filter(self, ladim_dset):
+        dset = ladim_input.LadimInputStream(ladim_dset)
+
+        # No filter: 6 particle instances
+        chunks = xr.concat(dset.chunks(), dim='pid')
+        assert chunks.dims['pid'] == 6
+
+        # Just first timestep: 4 particle instances
+        chunks = xr.concat(dset.chunks(timestep_filter=[0]), dim='pid')
+        assert chunks.dims['pid'] == 4
+
+        # Just second timestep: 2 particle instances
+        chunks = xr.concat(dset.chunks(timestep_filter=[1]), dim='pid')
+        assert chunks.dims['pid'] == 2
+
     def test_can_add_weights_from_string_expression(self, ladim_dset):
         dset = ladim_input.LadimInputStream(ladim_dset)
         dset.add_derived_variable('weights', 'X + Y')

@@ -69,6 +69,33 @@ class Test_ladim_iterator:
         offset = [d.instance_offset.values.tolist() for d in iterator]
         assert offset == [0, 4]
 
+    def test_accepts_timestep_selection_when_multiple_datasets(self, ladim_dset, ladim_dset2):
+        # No timestep selection
+        chunks = list(ladim_input.ladim_iterator([ladim_dset, ladim_dset2]))
+        assert len(chunks) == 4
+
+        times = [c.time.values[0].astype('datetime64[D]').astype(str) for c in chunks]
+        assert times == ['2000-01-02', '2000-01-03', '2000-01-04', '2000-01-05']
+
+        # Select first and fourth time step
+        chunks = list(ladim_input.ladim_iterator([ladim_dset, ladim_dset2], timesteps=[0, 3]))
+        assert len(chunks) == 2
+
+        times = [c.time.values[0].astype('datetime64[D]').astype(str) for c in chunks]
+        assert times == ['2000-01-02', '2000-01-05']
+
+    def test_disregards_nonunique_timestep_selectors(self, ladim_dset):
+        # Select first and second timestep
+        chunks_1 = list(ladim_input.ladim_iterator([ladim_dset], timesteps=[0, 1]))
+        assert len(chunks_1) == 2
+
+        # Select multiple timesteps: We still get 2 chunks
+        chunks_2 = list(ladim_input.ladim_iterator([ladim_dset], timesteps=[1, 0, 1]))
+        assert len(chunks_2) == 2
+
+        # And the time values are ordered
+        assert chunks_2[0].time.values[0] < chunks_2[1].time.values[0]
+
 
 class Test_LadimInputStream_scan:
     def test_can_return_min_value(self, ladim_dset):

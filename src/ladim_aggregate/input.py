@@ -295,12 +295,36 @@ def dset_iterator(specs):
             yield dset
 
 
-def ladim_iterator(ladim_dsets):
+def ladim_iterator(ladim_dsets, timesteps=None):
+    """
+    Return one chunk of a ladim dataset per timestep
+
+    Distributes particle and time variable over the `particle_instance` dimension.
+
+    :param ladim_dsets: A sequence of ladim datasets
+    :param timesteps: A set of time steps indices to return. If None (default), return
+    all timesteps. The time steps list is sorted before being applied, and nonunique
+    elements are disregarded.
+    :return: An iterator over timestep chunks
+    """
+
+    # Prepare to filter out some time steps
+    tidx_start = 0
+    if timesteps is not None:
+        timesteps = np.unique(timesteps)
+
     for dset in dset_iterator(ladim_dsets):
         instance_offset = dset.get('instance_offset', 0)
         pcount_cum = np.concatenate([[0], np.cumsum(dset.particle_count.values)])
+        tidx_list = range(dset.dims['time'])
 
-        for tidx in range(dset.dims['time']):
+        # Potentially filter out some time steps
+        if timesteps is not None:
+            include_steps = timesteps - tidx_start
+            tidx_list = np.intersect1d(tidx_list, include_steps)
+            tidx_start += dset.dims['time']
+
+        for tidx in tidx_list:
             timestr = str(get_time(dset.time[tidx]).astype('datetime64[s]')).replace("T", " ")
             logger.info(f'Read time step {timestr} (time={dset.time[tidx].values.item()})')
             iidx = slice(pcount_cum[tidx], pcount_cum[tidx + 1])

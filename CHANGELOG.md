@@ -1,5 +1,9 @@
 # Version history
 
+## [1.13] - 2022-10-26
+### Added
+- Fast timestep filter
+
 ## [1.12] - 2022-09-10
 ### Changed
 - The main script name is now "crecon"

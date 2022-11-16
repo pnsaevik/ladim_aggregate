@@ -8,7 +8,7 @@ bins:
 # expression containing variable names defined in the input file. Valid
 # operators include `&` (logical AND), `|` (logical OR), `~` (logical NOT),
 # `==` (equality), `!=` (not equal) as well as `+`, `-`, `*`, `/`, `**`.
-filter: Y <= 60
+filter: Y <= 70
 
 # Particle filters are a special type: Particles are only counted the FIRST
 # time they fulfill the condition. Subsequent occurences of the particle are
@@ -16,10 +16,8 @@ filter: Y <= 60
 filter_particle: X > 0
 
 # Here we specify which time steps should be a part of the aggregation, using
-# a list of timestep indices. Step 0 is the first step. Negative steps are
-# counted from the end, i.e., step -1 is the last step and step -2 is the
-# second last step. (Negative indices do not work for multi-part input files).
-filter_timestep: [0, -1]
+# a list of timestep indices. Step 0 is the first step.
+filter_timestep: [0, 2]
 
 outfile: count.nc
 infile: ladim.nc

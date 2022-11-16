@@ -161,7 +161,7 @@ class LadimInputStream:
 
         return out
 
-    def chunks(self, filters=None, timestep_filter=None) -> typing.Iterator[xr.Dataset]:
+    def chunks(self, filters=None, timestep_filter=None, particle_filter=None) -> typing.Iterator[xr.Dataset]:
         """
         Return one ladim timestep at a time.
 
@@ -175,9 +175,17 @@ class LadimInputStream:
         :param timestep_filter: A set of time steps indices to return. If None (default),
         return all timesteps. The time steps list is sorted before being applied, and
         nonunique elements are disregarded.
+        :param particle_filter: The same as `filter`, except that it only returns a
+        single instance per particle (i.e., the first occurrence when the condition is
+        met).
         :return: An xarray dataset indexed by "pid" for each time step.
         """
         filterfn = create_varfunc(filters)
+
+        if particle_filter is not None:
+            particle_filterfn = create_varfunc(('pfilter', particle_filter))
+        else:
+            particle_filterfn = None
 
         # Initialize the "init variables"
         init_variables = {k: None for k in self._init_variables}
@@ -213,6 +221,17 @@ class LadimInputStream:
             for varname in self._agg_variables:
                 xr_var = self.get_aggregation_value(varname)
                 chunk = chunk.assign(**{varname: xr_var})
+
+            # Add particle filtering
+            if particle_filterfn is not None:
+                logger.info("Apply particle filter")
+                pfilter_idx = particle_filterfn(chunk).values
+                if filterfn:
+                    filter_idx &= pfilter_idx
+                else:
+                    filter_idx = pfilter_idx
+                num_unfiltered = np.count_nonzero(filter_idx)
+                logger.info(f'Number of remaining particles: {num_unfiltered}')
 
             # Do actual filtering
             if filter_idx is not None:
@@ -447,6 +466,8 @@ def create_varfunc(spec):
     elif isinstance(spec, tuple) and spec[0] == 'geotag':
         from .geotag import create_geotagger
         return create_geotagger(**spec[1])
+    elif isinstance(spec, tuple) and spec[0] == 'pfilter':
+        return create_pfilter(spec[1])
     elif isinstance(spec, str):
         if '.' in spec:
             return get_varfunc_from_funcstring(spec)
@@ -458,3 +479,22 @@ def create_varfunc(spec):
         return get_varfunc_from_callable(spec)
     else:
         raise TypeError(f'Unknown type: {type(spec)}')
+
+
+def create_pfilter(spec):
+    fn = create_varfunc(spec)
+    has_been_triggered = np.zeros(100, dtype=bool)
+
+    def pfilter(chunk):
+        fn_val = fn(chunk)
+        pid = chunk['pid'].values
+        max_pid = pid.max()
+        if max_pid > len(has_been_triggered):
+            has_been_triggered.resize(max_pid)
+        is_new = ~has_been_triggered[pid]
+        condition = fn_val & is_new
+        pid_triggered = pid[condition]
+        has_been_triggered[pid_triggered] = True
+        return xr.Variable('pid', condition)
+
+    return pfilter

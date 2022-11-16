@@ -1,5 +1,9 @@
 # Version history
 
+## [1.14] - 2022-11-16
+### Added
+- Particle filter method
+
 ## [1.13] - 2022-10-26
 ### Added
 - Fast timestep filter

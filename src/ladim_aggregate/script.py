@@ -103,6 +103,7 @@ def run(dset_in, config, dset_out, filedata=None):
     filesplit_dims = config.get('filesplit_dims', [])
     filter_spec = config.get('filter', None)
     tsfilter_spec = config.get('filter_timestep', None)
+    pfilter_spec = config.get('filter_particle', None)
 
     # Add geotagging
     if 'geotag' in config:
@@ -155,7 +156,13 @@ def run(dset_in, config, dset_out, filedata=None):
     logger = logging.getLogger(__name__)
 
     # Read ladim file timestep by timestep
-    for chunk_in in dset_in.chunks(filters=filter_spec, timestep_filter=tsfilter_spec):
+    dset_in_iterator = dset_in.chunks(
+        filters=filter_spec,
+        timestep_filter=tsfilter_spec,
+        particle_filter=pfilter_spec,
+    )
+
+    for chunk_in in dset_in_iterator:
         if chunk_in.dims['pid'] == 0:
             continue
 

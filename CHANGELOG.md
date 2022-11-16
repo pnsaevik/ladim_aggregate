@@ -1,5 +1,9 @@
 # Version history
 
+## [unreleased]
+### Added
+- Add new filter method: "first"
+
 ## [1.13] - 2022-10-26
 ### Added
 - Fast timestep filter

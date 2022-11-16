@@ -1,8 +1,8 @@
 # Version history
 
-## [unreleased]
+## [1.14] - 2022-11-16
 ### Added
-- Add new filter method: "first"
+- Particle filter method
 
 ## [1.13] - 2022-10-26
 ### Added

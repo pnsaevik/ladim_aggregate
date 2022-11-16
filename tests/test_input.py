@@ -189,6 +189,25 @@ class Test_LadimInputStream:
         chunks = xr.concat(dset.chunks(filters=filters), dim='pid')
         assert chunks.dims['pid'] == 2
 
+    def test_can_apply_particle_filter(self, ladim_dset):
+        dset = ladim_input.LadimInputStream(ladim_dset)
+
+        # No filter: 6 particle instances
+        chunks = xr.concat(dset.chunks(), dim='pid')
+        assert chunks.dims['pid'] == 6
+
+        # With filter: Keeps only the first time the condition is triggered
+        filters = "Z >= 2"
+        chunks = xr.concat(dset.chunks(particle_filter=filters), dim='pid')
+        assert chunks['pid'].values.tolist() == [2, 3, 1]
+        assert chunks['Z'].values.tolist() == [2, 3, 4]
+
+        # Combination of particle filter and regular filter
+        chunk_iter = dset.chunks(particle_filter="Z >= 2", filters="pid != 3")
+        chunks = xr.concat(chunk_iter, dim='pid')
+        assert chunks['pid'].values.tolist() == [2, 1]
+        assert chunks['Z'].values.tolist() == [2, 4]
+
     def test_can_apply_timestep_filter(self, ladim_dset):
         dset = ladim_input.LadimInputStream(ladim_dset)
 

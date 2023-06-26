@@ -2,9 +2,10 @@
 
 bins:
   # For performance reasons, time should usually be the first binning variable.
-  # Here, we choose "group_by", which means that each unique time step gets
-  # its own bin.
-  time: group_by
+  time:
+    min: 2000-01-02
+    max: 2000-01-05
+    step: 1 days
 
   # The second grouping variable is "Z", with a resolution of 2.
   Z: 2

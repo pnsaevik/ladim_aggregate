@@ -1,4 +1,7 @@
+import contextlib
+import datetime
 import numpy as np
+import pytest
 from ladim_aggregate import histogram
 import xarray as xr
 
@@ -183,6 +186,101 @@ class Test_autobins:
         bins = histogram.autobins(spec, dset=MockLadimDataset())
         assert bins['x']['attrs']['long_name'] == "x coordinate value"
         assert 'y' not in bins
+
+    def test_converts_time_specs(self):
+        class MockLadimDataset:
+            @contextlib.contextmanager
+            def open_dataset(self, _):
+                attrs = dict(units='hours since 1980-01-01')
+                tvar = xr.Variable(dims='time', data=[], attrs=attrs)
+                yield xr.Dataset(data_vars=dict(time=tvar))
+
+        spec = dict(time=dict(min='1980-01-01', max='1980-01-03', step='1 days'))
+        bins = histogram.autobins(spec, dset=MockLadimDataset())
+        assert bins['time']['centers'].tolist() == [12, 36]
+        assert bins['time']['edges'].tolist() == [0, 24, 48]
+
+
+class Test_convert_datebins:
+    @pytest.fixture(scope='class')
+    def time_dset(self):
+        attrs = dict(units='days since 2000-01-02')
+        tvar = xr.Variable(dims='time', data=[1, 3, 5], attrs=attrs)
+        xvar = xr.Variable(dims='time', data=[10, 30, 50])
+        return xr.Dataset(data_vars=dict(time=tvar, X=xvar))
+
+    def test_converts_only_datevars(self, time_dset):
+        spec = dict(
+            time=['2000-01', '2000-02', '2000-03'],
+            X=[0, 10, 20, 30],
+        )
+        newspec = histogram.convert_datebins(spec, time_dset)
+        assert newspec == dict(
+            time=[-1, 30, 59],
+            X=[0, 10, 20, 30],
+        )
+
+    def test_ignores_nonexisting_vars(self, time_dset):
+        spec = dict(Y=[0, 10, 20, 30])
+        newspec = histogram.convert_datebins(spec, time_dset)
+        assert newspec == spec
+
+
+class Test_convert_binspec:
+    def test_converts_edgeformat(self):
+        spec = ['1970-01', '1970-02', '1970-03', 100]
+        result = histogram.convert_binspec(spec, 'days since 1970-01-01', 'standard')
+        assert result == [0, 31, 31+28, 100]
+
+    def test_converts_rangeformat(self):
+        spec = dict(min='1970-01', max='1970-02', step='48 hours')
+        result = histogram.convert_binspec(spec, 'days since 1970-01-01', 'standard')
+        assert result == dict(min=0, max=31, step=2)
+
+    def test_converts_labelformat(self):
+        spec = dict(edges=['1970-01', '1970-02', '1970-03'], labels=['jan', 'feb'])
+        result = histogram.convert_binspec(spec, 'days since 1970-01-01', 'standard')
+        assert result == dict(edges=[0, 31, 31+28], labels=['jan', 'feb'])
+
+
+class Test_convert_step:
+    def test_returns_integers_verbatim(self):
+        result = histogram.convert_step(123, 'days since 1980-01-01', 'standard')
+        assert result == 123
+
+    def test_converts_string_spec(self):
+        result = histogram.convert_step('48 hours', 'days since 1980-01-01', 'standard')
+        assert result == 2
+
+
+class Test_convert_date:
+    def test_returns_integers_verbatim(self):
+        result = histogram.convert_date(123, 'days since 1970-01-01', 'standard')
+        assert result == 123
+
+    def test_returns_floats_verbatim(self):
+        result = histogram.convert_date(123.5, 'days since 1970-01-01', 'standard')
+        assert result == 123.5
+
+    def test_converts_dates(self):
+        date = datetime.date(2000, 5, 3)
+        result = histogram.convert_date(date, 'days since 1970-01-01', 'standard')
+        assert result == 11080
+
+    def test_converts_datetimes(self):
+        date = datetime.datetime(2000, 5, 3, 12, 0, 0)
+        result = histogram.convert_date(date, 'days since 1970-01-01', 'standard')
+        assert result == 11080
+
+    def test_converts_datetime64(self):
+        date = np.datetime64('1970-02')
+        result = histogram.convert_date(date, 'days since 1970-01-01', 'standard')
+        assert result == 31
+
+    def test_converts_string(self):
+        date = '1970-02'
+        result = histogram.convert_date(date, 'days since 1970-01-01', 'standard')
+        assert result == 31
 
 
 class Test_align_to_resolution:

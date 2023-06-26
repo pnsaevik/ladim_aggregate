@@ -20,13 +20,21 @@ class LadimInputStream:
     @property
     def attributes(self):
         if self._attributes is None:
-            spec = self.datasets[0]
             self._attributes = dict()
-            with _open_spec(spec) as dset:
+            with self.open_dataset(0) as dset:
                 logger.info('Read attributes')
                 for k, v in dset.variables.items():
                     self._attributes[k] = v.attrs
         return self._attributes
+
+    def open_dataset(self, idx: int) -> xr.Dataset:
+        """
+        Open ladim dataset by index.
+
+        :param idx: Ordinal index of the dataset
+        :return: The dataset
+        """
+        return _open_spec(self.datasets[idx])
 
     def add_derived_variable(self, varname, definition):
         """
@@ -149,14 +157,14 @@ class LadimInputStream:
                     agg_log(fun, out[varname][fun])
 
         # Particle variables do only need the first dataset
-        with _open_spec(self.datasets[0]) as dset:
+        with self.open_dataset(0) as dset:
             update_output(dset, spec)
             pvars = [k for k in spec if k in dset and dset[k].dims == ('particle', )]
             spec_without_particle_vars = {k: v for k, v in spec.items() if k not in pvars}
 
         if spec_without_particle_vars:
-            for dset_name in self.datasets[1:]:
-                with _open_spec(dset_name) as dset:
+            for idx in range(1, len(self.datasets)):
+                with self.open_dataset(idx) as dset:
                     update_output(dset, spec_without_particle_vars)
 
         return out

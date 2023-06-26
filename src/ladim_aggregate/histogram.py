@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 import logging
+import cftime
+import xarray as xr
+import datetime
 
 
 logger = logging.getLogger(__name__)
@@ -112,7 +115,113 @@ def adaptive_histogram(sample, bins, **kwargs):
     return hist_chunk, tuple(idx_slice)
 
 
+def convert_datebins(spec: dict, dset: xr.Dataset):
+    """
+    Convert bin specifications containing dates.
+
+    The function takes a bin specification as input, as well as an xarray.Dataset
+    where the data variables may potentially contain cfunits date attributes. If one
+    of the bin specifications is specified as a date (either date string or python/numpy
+    object), and connected to a variable with date attributes, the bin specification is
+    converted to a number according to the variable's cfunits date specification.
+
+    The function works for the following types of bin formats:
+
+    1. Pure list - ['2001-01', np.datetime('2001-01-02T12')]
+    2. Label format: dict(edges=['2001-01', '2001-02', '2001-03'], labels=['J', 'F'])
+    3. Range format: dict(min='2001-01', max='2001-03', step='1 months')
+
+    Date steps can be specified as 'years', 'months', 'days', 'hours', 'minutes',
+    'seconds', or a numpy timedelta64 data type.
+
+    :param spec: A dict where the keys are the variable names and the values are the bin
+                 specifications.
+    :param dset: A dataset where the variables may have cfunits date attributes
+    :return:     A dict of the same format as ``spec``, except that dates are converted
+                 to numbers.
+    """
+    newspec = {}
+
+    # k is the variable name
+    # v is the bin format
+    for k, v in spec.items():
+        if k not in dset:
+            attrs = {}
+        else:
+            attrs = dset[k].attrs
+        units = attrs.get('units', '')
+        calendar = attrs.get('calendar', 'standard')
+        newspec[k] = convert_binspec(v, units, calendar)
+
+    return newspec
+
+
+def convert_binspec(singlespec, units, calendar):
+    if 'since' not in units:
+        return singlespec
+
+    elif isinstance(singlespec, list):
+        return [convert_date(v, units, calendar) for v in singlespec]
+
+    elif isinstance(singlespec, dict):
+        result = {k: v for k, v in singlespec.items()}
+
+        if 'min' in result:
+            result['min'] = convert_date(result['min'], units, calendar)
+
+        if 'max' in result:
+            result['max'] = convert_date(result['max'], units, calendar)
+
+        if 'edges' in result:
+            result['edges'] = [convert_date(e, units, calendar) for e in result['edges']]
+
+        if 'step' in result:
+            result['step'] = convert_step(result['step'], units, calendar)
+
+        return result
+
+    else:
+        return singlespec
+
+
+def convert_step(step_spec, units, calendar):
+    if isinstance(step_spec, str):
+        step_str, units_in = step_spec.split(sep=' ', maxsplit=1)
+        step = float(step_str)
+        units_out, _, refdate = units.split(sep=' ', maxsplit=3)
+    else:
+        return step_spec
+
+    date_in = cftime.num2date(step, f'{units_in} since {refdate}', calendar)
+    return cftime.date2num(date_in, f'{units_out} since {refdate}', calendar)
+
+
+def convert_date(value, units, calendar):
+    """
+    Convert the input value to a cfunits date format. The input value can be anything
+    convertible to np.datetime64.
+
+    :param value: Input date
+    :param units: Output cfunits format
+    :param calendar: Output cfunits calendar
+    :return: Date in cfunits format
+    """
+    try:
+        value = np.datetime64(value).astype(object)
+    except ValueError:
+        return value
+
+    if isinstance(value, datetime.date):
+        value = datetime.datetime.combine(value, datetime.time())
+
+    return cftime.date2num(value, units, calendar)
+
+
 def autobins(spec, dset):
+    if dset is not None and hasattr(dset, 'open_dataset'):
+        with dset.open_dataset(0) as xr_dset:
+            spec = convert_datebins(spec, xr_dset)
+
     # Add INIT bins, if any
     for k in spec:
         if k.endswith('_INIT'):

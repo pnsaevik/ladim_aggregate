@@ -1,5 +1,9 @@
 # Version history
 
+## [1.15] - 2023-06-26
+### Added
+- Alternative date specification method
+
 ## [1.14] - 2022-11-16
 ### Added
 - Particle filter method

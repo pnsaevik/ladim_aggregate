@@ -1,5 +1,10 @@
 # Version history
 
+## [Unreleased]
+### Fixed
+- No longer fails if there are spaces in time unit definition
+- No longer fails if output varname is changed and projection is set
+
 ## [1.16] - 2023-06-27
 ### Added
 - Option for changing output variable name

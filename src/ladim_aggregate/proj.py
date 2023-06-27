@@ -10,5 +10,5 @@ def write_projection(dset, config):
     cs = crs.cs_to_cf()
     dset.setAttrs(config['x'], cs[0])
     dset.setAttrs(config['y'], cs[1])
-    dset.setAttrs('histogram', dict(grid_mapping='crs'))
+    dset.setAttrs(config['output_varname'], dict(grid_mapping='crs'))
     dset.main_dataset.Conventions = "CF-1.8"

@@ -17,6 +17,9 @@ def parse_config(conf):
     filesplit_bins = {k: "group_by" for k in conf_out['filesplit_dims']}
     conf_out['bins'] = {**filesplit_bins, **conf_out['bins']}
 
+    if 'projection' in conf:
+        conf_out['projection']['output_varname'] = conf_out['output_varname']
+
     return conf_out
 
 

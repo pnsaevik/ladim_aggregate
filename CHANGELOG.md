@@ -1,6 +1,10 @@
 # Version history
 
 ## [Unreleased]
+### Added
+- Added logging to file
+### Changed
+- Reduced output verbosity
 ### Fixed
 - No longer fails if there are spaces in time unit definition
 - No longer fails if output varname is changed and projection is set

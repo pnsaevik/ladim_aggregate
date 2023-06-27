@@ -186,7 +186,7 @@ def init_logger(loglevel=None):
 
     package_name = str(__name__).split('.', maxsplit=1)[0]
     package_logger = logging.getLogger(package_name)
-    package_logger.setLevel(loglevel)
+    package_logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s  %(name)s:%(levelname)s - %(message)s')
 
     ch = logging.StreamHandler()

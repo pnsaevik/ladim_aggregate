@@ -3,7 +3,10 @@ import pyproj
 
 def write_projection(dset, config):
     crs = pyproj.CRS.from_user_input(config['proj4'])
-    dset.createVariable('crs', data=0, dims=(), attrs=crs.to_cf())
+    attrs = crs.to_cf()
+    if 'horizontal_datum_name' not in attrs:
+        attrs['horizontal_datum_name'] = 'World Geodetic System 1984'
+    dset.createVariable('crs', data=0, dims=(), attrs=attrs)
     cs = crs.cs_to_cf()
     dset.setAttrs(config['x'], cs[0])
     dset.setAttrs(config['y'], cs[1])

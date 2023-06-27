@@ -22,7 +22,7 @@ class LadimInputStream:
         if self._attributes is None:
             self._attributes = dict()
             with self.open_dataset(0) as dset:
-                logger.info('Read attributes')
+                logger.debug('Read attributes')
                 for k, v in dset.variables.items():
                     self._attributes[k] = v.attrs
         return self._attributes
@@ -143,10 +143,10 @@ class LadimInputStream:
         def update_output(ddset, sub_spec):
             for varname, funclist in sub_spec.items():
                 if varname in ddset.variables:
-                    logger.info(f'Load "{varname}" values')
+                    logger.debug(f'Load "{varname}" values')
                     data = ddset.variables[varname].values
                 elif varname in self._derived_variables:
-                    logger.info(f'Compute "{varname}" values')
+                    logger.debug(f'Compute "{varname}" values')
                     fn = self._derived_variables[varname]
                     data = fn(ddset).values
                 else:
@@ -203,17 +203,17 @@ class LadimInputStream:
             filter_idx = None
             num_unfiltered = chunk.dims['pid']
             if filterfn:
-                logger.info("Apply filter")
+                logger.debug("Apply filter")
                 filter_idx = filterfn(chunk).values
                 num_unfiltered = np.count_nonzero(filter_idx)
-                logger.info(f'Number of remaining particles: {num_unfiltered}')
+                logger.debug(f'Number of remaining particles: {num_unfiltered}')
 
             if (num_unfiltered == 0) and (len(init_variables) == 0):
                 continue
 
             # Add derived variables (such as weights and geotags)
             for varname, fn in self._derived_variables.items():
-                logger.info(f'Compute "{varname}"')
+                logger.debug(f'Compute "{varname}"')
                 chunk = chunk.assign(**{varname: fn(chunk)})
 
             # Add init variables (such as region_INIT)
@@ -232,14 +232,14 @@ class LadimInputStream:
 
             # Add particle filtering
             if particle_filterfn is not None:
-                logger.info("Apply particle filter")
+                logger.debug("Apply particle filter")
                 pfilter_idx = particle_filterfn(chunk).values
                 if filterfn:
                     filter_idx &= pfilter_idx
                 else:
                     filter_idx = pfilter_idx
                 num_unfiltered = np.count_nonzero(filter_idx)
-                logger.info(f'Number of remaining particles: {num_unfiltered}')
+                logger.debug(f'Number of remaining particles: {num_unfiltered}')
 
             # Do actual filtering
             if filter_idx is not None:
@@ -259,9 +259,9 @@ def get_varfunc_from_numexpr(spec):
     def weight_fn(chunk):
         args = []
         for n in ex.input_names:
-            logger.info(f'Load variable "{n}"')
+            logger.debug(f'Load variable "{n}"')
             args.append(chunk[n].values)
-        logger.info(f'Compute expression "{spec}"')
+        logger.debug(f'Compute expression "{spec}"')
         return xr.Variable('pid', ex.run(*args))
 
     return weight_fn
@@ -358,7 +358,7 @@ def ladim_iterator(ladim_dsets, timesteps=None):
             timestr = str(get_time(dset.time[tidx]).astype('datetime64[s]')).replace("T", " ")
             logger.info(f'Read time step {timestr} (time={dset.time[tidx].values.item()})')
             iidx = slice(pcount_cum[tidx], pcount_cum[tidx + 1])
-            logger.info(f'Number of particles: {iidx.stop - iidx.start}')
+            logger.debug(f'Number of particles: {iidx.stop - iidx.start}')
             if iidx.stop == iidx.start:
                 continue
 
@@ -374,7 +374,7 @@ def ladim_iterator(ladim_dsets, timesteps=None):
                 if k in ('pid', 'instance_offset'):
                     continue
 
-                logger.info(f'Load variable "{k}"')
+                logger.debug(f'Load variable "{k}"')
                 if v.dims == ('particle_instance', ):
                     new_var = xr.Variable(pid.dims[0], v[iidx].values, v.attrs)
                 elif v.dims == ('particle', ):
@@ -464,7 +464,7 @@ def _open_spec(spec):
             yield ddset
             logger.info(f'Close dataset "{spec}"')
     else:
-        logger.info(f'Enter new dataset')
+        logger.debug(f'Enter new dataset')
         yield spec
 
 

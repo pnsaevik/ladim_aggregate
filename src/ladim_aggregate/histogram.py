@@ -29,7 +29,7 @@ class Histogrammer:
         bins = [self.coords[k]['edges'] for k in coord_names]
         coords = []
         for k in coord_names:
-            logger.info(f'Load variable "{k}"')
+            logger.debug(f'Load variable "{k}"')
             coords.append(chunk[k].values)
 
         if '_auto_weights' in chunk.variables:

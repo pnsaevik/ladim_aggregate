@@ -187,8 +187,14 @@ def init_logger(loglevel=None):
     package_name = str(__name__).split('.', maxsplit=1)[0]
     package_logger = logging.getLogger(package_name)
     package_logger.setLevel(loglevel)
+    formatter = logging.Formatter('%(asctime)s  %(name)s:%(levelname)s - %(message)s')
+
     ch = logging.StreamHandler()
     ch.setLevel(loglevel)
-    formatter = logging.Formatter('%(asctime)s  %(name)s:%(levelname)s - %(message)s')
     ch.setFormatter(formatter)
     package_logger.addHandler(ch)
+
+    ch2 = logging.FileHandler(filename='crecon.log', mode='a', encoding='utf-8')
+    ch2.setLevel(logging.DEBUG)
+    ch2.setFormatter(formatter)
+    package_logger.addHandler(ch2)

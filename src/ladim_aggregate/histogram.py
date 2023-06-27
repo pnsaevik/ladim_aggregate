@@ -188,7 +188,7 @@ def convert_step(step_spec, units, calendar):
     if isinstance(step_spec, str):
         step_str, units_in = step_spec.split(sep=' ', maxsplit=1)
         step = float(step_str)
-        units_out, _, refdate = units.split(sep=' ', maxsplit=3)
+        units_out, _, refdate = units.split(sep=' ', maxsplit=2)
     else:
         return step_spec
 

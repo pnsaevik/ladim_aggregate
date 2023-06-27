@@ -2,6 +2,6 @@ X:
   data: [25, 75]
   dims: X
 
-histogram:
+conc:
   data: [32680, -23656]
   dims: X

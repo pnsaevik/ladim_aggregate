@@ -10,6 +10,10 @@ bins:
 # In the expression below, `spec` and `super` are imported from a file
 weights: mass * spec * super
 
+# The standard name "histogram" may not make sense when the weights are
+# applied. Here, we change the name to "conc"
+output_varname: conc
+
 # Import grid variables from a netCDF file.
 # - Grid variables are sampled by bilinear interpolation for each particle instance
 # - Grid does not have to match the grid used when creating the ladim input file

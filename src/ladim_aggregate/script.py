@@ -142,7 +142,7 @@ def run(dset_in, config, dset_out, filedata=None):
     # Create aggregation variable
     hist_dtype = np.float32 if 'weights' in config else np.int32
     dset_out.createVariable(
-        varname='histogram',
+        varname=config['output_varname'],
         data=np.array(0, dtype=hist_dtype),
         dims=tuple(coords.keys()),
     )
@@ -171,7 +171,7 @@ def run(dset_in, config, dset_out, filedata=None):
             txt = ", ".join([f'{a.start}:{a.stop}' for a in chunk_out['indices']])
             logger.info(f'Write output chunk [{txt}]')
             dset_out.incrementData(
-                varname='histogram',
+                varname=config['output_varname'],
                 data=chunk_out['values'],
                 idx=chunk_out['indices'],
             )

@@ -1,5 +1,9 @@
 # Version history
 
+## [1.16] - 2023-06-27
+### Added
+- Option for changing output variable name
+
 ## [1.15] - 2023-06-26
 ### Added
 - Alternative date specification method

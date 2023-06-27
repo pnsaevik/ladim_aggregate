@@ -11,6 +11,7 @@ def parse_config(conf):
 
     conf_out['bins'] = conf.get('bins', dict())
     conf_out['grid'] = conf.get('grid', [])
+    conf_out['output_varname'] = conf.get('output_varname', 'histogram')
     conf_out['filesplit_dims'] = conf.get('filesplit_dims', [])
 
     filesplit_bins = {k: "group_by" for k in conf_out['filesplit_dims']}

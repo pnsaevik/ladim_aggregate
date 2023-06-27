@@ -1,6 +1,6 @@
 # Version history
 
-## [Unreleased]
+## [1.17] - 2023-06-27
 ### Added
 - Added logging to file
 ### Changed

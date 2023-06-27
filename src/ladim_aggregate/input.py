@@ -459,10 +459,10 @@ def update_unique(old, data):
 @contextlib.contextmanager
 def _open_spec(spec):
     if isinstance(spec, str):
-        logger.info(f'Open dataset "{spec}"')
+        logger.debug(f'Open dataset "{spec}"')
         with xr.open_dataset(spec, decode_cf=False) as ddset:
             yield ddset
-            logger.info(f'Close dataset "{spec}"')
+            logger.debug(f'Close dataset "{spec}"')
     else:
         logger.debug(f'Enter new dataset')
         yield spec

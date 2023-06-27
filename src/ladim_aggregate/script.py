@@ -169,7 +169,7 @@ def run(dset_in, config, dset_out, filedata=None):
         # Write histogram values to file
         for chunk_out in hist.make(chunk_in):
             txt = ", ".join([f'{a.start}:{a.stop}' for a in chunk_out['indices']])
-            logger.info(f'Write output chunk [{txt}]')
+            logger.debug(f'Write output chunk [{txt}]')
             dset_out.incrementData(
                 varname=config['output_varname'],
                 data=chunk_out['values'],

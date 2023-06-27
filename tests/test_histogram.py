@@ -252,6 +252,10 @@ class Test_convert_step:
         result = histogram.convert_step('48 hours', 'days since 1980-01-01', 'standard')
         assert result == 2
 
+    def test_converts_string_spec_when_timedate(self):
+        result = histogram.convert_step('1 days', 'hours since 1980-01-01 01:00:00', 'standard')
+        assert result == 24
+
 
 class Test_convert_date:
     def test_returns_integers_verbatim(self):

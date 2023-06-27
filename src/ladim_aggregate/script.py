@@ -79,10 +79,10 @@ def main(*args):
     with open(config_file, encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
-    logger.info(f'Input file pattern: "{config["infile"]}"')
+    logger.debug(f'Input file pattern: "{config["infile"]}"')
     from .input import LadimInputStream
     dset_in = LadimInputStream(config['infile'])
-    logger.info(f'Number of input datasets: {len(dset_in.datasets)}')
+    logger.debug(f'Number of input datasets: {len(dset_in.datasets)}')
 
     logger.info(f'Create output file "{config["outfile"]}"')
     from .output import MultiDataset
@@ -169,7 +169,7 @@ def run(dset_in, config, dset_out, filedata=None):
         # Write histogram values to file
         for chunk_out in hist.make(chunk_in):
             txt = ", ".join([f'{a.start}:{a.stop}' for a in chunk_out['indices']])
-            logger.info(f'Write output chunk [{txt}]')
+            logger.debug(f'Write output chunk [{txt}]')
             dset_out.incrementData(
                 varname=config['output_varname'],
                 data=chunk_out['values'],
@@ -186,9 +186,15 @@ def init_logger(loglevel=None):
 
     package_name = str(__name__).split('.', maxsplit=1)[0]
     package_logger = logging.getLogger(package_name)
-    package_logger.setLevel(loglevel)
+    package_logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s  %(name)s:%(levelname)s - %(message)s')
+
     ch = logging.StreamHandler()
     ch.setLevel(loglevel)
-    formatter = logging.Formatter('%(asctime)s  %(name)s:%(levelname)s - %(message)s')
     ch.setFormatter(formatter)
     package_logger.addHandler(ch)
+
+    ch2 = logging.FileHandler(filename='crecon.log', mode='a', encoding='utf-8')
+    ch2.setLevel(logging.DEBUG)
+    ch2.setFormatter(formatter)
+    package_logger.addHandler(ch2)

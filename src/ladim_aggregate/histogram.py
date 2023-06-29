@@ -180,6 +180,9 @@ def convert_binspec(singlespec, units, calendar):
 
         return result
 
+    elif isinstance(singlespec, str) and singlespec.count(' ') == 1:
+        return convert_step(singlespec, units, calendar)
+
     else:
         return singlespec
 

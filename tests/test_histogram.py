@@ -245,6 +245,11 @@ class Test_convert_binspec:
         result = histogram.convert_binspec(spec, 'days since 1970-01-01', 'standard')
         assert result == dict(edges=[0, 31, 31+28], labels=['jan', 'feb'])
 
+    def test_converts_cfstring_format(self):
+        spec = '48 hours'
+        result = histogram.convert_binspec(spec, 'days since 2020-01-01', 'standard')
+        assert result == 2
+
 
 class Test_convert_step:
     def test_returns_integers_verbatim(self):

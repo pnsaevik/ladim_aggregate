@@ -1,5 +1,15 @@
 # Version history
 
+
+## [1.18] - 2023-06-29
+### Added
+- Allow arbritary time units in bin specification  
+### Changed
+- Reduced output verbosity of scan function
+### Fixed
+- Program can now be run as main module
+- Weighted particles can now be outside range
+
 ## [1.17] - 2023-06-27
 ### Added
 - Added logging to file

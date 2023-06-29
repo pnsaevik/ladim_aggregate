@@ -97,7 +97,7 @@ def adaptive_histogram(sample, bins, **kwargs):
         df['weights'] = 1
         df_sum = df_grouped.count()
     else:
-        df['weights'] = kwargs['weights']
+        df['weights'] = np.asarray(kwargs['weights'])[included]
         df_sum = df_grouped.sum()
     coords = df_sum.index.to_frame().values.T
     vals = df_sum['weights'].values
@@ -180,6 +180,9 @@ def convert_binspec(singlespec, units, calendar):
 
         return result
 
+    elif isinstance(singlespec, str) and singlespec.count(' ') == 1:
+        return convert_step(singlespec, units, calendar)
+
     else:
         return singlespec
 
@@ -246,6 +249,13 @@ def autobins(spec, dset):
         elif np.issubdtype(type(v), np.number):
             spec_types[k] = 'resolution'
 
+        elif isinstance(v, str):
+            specsplit = v.split(sep=" ")
+            if len(specsplit) == 2:  # Single number with units
+                spec_types[k] = 'resolution'
+            else:
+                raise ValueError(f'Unknown bin type: {v}')
+
         else:
             raise ValueError(f'Unknown bin type: {v}')
 
@@ -299,10 +309,9 @@ def bin_generator(spec, spec_type, scan_output):
         edges = np.concatenate([data, [data[-1] + 1]])
         centers = np.asarray(data)
     elif spec_type == 'resolution':
-        res = t64conv(spec)
-        minval = align_to_resolution(scan_output['min'], res)
-        maxval = align_to_resolution(scan_output['max'] + 2 * res, res)
-        edges = np.arange(minval, maxval, res)
+        minval = align_to_resolution(scan_output['min'], spec)
+        maxval = align_to_resolution(scan_output['max'] + 2 * spec, spec)
+        edges = np.arange(minval, maxval, spec)
         centers = get_centers_from_edges(edges)
     else:
         raise ValueError(f'Unknown spec_type: {spec_type}')
@@ -313,8 +322,19 @@ def bin_generator(spec, spec_type, scan_output):
 def t64conv(timedelta_or_other):
     """
     Convert input data in the form of [value, unit] to timedelta64, or returns the
-    argument verbatim if there are any errors.
+    argument verbatim if there are any errors. Also accepts string values of the
+    form used in cfunits (e.g., "23 hours")
     """
+    if isinstance(timedelta_or_other, str) and timedelta_or_other.count(' ') == 1:
+        t64val_str, t64unit_cf = timedelta_or_other.split(sep=" ")
+        t64val = int(t64val_str)
+        if t64unit_cf.endswith('s') and len(t64unit_cf) > 3:  # Remove plurals
+            t64unit_cf = t64unit_cf[:-1]
+        unitconv = dict(day='D', hour='h', minute='m', second='s', millisecond='ms',
+                        microsecond='us')
+        t64unit = unitconv.get(t64unit_cf, t64unit_cf)
+        return np.timedelta64(t64val, t64unit)
+
     try:
         t64val, t64unit = timedelta_or_other
         return np.timedelta64(t64val, t64unit)

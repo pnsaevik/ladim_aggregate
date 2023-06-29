@@ -94,12 +94,15 @@ class Test_adaptive_histogram:
         assert hist2.tolist() == hist.tolist()
 
     def test_returns_same_as_histogramdd_if_particles_outside_range(self):
+        # Weights are included since a previous bug caused the function to
+        # fail when weighted particles were outside range
         sample = [[1, 2, 3, 3, 4], [5, 6, 7, 8, 9]]
+        weights = [1, 1, 1, 1, 1]
         bins = [[1.5, 2.5, 3.5], [6.5, 7.5, 8.5, 9.5]]
-        hist_np, _ = np.histogramdd(sample, bins)
+        hist_np, _ = np.histogramdd(sample, bins, weights=weights)
 
         hist2 = np.zeros([len(b) - 1 for b in bins])
-        hist_chunk, idx = histogram.adaptive_histogram(sample, bins)
+        hist_chunk, idx = histogram.adaptive_histogram(sample, bins, weights=weights)
         assert idx == np.s_[1:2, 0:2]
         hist2[idx] = hist_chunk
 
@@ -242,6 +245,11 @@ class Test_convert_binspec:
         result = histogram.convert_binspec(spec, 'days since 1970-01-01', 'standard')
         assert result == dict(edges=[0, 31, 31+28], labels=['jan', 'feb'])
 
+    def test_converts_cfstring_format(self):
+        spec = '48 hours'
+        result = histogram.convert_binspec(spec, 'days since 2020-01-01', 'standard')
+        assert result == 2
+
 
 class Test_convert_step:
     def test_returns_integers_verbatim(self):
@@ -307,6 +315,46 @@ class Test_align_to_resolution:
         assert align(date, minute).astype(str) == '2020-01-02T03:04:00.000000'
         assert align(date, hour).astype(str) == '2020-01-02T03:00:00.000000'
         assert align(date, day).astype(str) == '2020-01-02T00:00:00.000000'
+
+
+class Test_t64conv:
+    def test_returns_timedeltas_verbatim(self):
+        t = np.timedelta64(1, 's')
+        result = histogram.t64conv(t)
+        assert result is t
+
+    def test_returns_numbers_verbatim(self):
+        t = 123
+        result = histogram.t64conv(t)
+        assert result is t
+
+    def test_converts_tuple_values(self):
+        t = [23, 's']
+        result = histogram.t64conv(t)
+        assert result == np.timedelta64(23, 's')
+
+    def test_converts_cftime_strings(self):
+        t_vec = [
+            '1 day',
+            '24 hours',
+            '24 h',
+            '20 minutes',
+            '23 seconds',
+            '23 s',
+            '23000 ms',
+            '23000000 us',
+        ]
+        result = [histogram.t64conv(t) for t in t_vec]
+        assert [r.astype(str) for r in result] == [
+            '1 days',
+            '24 hours',
+            '24 hours',
+            '20 minutes',
+            '23 seconds',
+            '23 seconds',
+            '23000 milliseconds',
+            '23000000 microseconds',
+        ]
 
 
 class Object:

@@ -309,10 +309,9 @@ def bin_generator(spec, spec_type, scan_output):
         edges = np.concatenate([data, [data[-1] + 1]])
         centers = np.asarray(data)
     elif spec_type == 'resolution':
-        res = t64conv(spec)
-        minval = align_to_resolution(scan_output['min'], res)
-        maxval = align_to_resolution(scan_output['max'] + 2 * res, res)
-        edges = np.arange(minval, maxval, res)
+        minval = align_to_resolution(scan_output['min'], spec)
+        maxval = align_to_resolution(scan_output['max'] + 2 * spec, spec)
+        edges = np.arange(minval, maxval, spec)
         centers = get_centers_from_edges(edges)
     else:
         raise ValueError(f'Unknown spec_type: {spec_type}')

@@ -10,7 +10,7 @@ bins:
   # Occasionally, there might be more than one time variable.
   # In the example below, we specify only the resolution, and let the
   # program figure out min/max by pre-scanning the dataset.
-  start_time: 20 days
+  start_time: 480 hours
 
   # The second grouping variable is "Z", with a resolution of 2.
   Z: 2

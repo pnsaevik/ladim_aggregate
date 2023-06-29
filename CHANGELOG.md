@@ -1,7 +1,9 @@
 # Version history
 
 
-## [unreleased] - 2023-xx-xx
+## [1.18] - 2023-06-29
+### Added
+- Allow arbritary time units in bin specification  
 ### Changed
 - Reduced output verbosity of scan function
 ### Fixed

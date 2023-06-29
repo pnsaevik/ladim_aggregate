@@ -134,11 +134,11 @@ class LadimInputStream:
 
         def agg_log(aggfunc, aggval):
             if aggfunc == "unique":
-                logger.info(f'Number of unique values: {len(aggval)}')
+                logger.debug(f'Number of unique values: {len(aggval)}')
             elif aggfunc == "max":
-                logger.info(f'Max value: {aggval}')
+                logger.debug(f'Max value: {aggval}')
             elif aggfunc == "min":
-                logger.info(f'Min value: {aggval}')
+                logger.debug(f'Min value: {aggval}')
 
         def update_output(ddset, sub_spec):
             for varname, funclist in sub_spec.items():

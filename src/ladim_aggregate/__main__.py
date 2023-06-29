@@ -1,2 +1,2 @@
 from . import script
-script.main()
+script.main_from_command_line()

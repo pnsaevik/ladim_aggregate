@@ -246,6 +246,13 @@ def autobins(spec, dset):
         elif np.issubdtype(type(v), np.number):
             spec_types[k] = 'resolution'
 
+        elif isinstance(v, str):
+            specsplit = v.split(sep=" ")
+            if len(specsplit) == 2:  # Single number with units
+                spec_types[k] = 'resolution'
+            else:
+                raise ValueError(f'Unknown bin type: {v}')
+
         else:
             raise ValueError(f'Unknown bin type: {v}')
 
@@ -313,8 +320,19 @@ def bin_generator(spec, spec_type, scan_output):
 def t64conv(timedelta_or_other):
     """
     Convert input data in the form of [value, unit] to timedelta64, or returns the
-    argument verbatim if there are any errors.
+    argument verbatim if there are any errors. Also accepts string values of the
+    form used in cfunits (e.g., "23 hours")
     """
+    if isinstance(timedelta_or_other, str) and timedelta_or_other.count(' ') == 1:
+        t64val_str, t64unit_cf = timedelta_or_other.split(sep=" ")
+        t64val = int(t64val_str)
+        if t64unit_cf.endswith('s') and len(t64unit_cf) > 3:  # Remove plurals
+            t64unit_cf = t64unit_cf[:-1]
+        unitconv = dict(day='D', hour='h', minute='m', second='s', millisecond='ms',
+                        microsecond='us')
+        t64unit = unitconv.get(t64unit_cf, t64unit_cf)
+        return np.timedelta64(t64val, t64unit)
+
     try:
         t64val, t64unit = timedelta_or_other
         return np.timedelta64(t64val, t64unit)

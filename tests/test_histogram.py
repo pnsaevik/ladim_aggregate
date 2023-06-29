@@ -318,10 +318,38 @@ class Test_t64conv:
         result = histogram.t64conv(t)
         assert result is t
 
+    def test_returns_numbers_verbatim(self):
+        t = 123
+        result = histogram.t64conv(t)
+        assert result is t
+
     def test_converts_tuple_values(self):
         t = [23, 's']
         result = histogram.t64conv(t)
         assert result == np.timedelta64(23, 's')
+
+    def test_converts_cftime_strings(self):
+        t_vec = [
+            '1 day',
+            '24 hours',
+            '24 h',
+            '20 minutes',
+            '23 seconds',
+            '23 s',
+            '23000 ms',
+            '23000000 us',
+        ]
+        result = [histogram.t64conv(t) for t in t_vec]
+        assert [r.astype(str) for r in result] == [
+            '1 days',
+            '24 hours',
+            '24 hours',
+            '20 minutes',
+            '23 seconds',
+            '23 seconds',
+            '23000 milliseconds',
+            '23000000 microseconds',
+        ]
 
 
 class Object:

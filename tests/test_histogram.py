@@ -94,12 +94,15 @@ class Test_adaptive_histogram:
         assert hist2.tolist() == hist.tolist()
 
     def test_returns_same_as_histogramdd_if_particles_outside_range(self):
+        # Weights are included since a previous bug caused the function to
+        # fail when weighted particles were outside range
         sample = [[1, 2, 3, 3, 4], [5, 6, 7, 8, 9]]
+        weights = [1, 1, 1, 1, 1]
         bins = [[1.5, 2.5, 3.5], [6.5, 7.5, 8.5, 9.5]]
-        hist_np, _ = np.histogramdd(sample, bins)
+        hist_np, _ = np.histogramdd(sample, bins, weights=weights)
 
         hist2 = np.zeros([len(b) - 1 for b in bins])
-        hist_chunk, idx = histogram.adaptive_histogram(sample, bins)
+        hist_chunk, idx = histogram.adaptive_histogram(sample, bins, weights=weights)
         assert idx == np.s_[1:2, 0:2]
         hist2[idx] = hist_chunk
 

@@ -97,7 +97,7 @@ def adaptive_histogram(sample, bins, **kwargs):
         df['weights'] = 1
         df_sum = df_grouped.count()
     else:
-        df['weights'] = kwargs['weights']
+        df['weights'] = np.asarray(kwargs['weights'])[included]
         df_sum = df_grouped.sum()
     coords = df_sum.index.to_frame().values.T
     vals = df_sum['weights'].values

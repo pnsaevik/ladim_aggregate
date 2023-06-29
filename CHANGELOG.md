@@ -1,5 +1,13 @@
 # Version history
 
+
+## [unreleased] - 2023-xx-xx
+### Changed
+- Reduced output verbosity of scan function
+### Fixed
+- Program can now be run as main module
+- Weighted particles can now be outside range
+
 ## [1.17] - 2023-06-27
 ### Added
 - Added logging to file

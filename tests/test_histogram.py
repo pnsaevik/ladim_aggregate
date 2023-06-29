@@ -312,5 +312,17 @@ class Test_align_to_resolution:
         assert align(date, day).astype(str) == '2020-01-02T00:00:00.000000'
 
 
+class Test_t64conv:
+    def test_returns_timedeltas_verbatim(self):
+        t = np.timedelta64(1, 's')
+        result = histogram.t64conv(t)
+        assert result is t
+
+    def test_converts_tuple_values(self):
+        t = [23, 's']
+        result = histogram.t64conv(t)
+        assert result == np.timedelta64(23, 's')
+
+
 class Object:
     pass

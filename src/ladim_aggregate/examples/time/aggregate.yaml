@@ -3,8 +3,10 @@
 bins:
   # For performance reasons, time should usually be the first binning variable.
   time:
+    # We can drop any of the min, max variables, in which case the program
+    # performs a pre-scan of the input dataset to find min/max values
     min: 2000-01-02
-    max: 2000-01-05
+    # max: 2000-01-05
     step: 1 days
 
   # The second grouping variable is "Z", with a resolution of 2.

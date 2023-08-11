@@ -211,6 +211,7 @@ def close_logger():
     package_logger = logging.getLogger(package_name)
 
     # Close the log handlers
-    for handler in package_logger.handlers:
+    handlers = [h for h in package_logger.handlers]  # Make a copy, otherwise the loop will fail
+    for handler in handlers:
         handler.close()
         package_logger.removeHandler(handler)

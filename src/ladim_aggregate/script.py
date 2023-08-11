@@ -66,28 +66,33 @@ def main(*args):
     import logging
     from . import __version__ as version_str
     init_logger()
-    logger = logging.getLogger(__name__)
-    logger.info(f'Starting CRECON, version {version_str}')
 
-    # Extract example if requested
-    if parsed_args.example:
-        ex = Example(config_file)
-        config_file = ex.extract()
+    try:
+        logger = logging.getLogger(__name__)
+        logger.info(f'Starting CRECON, version {version_str}')
 
-    import yaml
-    logger.info(f'Open config file "{config_file}"')
-    with open(config_file, encoding='utf-8') as f:
-        config = yaml.safe_load(f)
+        # Extract example if requested
+        if parsed_args.example:
+            ex = Example(config_file)
+            config_file = ex.extract()
 
-    logger.debug(f'Input file pattern: "{config["infile"]}"')
-    from .input import LadimInputStream
-    dset_in = LadimInputStream(config['infile'])
-    logger.debug(f'Number of input datasets: {len(dset_in.datasets)}')
+        import yaml
+        logger.info(f'Open config file "{config_file}"')
+        with open(config_file, encoding='utf-8') as f:
+            config = yaml.safe_load(f)
 
-    logger.info(f'Create output file "{config["outfile"]}"')
-    from .output import MultiDataset
-    with MultiDataset(config['outfile']) as dset_out:
-        run(dset_in, config, dset_out)
+        logger.debug(f'Input file pattern: "{config["infile"]}"')
+        from .input import LadimInputStream
+        dset_in = LadimInputStream(config['infile'])
+        logger.debug(f'Number of input datasets: {len(dset_in.datasets)}')
+
+        logger.info(f'Create output file "{config["outfile"]}"')
+        from .output import MultiDataset
+        with MultiDataset(config['outfile']) as dset_out:
+            run(dset_in, config, dset_out)
+
+    finally:
+        close_logger()
 
 
 def run(dset_in, config, dset_out, filedata=None):
@@ -198,3 +203,14 @@ def init_logger(loglevel=None):
     ch2.setLevel(logging.DEBUG)
     ch2.setFormatter(formatter)
     package_logger.addHandler(ch2)
+
+
+def close_logger():
+    import logging
+    package_name = str(__name__).split('.', maxsplit=1)[0]
+    package_logger = logging.getLogger(package_name)
+
+    # Close the log handlers
+    for handler in package_logger.handlers:
+        handler.close()
+        package_logger.removeHandler(handler)

@@ -1,10 +1,13 @@
 # Version history
 
 
+## [1.18.2] - 2023-08-17
+### Fixed
+- Weights expression can now contain floats
+
 ## [1.18.1] - 2023-06-29
 ### Fixed
 - Log file is now closed after main script has ended
-
 
 ## [1.18] - 2023-06-29
 ### Added

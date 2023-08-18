@@ -1,5 +1,8 @@
 # Version history
 
+## [1.19] - 2023-08-18
+### Added
+- Derived variables
 
 ## [1.18.2] - 2023-08-17
 ### Fixed

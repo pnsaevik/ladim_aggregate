@@ -1,26 +1,24 @@
 histogram:
-  dims: [Y, X]
+  dims: [eta, xi]
   data:
-    - [1, 1, 0]
-    - [1, 0, 1]
-    - [0, 1, 1]
-    - [1, 1, 0]
-    - [0, 0, 0]
+    - [0, 1]
+    - [2, 2]
+    - [1, 2]
   attrs:
     grid_mapping: crs
 
-X:
-  dims: X
-  data: [1, 2, 3]
+xi:
+  dims: xi
+  data: [2, 6]
   attrs:
     axis: X
     long_name: longitude coordinate
     standard_name: longitude
     units: degrees_east
 
-Y:
-  dims: Y
-  data: [11, 13, 15, 17, 19]
+eta:
+  dims: eta
+  data: [-2, 0, 2]
   attrs:
     axis: Y
     long_name: latitude coordinate

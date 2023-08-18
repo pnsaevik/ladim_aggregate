@@ -126,6 +126,10 @@ def run(dset_in, config, dset_out, filedata=None):
     for gridvar_spec in config.get('grid', []):
         dset_in.add_grid_variable(data_array=gridvar_spec['data'])
 
+    # Add derived variables
+    for derived_name, derived_spec in config.get('derived', dict()).items():
+        dset_in.add_derived_variable(varname=derived_name, definition=derived_spec)
+
     # Add weights
     if 'weights' in config:
         dset_in.add_derived_variable(varname='_auto_weights', definition=config['weights'])

@@ -311,3 +311,19 @@ class Test_update_agg:
 
         assert data.tolist() == [7, 0, 8]
         assert mask.tolist() == (data > 0).tolist()
+
+
+class Test_create_pfilter:
+    def test_checks_if_variable_is_triggered(self):
+        pfilter = ladim_input.create_pfilter(spec='age >= 2')
+
+        chunk = xr.Dataset(
+            data_vars=dict(
+                age=xr.Variable('particle_instance', [0, 1, 2, 3, 4, 5]),
+                pid=xr.Variable('particle_instance', [6, 7, 8, 9, 10, 12])
+            ),
+        )
+        is_triggered = pfilter(chunk)
+
+        # First two particles are not triggered, the remaining are
+        assert is_triggered.values.tolist() == [0, 0, 1, 1, 1, 1]

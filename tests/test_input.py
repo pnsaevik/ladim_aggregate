@@ -327,3 +327,20 @@ class Test_create_pfilter:
 
         # First two particles are not triggered, the remaining are
         assert is_triggered.values.tolist() == [0, 0, 1, 1, 1, 1]
+
+    def test_counts_only_first_occurrence(self):
+        pfilter = ladim_input.create_pfilter(spec='age >= 2')
+
+        chunk = xr.Dataset(
+            data_vars=dict(
+                pid=xr.Variable('particle_instance', [0, 1, 2, 3, 4, 5])
+            ),
+        )
+        chunk1 = chunk.assign(age=xr.Variable('particle_instance', [0, 0, 0, 0, 4, 5]))
+        chunk2 = chunk.assign(age=xr.Variable('particle_instance', [2, 0, 0, 0, 6, 6]))
+        chunk3 = chunk.assign(age=xr.Variable('particle_instance', [0, 2, 0, 0, 9, 9]))
+
+        pfilter(chunk1)
+        pfilter(chunk2)
+        is_triggered = pfilter(chunk3)
+        assert is_triggered.values.tolist() == [0, 1, 0, 0, 0, 0]

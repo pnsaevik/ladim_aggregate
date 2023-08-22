@@ -1,5 +1,9 @@
 # Version history
 
+## [1.19.1] - 2023-08-22
+### Fixed
+- Particle filter no longer breaks if pid count is large 
+
 ## [1.19] - 2023-08-18
 ### Added
 - Derived variables

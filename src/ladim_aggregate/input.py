@@ -492,7 +492,7 @@ def create_varfunc(spec):
 
 def create_pfilter(spec):
     fn = create_varfunc(spec)
-    has_been_triggered = np.zeros(100, dtype=bool)
+    has_been_triggered = ResizableArray(100, dtype=bool)
 
     def pfilter(chunk):
         fn_val = fn(chunk)
@@ -500,10 +500,23 @@ def create_pfilter(spec):
         max_pid = pid.max()
         if max_pid > len(has_been_triggered):
             has_been_triggered.resize(max_pid + 1)
-        is_new = ~has_been_triggered[pid]
+        is_new = ~has_been_triggered.data[pid]
         condition = fn_val & is_new
         pid_triggered = pid[condition]
-        has_been_triggered[pid_triggered] = True
+        has_been_triggered.data[pid_triggered] = True
         return xr.Variable('pid', condition)
 
     return pfilter
+
+
+class ResizableArray:
+    def __init__(self, capacity, dtype):
+        self.data = np.zeros(capacity, dtype=dtype)
+
+    def resize(self, new_capacity):
+        old_data = self.data
+        self.data = np.zeros(new_capacity, dtype=old_data.dtype)
+        self.data[:len(old_data)] = old_data
+
+    def __len__(self):
+        return len(self.data)

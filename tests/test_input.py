@@ -344,3 +344,15 @@ class Test_create_pfilter:
         pfilter(chunk2)
         is_triggered = pfilter(chunk3)
         assert is_triggered.values.tolist() == [0, 1, 0, 0, 0, 0]
+
+    def test_works_with_large_pids(self):
+        pfilter = ladim_input.create_pfilter(spec='age >= 2')
+
+        chunk = xr.Dataset(
+            data_vars=dict(
+                age=xr.Variable('particle_instance', [0, 1, 2]),
+                pid=xr.Variable('particle_instance', [1001, 1002, 1003])
+            ),
+        )
+
+        pfilter(chunk)

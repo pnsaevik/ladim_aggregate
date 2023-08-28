@@ -1,5 +1,9 @@
 # Version history
 
+## [1.19.2] - 2023-08-28
+### Fixed
+- Accepts function expression with two dots (bug introduced in 1.18.2)  
+
 ## [1.19.1] - 2023-08-22
 ### Fixed
 - Particle filter no longer breaks if pid count is large 

@@ -478,7 +478,7 @@ def create_varfunc(spec):
     elif isinstance(spec, tuple) and spec[0] == 'pfilter':
         return create_pfilter(spec[1])
     elif isinstance(spec, str):
-        if re.match(r'\w+\.\w+$', spec):
+        if re.match(r'[.\w]+\.\w+$', spec):
             return get_varfunc_from_funcstring(spec)
         else:
             return get_varfunc_from_numexpr(spec)

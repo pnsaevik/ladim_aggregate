@@ -376,6 +376,11 @@ class Test_create_varfunc:
         assert mock_class.call_count == 1
 
     @patch('ladim_aggregate.input.get_varfunc_from_numexpr')
+    def test_calls_correct_function_when_varname(self, mock_class):
+        _ = ladim_input.create_varfunc('my_var')
+        assert mock_class.call_count == 1
+
+    @patch('ladim_aggregate.input.get_varfunc_from_numexpr')
     def test_calls_correct_function_when_numexpr_with_floats(self, mock_class):
         _ = ladim_input.create_varfunc('myvar * 1.23')
         assert mock_class.call_count == 1

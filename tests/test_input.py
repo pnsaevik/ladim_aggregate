@@ -2,6 +2,7 @@ from ladim_aggregate import input as ladim_input
 import numpy as np
 import pytest
 import xarray as xr
+from unittest.mock import patch
 
 
 @pytest.fixture(scope='module')
@@ -356,3 +357,25 @@ class Test_create_pfilter:
         )
 
         pfilter(chunk)
+
+
+class Test_create_varfunc:
+    @patch('ladim_aggregate.input.get_varfunc_from_funcstring')
+    def test_calls_correct_function_when_singledot_spec(self, mock_class):
+        _ = ladim_input.create_varfunc('numpy.sum')
+        assert mock_class.call_count == 1
+
+    @patch('ladim_aggregate.input.get_varfunc_from_funcstring')
+    def test_calls_correct_function_when_doubledot_spec(self, mock_class):
+        _ = ladim_input.create_varfunc('numpy.linalg.inv')
+        assert mock_class.call_count == 1
+
+    @patch('ladim_aggregate.input.get_varfunc_from_numexpr')
+    def test_calls_correct_function_when_numexpr_with_ints(self, mock_class):
+        _ = ladim_input.create_varfunc('myvar * 123')
+        assert mock_class.call_count == 1
+
+    @patch('ladim_aggregate.input.get_varfunc_from_numexpr')
+    def test_calls_correct_function_when_numexpr_with_floats(self, mock_class):
+        _ = ladim_input.create_varfunc('myvar * 1.23')
+        assert mock_class.call_count == 1

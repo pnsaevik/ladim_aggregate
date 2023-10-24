@@ -1,5 +1,9 @@
 # Version history
 
+## [1.19.3] - 2023-10-24
+### Changed
+- Uses github as CI instead of circleCI  
+
 ## [1.19.2] - 2023-08-28
 ### Fixed
 - Accepts function expression with two dots (bug introduced in 1.18.2)  

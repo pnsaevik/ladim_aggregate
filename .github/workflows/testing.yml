@@ -1,0 +1,17 @@
+name: Test package
+
+on: push
+
+jobs:
+  sphinx:
+    runs-on: ubuntu-latest
+    name: Run pytest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install package
+        run: pip install .
+      - name: Install pytest
+        run: pip install pytest
+      - name: Run pytest
+        run: pytest

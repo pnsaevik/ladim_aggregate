@@ -244,13 +244,37 @@ class Test_LadimInputStream_grid:
         dset = ladim_input.LadimInputStream(ladim_dset)
         grid = xr.DataArray(
             data=[100, 200, 300],
-            coords=dict(X=[0, 5, 10]),
+            coords=dict(Z=[0, 4, 8]),
             name="multiplier",
         )
-        dset.add_grid_variable(grid)
+        dset.add_grid_variable(grid, 'linear')
         chunk = next(dset.chunks())
         assert "multiplier" in chunk.variables
-        assert chunk.multiplier.values.tolist() == [200, 200, 220, 220]
+        assert chunk.multiplier.values.tolist() == [100, 125, 150, 175]
+
+    def test_can_use_interp_method_nearest(self, ladim_dset):
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        grid = xr.DataArray(
+            data=[100, 200, 300],
+            coords=dict(Z=[0, 4, 8]),
+            name="multiplier",
+        )
+        dset.add_grid_variable(grid, 'nearest')
+        chunk = next(dset.chunks())
+        assert "multiplier" in chunk.variables
+        assert chunk.multiplier.values.tolist() == [100, 100, 100, 200]
+
+    def test_can_use_interp_method_bin(self, ladim_dset):
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        grid = xr.DataArray(
+            data=[100, 200, 300],
+            coords=dict(Z=[0, 4, 8]),
+            name="multiplier",
+        )
+        dset.add_grid_variable(grid, 'bin')
+        chunk = next(dset.chunks())
+        assert "multiplier" in chunk.variables
+        assert chunk.multiplier.values.tolist() == [100, 100, 100, 100]
 
 
 class Test_update_agg:

@@ -85,15 +85,16 @@ class LadimInputStream:
         """
         self._init_variables.append(varname)
 
-    def add_grid_variable(self, data_array):
+    def add_grid_variable(self, data_array, method):
         """
         Grid variables are derived variables that are interpolated from a grid. They
         are added to the dataset through the chunks() function.
 
         :param data_array: A named xarray DataArray defining the variable values on a grid
+        :param method: Either 'linear', 'nearest' or 'bin'
         :return: None
         """
-        self._derived_variables[data_array.name] = create_varfunc(data_array)
+        self._derived_variables[data_array.name] = create_varfunc(('grid', data_array, method))
 
     def _update_agg_variables(self):
         # Find all unassigned aggfuncs and store them variable-wise
@@ -287,12 +288,24 @@ def get_varfunc_from_funcstring(s: str):
     return get_varfunc_from_callable(func)
 
 
-def get_varfunc_from_grid(darr: xr.DataArray):
-    def fn(chunk):
+def get_varfunc_from_grid(darr: xr.DataArray, method):
+    def fn_other(chunk):
         coords = {d: chunk.variables[d] for d in darr.dims}
-        return darr.interp(coords).variable
+        return darr.interp(coords, method=method).variable
 
-    return fn
+    def fn_bin(chunk):
+        idx = {}
+        for d in darr.dims:
+            dvalues = darr[d].values
+            pvalues = chunk.variables[d].values
+            data = np.searchsorted(dvalues, pvalues, side='right') - 1
+            idx[d] = xr.Variable(dims='pid', data=data)
+        return darr.isel(idx).variable
+
+    if method == 'bin':
+        return fn_bin
+    else:
+        return fn_other
 
 
 def glob_files(spec):
@@ -477,13 +490,13 @@ def create_varfunc(spec):
         return create_geotagger(**spec[1])
     elif isinstance(spec, tuple) and spec[0] == 'pfilter':
         return create_pfilter(spec[1])
+    elif isinstance(spec, tuple) and spec[0] == 'grid':
+        return get_varfunc_from_grid(spec[1], spec[2])
     elif isinstance(spec, str):
         if re.match(r'[.\w]+\.\w+$', spec):
             return get_varfunc_from_funcstring(spec)
         else:
             return get_varfunc_from_numexpr(spec)
-    elif isinstance(spec, xr.DataArray):
-        return get_varfunc_from_grid(spec)
     elif callable(spec):
         return get_varfunc_from_callable(spec)
     else:

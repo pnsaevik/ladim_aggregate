@@ -20,6 +20,10 @@ def parse_config(conf):
     if 'projection' in conf:
         conf_out['projection']['output_varname'] = conf_out['output_varname']
 
+    for idx, item in enumerate(conf_out['grid']):
+        if 'method' not in item:
+            conf_out['grid'][idx]['method'] = 'linear'
+
     return conf_out
 
 

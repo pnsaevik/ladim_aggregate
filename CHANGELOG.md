@@ -1,5 +1,9 @@
 # Version history
 
+## [1.20.0] - 2023-11-07
+### Added
+- New interpolation methods
+
 ## [1.19.3] - 2023-10-24
 ### Changed
 - Uses github as CI instead of circleCI  

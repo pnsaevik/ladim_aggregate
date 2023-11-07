@@ -15,14 +15,27 @@ weights: mass * spec * super
 output_varname: conc
 
 # Import grid variables from a netCDF file.
-# - Grid variables are sampled by bilinear interpolation for each particle instance
+# - Grid variables are sampled by bilinear interpolation for each particle instance,
+#   unless specified otherwise (through the "method" keyword)
 # - Grid does not have to match the grid used when creating the ladim input file
 # - Grid coordinate names must match variable names in the ladim input file
+#
+# Interpolation method can be "linear" (default), "nearest" or "bin".
+# The different methods are easiest to explain by an example. Consider a
+# file 'external.nc' with coordinates Z = [0, 10] and data variable
+# spec = [-1, 1]. A set of particle with Z = [0, 2.5, 5, 7.5, 10] will give
+# the following results under different interpolation methods:
+#
+# "linear":  [-1, -0.5,    0,  0.5,    1]
+# "nearest": [-1,   -1,   -1,    1,    1]
+# "bin":     [-1,   -1,   -1,   -1,    1]
+#
 grid:
   - file: external.nc
     variable: spec
   - file: external.nc
     variable: super
+    method: bin
 
 # Output file
 outfile: count.nc

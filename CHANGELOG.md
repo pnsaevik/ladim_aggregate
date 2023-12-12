@@ -1,5 +1,9 @@
 # Version history
 
+## [1.21.0] - 2023-12-12
+### Added
+- API function for running simulations from another python script
+
 ## [1.20.0] - 2023-11-07
 ### Added
 - New interpolation methods

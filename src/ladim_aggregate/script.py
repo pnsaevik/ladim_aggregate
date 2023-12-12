@@ -81,18 +81,32 @@ def main(*args):
         with open(config_file, encoding='utf-8') as f:
             config = yaml.safe_load(f)
 
-        logger.debug(f'Input file pattern: "{config["infile"]}"')
-        from .input import LadimInputStream
-        dset_in = LadimInputStream(config['infile'])
-        logger.debug(f'Number of input datasets: {len(dset_in.datasets)}')
-
-        logger.info(f'Create output file "{config["outfile"]}"')
-        from .output import MultiDataset
-        with MultiDataset(config['outfile']) as dset_out:
-            run(dset_in, config, dset_out)
+        run_conf(config)
 
     finally:
         close_logger()
+
+
+def run_conf(config):
+    """
+    Run crecon simulation using a configuration dict
+
+    :param config: Configuration
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.debug(f'Input file pattern: "{config["infile"]}"')
+    from .input import LadimInputStream
+
+    dset_in = LadimInputStream(config['infile'])
+    logger.debug(f'Number of input datasets: {len(dset_in.datasets)}')
+
+    logger.info(f'Create output file "{config["outfile"]}"')
+    from .output import MultiDataset
+
+    with MultiDataset(config['outfile']) as dset_out:
+        run(dset_in, config, dset_out)
 
 
 def run(dset_in, config, dset_out, filedata=None):

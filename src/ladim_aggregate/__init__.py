@@ -1,3 +1,3 @@
-from .script import main, run
+from .script import main, run, run_conf
 
-__version__ = '1.20.0'
+__version__ = '1.21.0'

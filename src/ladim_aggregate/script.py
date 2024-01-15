@@ -220,11 +220,6 @@ def init_logger(loglevel=None):
     ch.setFormatter(formatter)
     package_logger.addHandler(ch)
 
-    ch2 = logging.FileHandler(filename='crecon.log', mode='a', encoding='utf-8')
-    ch2.setLevel(logging.DEBUG)
-    ch2.setFormatter(formatter)
-    package_logger.addHandler(ch2)
-
 
 def close_logger():
     import logging

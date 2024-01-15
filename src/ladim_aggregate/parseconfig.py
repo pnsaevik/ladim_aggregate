@@ -52,7 +52,7 @@ def load_config(config, filedata):
         data = filedata.get(fname, None)  # type: xr.Dataset
         if data is None:
             logger.info(f'Load grid file "{grid_spec["file"]}"')
-            with xr.open_dataset(grid_spec['file']) as data:
+            with xr.open_dataset(grid_spec['file'], decode_cf=False) as data:
                 grid_spec['data'] = data[grid_spec['variable']].copy(deep=True)
         else:
             grid_spec['data'] = data[grid_spec['variable']].copy(deep=True)

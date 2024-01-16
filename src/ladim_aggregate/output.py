@@ -26,11 +26,18 @@ class MultiDataset:
         :param kwargs: Additional arguments passed to netCDF4.Dataset
         """
         self._dataset_kwargs = kwargs
-        self.main_dataset = nc.Dataset(filename, mode='w', **kwargs)
         self.datasets = dict()
         self._cross_coords = dict()
         self._cross_vars = dict()
         self._editable = True  # When subdatasets are created, no more variables can be added
+
+        if isinstance(filename, nc.Dataset):
+            self.main_dataset = filename
+            self._has_diskless_input_dataset = True
+            self._dataset_kwargs['diskless'] = True
+        else:
+            self.main_dataset = nc.Dataset(filename, mode='w', **kwargs)
+            self._has_diskless_input_dataset = False
 
     def __enter__(self):
         return self
@@ -40,7 +47,8 @@ class MultiDataset:
 
     def close(self):
         logger.info(f'Close dataset "{self.main_dataset.filepath()}"')
-        self.main_dataset.close()
+        if not self._has_diskless_input_dataset:
+            self.main_dataset.close()
         for d in self.datasets.values():
             logger.info(f'Close dataset "{d.filepath()}"')
             d.close()

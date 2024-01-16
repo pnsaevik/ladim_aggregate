@@ -172,6 +172,25 @@ class Test_MultiDataset:
         with pytest.raises(TypeError):
             mdset.setAttrs('cross_coord', dict(newatt=3))
 
+    def test_accepts_in_memory_datasets(self):
+        import netCDF4 as nc
+        with nc.Dataset(uuid4(), mode='w', diskless=True) as dset:
+            mdset = output.MultiDataset(dset)
+
+            mdset.createCoord('main_coord', [1, 2])
+            assert dset.variables['main_coord'][:].tolist() == [1, 2]
+
+            mdset.createVariable('main_var', 1, 'main_coord')
+            assert dset.variables['main_var'][:].tolist() == [1, 1]
+
+            mdset.setData('main_var', 2, idx=[0])
+            assert dset.variables['main_var'][:].tolist() == [2, 1]
+
+            # Can read after calling close method
+            # (Since underlying dataset is not closed)
+            mdset.close()
+            assert dset.variables['main_var'][:].tolist() == [2, 1]
+
 
 class Test_nc_to_dict:
     def test_returns_valid_xarray_dict_representation(self):

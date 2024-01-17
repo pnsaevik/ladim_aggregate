@@ -49,7 +49,11 @@ def load_config(config, filedata):
     # Load grid files
     for grid_spec in config['grid']:
         fname = grid_spec['file']
-        data = filedata.get(fname, None)  # type: xr.Dataset
+        if isinstance(fname, xr.Dataset):
+            data = grid_spec['file']
+        else:
+            data = filedata.get(fname, None)  # type: xr.Dataset
+
         if data is None:
             logger.info(f'Load grid file "{grid_spec["file"]}"')
             with xr.open_dataset(grid_spec['file'], decode_cf=False) as data:

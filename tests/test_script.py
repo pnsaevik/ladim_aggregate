@@ -56,13 +56,23 @@ class Test_run_conf:
         with nc.Dataset(uuid4(), 'w', diskless=True) as dset:
             yield dset
 
-    def test_works_with_in_memory_datasets(self, infile, outfile):
+    @pytest.fixture
+    def gridfile(self):
+        dset = xr.Dataset(
+            coords=dict(x=[0, 5, 10, 15]),
+            data_vars=dict(w=xr.Variable('x', [100, 100, 10, 10]))
+        )
+        return dset
+
+    def test_works_with_in_memory_datasets(self, infile, outfile, gridfile):
         conf = dict(
             bins=dict(x=[0, 10, 20]),
+            grid=[dict(file=gridfile, variable='w', method='bin')],
+            weights='w',
             infile=infile,
             outfile=outfile,
         )
 
         script.run_conf(conf)
 
-        assert outfile.variables['histogram'][:].tolist() == [1, 2]
+        assert outfile.variables['histogram'][:].tolist() == [100, 20]

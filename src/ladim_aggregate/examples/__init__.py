@@ -49,16 +49,15 @@ class Example:
 
     def _load(self):
         import importlib.resources
-        names = [
-            f for f in importlib.resources.contents(self.package)
-            if not f.startswith('__')
-        ]
 
         data = dict()
 
-        for fname in names:
-            import pkgutil
-            data[fname] = pkgutil.get_data(self.package, fname)
+        for file in importlib.resources.files(self.package).iterdir():
+            fname = file.name
+            if fname.startswith('__'):
+                continue
+
+            data[fname] = file.read_bytes()
 
             if fname.endswith('.nc.yaml'):
                 import yaml

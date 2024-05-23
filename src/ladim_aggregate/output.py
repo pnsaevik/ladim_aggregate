@@ -392,7 +392,7 @@ class MultiDataset:
         for data_idx in product(*data_indices):
             file_idx = {d: br[di] for d, br, di, sd in
                         zip(dims, big_range, data_idx, is_splitdim) if sd}
-            yield file_idx, var_idx, data_idx
+            yield file_idx, tuple(var_idx), data_idx
 
     def to_dict(self):
         all_datasets = [self.main_dataset] + list(self.datasets.values())

@@ -203,7 +203,7 @@ class LadimInputStream:
         for chunk in ladim_iterator(self.datasets, timestep_filter):
             # Apply filter
             filter_idx = None
-            num_unfiltered = chunk.dims['pid']
+            num_unfiltered = chunk.sizes['pid']
             if filterfn:
                 logger.debug("Apply filter")
                 filter_idx = filterfn(chunk).values

@@ -189,7 +189,7 @@ def run(dset_in, config, dset_out, filedata=None):
     )
 
     for chunk_in in dset_in_iterator:
-        if chunk_in.dims['pid'] == 0:
+        if chunk_in.sizes['pid'] == 0:
             continue
 
         # Write histogram values to file

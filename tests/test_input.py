@@ -29,7 +29,7 @@ def ladim_dset():
 @pytest.fixture(scope='class')
 def ladim_dset2(ladim_dset):
     d = ladim_dset.copy(deep=True)
-    d['instance_offset'] += d.dims['particle_instance']
+    d['instance_offset'] += d.sizes['particle_instance']
     d = d.assign_coords(time=d.time + np.timedelta64(2, 'D'))
     return d
 
@@ -38,7 +38,7 @@ class Test_ladim_iterator:
     def test_returns_one_dataset_per_timestep_when_multiple_datasets(self, ladim_dset, ladim_dset2):
         it = ladim_input.ladim_iterator([ladim_dset, ladim_dset2])
         dsets = list(it)
-        assert len(dsets) == ladim_dset.dims['time'] + ladim_dset2.dims['time']
+        assert len(dsets) == ladim_dset.sizes['time'] + ladim_dset2.sizes['time']
 
     def test_returns_correct_time_selection(self, ladim_dset):
         iterator = ladim_input.ladim_iterator([ladim_dset])
@@ -155,7 +155,7 @@ class Test_LadimInputStream:
     def test_reads_one_timestep_at_the_time(self, ladim_dset, ladim_dset2):
         dset = ladim_input.LadimInputStream([ladim_dset, ladim_dset2])
         pids = list(c.pid.values.tolist() for c in dset.chunks())
-        assert len(pids) == ladim_dset.dims['time'] + ladim_dset2.dims['time']
+        assert len(pids) == ladim_dset.sizes['time'] + ladim_dset2.sizes['time']
         assert pids == [[0, 1, 2, 3], [1, 2], [0, 1, 2, 3], [1, 2]]
 
     def test_broadcasts_time_vars_when_reading(self, ladim_dset, ladim_dset2):
@@ -178,24 +178,24 @@ class Test_LadimInputStream:
 
         # No filter: 6 particle instances
         chunks = xr.concat(dset.chunks(), dim='pid')
-        assert chunks.dims['pid'] == 6
+        assert chunks.sizes['pid'] == 6
 
         # With filter: 4 particle instances
         filters = "farm_id != 12346"
         chunks = xr.concat(dset.chunks(filters=filters), dim='pid')
-        assert chunks.dims['pid'] == 4
+        assert chunks.sizes['pid'] == 4
 
         # A more complex filter expression
         filters = "(farm_id > 12345) & (farm_id < 12347)"
         chunks = xr.concat(dset.chunks(filters=filters), dim='pid')
-        assert chunks.dims['pid'] == 2
+        assert chunks.sizes['pid'] == 2
 
     def test_can_apply_particle_filter(self, ladim_dset):
         dset = ladim_input.LadimInputStream(ladim_dset)
 
         # No filter: 6 particle instances
         chunks = xr.concat(dset.chunks(), dim='pid')
-        assert chunks.dims['pid'] == 6
+        assert chunks.sizes['pid'] == 6
 
         # With filter: Keeps only the first time the condition is triggered
         filters = "Z >= 2"
@@ -214,15 +214,15 @@ class Test_LadimInputStream:
 
         # No filter: 6 particle instances
         chunks = xr.concat(dset.chunks(), dim='pid')
-        assert chunks.dims['pid'] == 6
+        assert chunks.sizes['pid'] == 6
 
         # Just first timestep: 4 particle instances
         chunks = xr.concat(dset.chunks(timestep_filter=[0]), dim='pid')
-        assert chunks.dims['pid'] == 4
+        assert chunks.sizes['pid'] == 4
 
         # Just second timestep: 2 particle instances
         chunks = xr.concat(dset.chunks(timestep_filter=[1]), dim='pid')
-        assert chunks.dims['pid'] == 2
+        assert chunks.sizes['pid'] == 2
 
     def test_can_add_weights_from_string_expression(self, ladim_dset):
         dset = ladim_input.LadimInputStream(ladim_dset)

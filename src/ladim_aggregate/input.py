@@ -360,13 +360,13 @@ def ladim_iterator(ladim_dsets, timesteps=None):
     for dset in dset_iterator(ladim_dsets):
         instance_offset = dset.get('instance_offset', 0)
         pcount_cum = np.concatenate([[0], np.cumsum(dset.particle_count.values)])
-        tidx_list = range(dset.dims['time'])
+        tidx_list = range(dset.sizes['time'])
 
         # Potentially filter out some time steps
         if timesteps is not None:
             include_steps = timesteps - tidx_start
             tidx_list = np.intersect1d(tidx_list, include_steps)
-            tidx_start += dset.dims['time']
+            tidx_start += dset.sizes['time']
 
         for tidx in tidx_list:
             timestr = str(get_time(dset.time[tidx]).astype('datetime64[s]')).replace("T", " ")

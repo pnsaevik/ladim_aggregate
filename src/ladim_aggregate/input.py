@@ -513,7 +513,7 @@ def create_pfilter(spec):
         fn_val = fn(chunk)
         pid = chunk['pid'].values
         max_pid = pid.max()
-        if max_pid > len(has_been_triggered):
+        if max_pid >= len(has_been_triggered):
             has_been_triggered.resize(max_pid + 1)
         is_new = ~has_been_triggered.data[pid]
         condition = fn_val & is_new

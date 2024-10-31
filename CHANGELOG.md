@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.24.5] - 2024-10-31
 ### Fixed
 - Allow weights parameter to be pure number
+- Bugfix in particle filter
 
 ## [1.24.4] - 2024-05-23
 ### Fixed

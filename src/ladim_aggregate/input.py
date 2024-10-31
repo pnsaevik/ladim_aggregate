@@ -497,6 +497,8 @@ def create_varfunc(spec):
             return get_varfunc_from_funcstring(spec)
         else:
             return get_varfunc_from_numexpr(spec)
+    elif isinstance(spec, int) or isinstance(spec, float):
+        return get_varfunc_from_numexpr(str(spec))
     elif callable(spec):
         return get_varfunc_from_callable(spec)
     else:

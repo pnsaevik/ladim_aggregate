@@ -274,7 +274,15 @@ def get_varfunc_from_callable(fn):
     signature = inspect.signature(fn)
 
     def weight_fn(chunk):
-        args = [chunk[n].values for n in signature.parameters.keys()]
+        args = []
+        for name, param in signature.parameters.items():
+            if name in chunk:
+                args.append(chunk[name].values)
+            elif param.default == inspect.Parameter.empty:
+                raise KeyError(f'Variable {name} not in dataset (required by {fn})')
+            else:
+                args.append(param.default)
+
         return xr.Variable('pid', fn(*args))
 
     return weight_fn

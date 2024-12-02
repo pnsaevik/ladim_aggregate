@@ -1,3 +1,5 @@
+import pandas as pd
+
 from ladim_aggregate import input as ladim_input
 import numpy as np
 import pytest
@@ -422,3 +424,31 @@ class Test_create_varfunc:
     def test_calls_correct_function_when_numexpr_with_floats(self, mock_class):
         _ = ladim_input.create_varfunc('myvar * 1.23')
         assert mock_class.call_count == 1
+
+
+class Test_get_varfunc_from_callable:
+    def test_returns_weight_function(self):
+        weight_fn = ladim_input.get_varfunc_from_callable(lambda a, b: a + b)
+        chunk = xr.Dataset(dict(a=[1, 2, 3], b=[4, 5, 6]))
+        new_var = weight_fn(chunk)
+        assert new_var.values.tolist() == [5, 7, 9]
+
+    def test_fails_if_param_not_in_chunk(self):
+        weight_fn = ladim_input.get_varfunc_from_callable(lambda a, b: a + b)
+        chunk = xr.Dataset(dict(a=[1, 2, 3]))
+        with pytest.raises(KeyError):
+            _ = weight_fn(chunk)
+
+    def test_can_use_optional_params(self):
+        def fn(a, b, c=1):
+            return a + b + c
+
+        weight_fn = ladim_input.get_varfunc_from_callable(fn)
+        chunk_1 = xr.Dataset(dict(a=[1, 2, 3], b=[4, 5, 6]))
+        chunk_2 = xr.Dataset(dict(a=[1, 2, 3], b=[4, 5, 6], c=[2, 2, 2]))
+
+        new_var_1 = weight_fn(chunk_1)
+        assert new_var_1.values.tolist() == [6, 8, 10]
+
+        new_var_2 = weight_fn(chunk_2)
+        assert new_var_2.values.tolist() == [7, 9, 11]

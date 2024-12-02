@@ -389,6 +389,11 @@ class Test_create_varfunc:
         _ = ladim_input.create_varfunc('numpy.sum')
         assert mock_class.call_count == 1
 
+    @patch('ladim_aggregate.input.get_varfunc_from_callable')
+    def test_calls_correct_function_when_callable(self, mock_class):
+        _ = ladim_input.create_varfunc(np.sum)
+        assert mock_class.call_count == 1
+
     @patch('ladim_aggregate.input.get_varfunc_from_funcstring')
     def test_calls_correct_function_when_doubledot_spec(self, mock_class):
         _ = ladim_input.create_varfunc('numpy.linalg.inv')

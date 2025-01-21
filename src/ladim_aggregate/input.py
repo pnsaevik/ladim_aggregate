@@ -237,7 +237,7 @@ class LadimInputStream:
                 logger.debug("Apply particle filter")
                 pfilter_idx = particle_filterfn(chunk).values
                 if filterfn:
-                    filter_idx &= pfilter_idx
+                    filter_idx = filter_idx & pfilter_idx
                 else:
                     filter_idx = pfilter_idx
                 num_unfiltered = np.count_nonzero(filter_idx)
@@ -264,7 +264,10 @@ def get_varfunc_from_numexpr(spec):
             logger.debug(f'Load variable "{n}"')
             args.append(chunk[n].values)
         logger.debug(f'Compute expression "{spec}"')
-        return xr.Variable('pid', ex.run(*args))
+        out_shape = chunk['pid'].shape
+        result = ex.run(*args)  # Might be single-valued
+        result_reshaped = np.broadcast_to(result, out_shape)
+        return xr.Variable('pid', result_reshaped)
 
     return weight_fn
 

@@ -12,7 +12,7 @@ filter: Y <= 70
 
 # Particle filters are a special type: Particles are only counted the FIRST
 # time they fulfill the condition. Subsequent occurences of the particle are
-# discarded.
+# discarded. Particles that never fulfill the condition are not counted at all.
 filter_particle: X > 0
 
 # Here we specify which time steps should be a part of the aggregation, using

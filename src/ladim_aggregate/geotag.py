@@ -77,18 +77,11 @@ def paths_from_geojson(geojson: dict) -> list[Polygon]:
     :return: A list of matplotlib paths
     """
     features = geojson['features']
-    coords = []
+    polys = []
     for feature in features:
-        geom = feature['geometry']
-        c = geom['coordinates']
-        np_c = np.asarray(c)
-        np_c_reshape = np_c.reshape((-1, 2))
-        coords.append(np_c_reshape)
-    coords = [
-        np.asarray(f['geometry']['coordinates']).reshape((-1, 2))
-        for f in geojson['features']
-    ]
-    return [Polygon(shell=c, holes=None) for c in coords]
+        polys.append(Polygon.from_geojson_feature(feature))
+
+    return polys
 
 
 def lookup(indicator, values, missing):

@@ -1,5 +1,3 @@
-import pandas as pd
-
 from ladim_aggregate import input as ladim_input
 import numpy as np
 import pytest
@@ -121,6 +119,19 @@ class Test_LadimInputStream_scan:
         spec = dict(X=['max'], Y=['min', 'max'])
         out = dset.scan(spec)
         assert out == dict(X=dict(max=16), Y=dict(min=60, max=72))
+
+
+class Test_LadimInputStream_timesteps:
+    def test_correct_when_single_dataset(self, ladim_dset):
+        dset = ladim_input.LadimInputStream(ladim_dset)
+        ts = ladim_dset['time'].values.astype('datetime64[us]').astype(object)
+        assert dset.timesteps == ts.tolist()
+
+    def test_correct_when_two_datasets(self, ladim_dset, ladim_dset2):
+        dset = ladim_input.LadimInputStream([ladim_dset, ladim_dset2])
+        ts1 = ladim_dset['time'].values.astype('datetime64[us]').astype(object)
+        ts2 = ladim_dset2['time'].values.astype('datetime64[us]').astype(object)
+        assert dset.timesteps == ts1.tolist() + ts2.tolist()
 
 
 class Test_LadimInputStream_assign:

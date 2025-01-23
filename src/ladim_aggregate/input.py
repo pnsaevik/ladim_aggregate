@@ -1,4 +1,5 @@
 import contextlib
+import datetime
 import logging
 import glob
 import numpy as np
@@ -17,6 +18,7 @@ class LadimInputStream:
         self._derived_variables = dict()
         self._agg_variables = dict()
         self._init_variables = []
+        self._timesteps = None
 
     @property
     def attributes(self):
@@ -27,6 +29,25 @@ class LadimInputStream:
                 for k, v in dset.variables.items():
                     self._attributes[k] = v.attrs
         return self._attributes
+
+    @property
+    def timesteps(self) -> list[datetime.datetime]:
+        """
+        A list of all timesteps in the dataset across all files
+        """
+        if self._timesteps is None:
+            self._timesteps = []
+            for i in range(len(self.datasets)):
+                with self.open_dataset(i) as dset:
+                    self._timesteps += (
+                        dset['time']
+                        .values
+                        .astype('datetime64[us]')
+                        .astype(object)
+                        .tolist()
+                    )
+
+        return self._timesteps
 
     def open_dataset(self, idx: int) -> xr.Dataset:
         """

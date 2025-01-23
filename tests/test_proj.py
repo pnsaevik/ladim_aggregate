@@ -1,3 +1,5 @@
+import pyproj
+
 from ladim_aggregate import proj
 from ladim_aggregate.output import MultiDataset
 import pytest
@@ -33,3 +35,14 @@ class Test_write_projection:
         config = dict(proj4="+proj=longlat +ellps=WGS84 +datum=WGS84", x='X', y='Y', output_varname='histogram')
         proj.write_projection(nc_dset, config)
         assert nc_dset.main_dataset.Conventions == "CF-1.8"
+
+
+class Test_compute_area_grid:
+    def test_returns_grid_cell_areas(self):
+        crs = pyproj.CRS.from_epsg(4326)
+        x = [60, 61]
+        y = [4, 5, 6]
+        area = proj.compute_area_grid(x, y, crs)
+        assert area.astype(int).tolist() == [
+            [6122943163], [6122943163],
+        ]

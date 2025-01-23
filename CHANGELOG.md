@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.26.0] - 2025-01-23
 ### Added
 - Special variable TIMESTEPS to be used as weighting parameter
+- Special variable AREA to be used as weighting parameter
 - New "aligned" parameter for binning
 
 ## [1.25.1] - 2025-01-22

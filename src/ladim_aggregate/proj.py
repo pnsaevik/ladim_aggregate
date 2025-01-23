@@ -45,7 +45,7 @@ def compute_area_dataarray(bins: dict[dict], config_projection: dict) -> xr.Data
     )
 
 
-def compute_area_grid(x, y, crs):
+def compute_area_grid(x, y, crs: pyproj.CRS):
     """
     Compute an array of grid cell areas
 
@@ -55,4 +55,19 @@ def compute_area_grid(x, y, crs):
     :return: An array of shape (len(y) - 1, len(x) - 1) containing the area
         (in m2) of each grid cell.
     """
-    return np.ones((len(y) - 1, len(x) - 1))
+    yarr, xarr = np.meshgrid(y, x, indexing='ij')
+    wgs84 = pyproj.CRS.from_epsg(4326)
+    to_latlon = pyproj.Transformer.from_crs(crs, wgs84).transform
+    lat, lon = to_latlon(xarr, yarr)
+    geod = wgs84.get_geod()
+    area = np.ones((len(y) - 1, len(x) - 1))
+
+    for j in range(len(y) - 1):
+        for i in range(len(x) - 1):
+            poly_area, _ = geod.polygon_area_perimeter(
+                lons=[lon[j, i], lon[j, i + 1], lon[j + 1, i + 1], lon[j + 1, i]],
+                lats=[lat[j, i], lat[j, i + 1], lat[j + 1, i + 1], lat[j + 1, i]],
+            )
+            area[j, i] = np.abs(poly_area)
+
+    return area

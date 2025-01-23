@@ -243,10 +243,14 @@ def autobins(spec, dset):
         elif isinstance(v, dict) and all(u in v for u in ['edges', 'labels']):
             spec_types[k] = 'edges_labels'
 
+        elif isinstance(v, dict) and 'step' in v:
+            spec_types[k] = 'resolution'
+
         elif v == 'group_by' or v == 'unique':
             spec_types[k] = 'unique'
 
         elif np.issubdtype(type(v), np.number):
+            spec[k] = dict(align=0, step=v)
             spec_types[k] = 'resolution'
 
         elif isinstance(v, str):
@@ -309,9 +313,12 @@ def bin_generator(spec, spec_type, scan_output):
         edges = np.concatenate([data, [data[-1] + 1]])
         centers = np.asarray(data)
     elif spec_type == 'resolution':
-        minval = align_to_resolution(scan_output['min'], spec)
-        maxval = align_to_resolution(scan_output['max'] + 2 * spec, spec)
-        edges = np.arange(minval, maxval, spec)
+        edges = generate_1d_grid(
+            start=np.asarray(scan_output['min']),
+            stop=np.asarray(scan_output['max']),
+            step=np.asarray(spec['step']),
+            align=spec.get('align', 0),
+        )
         centers = get_centers_from_edges(edges)
     else:
         raise ValueError(f'Unknown spec_type: {spec_type}')
@@ -342,17 +349,52 @@ def t64conv(timedelta_or_other):
         return timedelta_or_other
 
 
-# Align to wholenumber resolution
-def align_to_resolution(value, resolution):
+def generate_1d_grid(start, stop, step, align=None):
     """
-    Round down to a specified resolution.
+    Generate a 1-dimensional grid.
 
-    Specifically, `(returned_value <= value) and (returned_value % resolution == 0)`.
+    The returned grid `g` is a numpy array with following properties:
+
+    1.  The grid spacing is determined by `step`.
+        That is, `g[i+1] - g[i] = step` for all integers i.
+
+    2.  The values `start` and `stop` are properly contained in the range.
+        That is, `g[0] <= start <= stop < g[-1]`
+
+    3.  The grid is aligned with the value `align`.
+        That is, `align = start + N * step` for some (possibly negative) int N.
+
+    The grid range might be slightly expanded compared to `start` and `stop`
+    in order to achieve this.
+
+    :param step: Grid resolution
+    :param start: Min value which should be contained in grid
+    :param stop: Max value which should be contained in grid
+    :param align: Value which should be aligned with grid
+    :return: Initialized grid satisfying all conditions
     """
-    if np.issubdtype(np.array(resolution).dtype, np.timedelta64):
-        val_posix = (value - np.datetime64('1970-01-01')).astype('timedelta64[us]')
-        res_posix = resolution.astype('timedelta64[us]')
-        ret_posix = (val_posix.astype('i8') // res_posix.astype('i8')) * res_posix
-        return np.datetime64('1970-01-01') + ret_posix
-    else:
-        return np.array((value // resolution) * resolution).item()
+
+    # If necessary, move start position to ensure alignment
+    if align is not None:
+        start = align_start_of_range(start, step, align)
+
+    # Compute number of grid points needed to properly include `stop`
+    num = int((stop - start) / step) + 2
+
+    return start + np.arange(num) * step
+
+
+def align_start_of_range(start, step, align):
+    """
+    Compute an aligned starting point of range
+
+    The function returns a value `new_start` smaller or equal to `start`
+    such that `align = start + N * step` for some integer `N`.
+
+    :param start: Original starting point of range
+    :param step: Range step size
+    :param align: Value to use for alignment
+    :return: An aligned starting point
+    """
+    offset = (start - align) % step
+    return start - offset

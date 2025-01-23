@@ -26,13 +26,16 @@ bins:
 
   # Instead of explicit edges, we can choose to specify min, max and resolution
   Y:
-    min: 0
-    max: 24
-    step: 12
+    min: 0    # First binning edge
+    max: 24   # Last binning edge
+    step: 12  # Resolution
 
   # Or we can specify only resolution, in which case min and max is determined
-  # from the values within the particle file
-  X: 2
+  # from the values within the particle file. All binning edges will be placed
+  # at positions `align + N * step` where N is some integer number.
+  X:
+    align: 1  # Bin edge alignment, optional (default = 0)
+    step: 2   # Resolution
 
 # The binning variables `farm_id` and `time`are split across multiple files.
 # This parameter is optional.

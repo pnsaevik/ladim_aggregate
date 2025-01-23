@@ -163,6 +163,19 @@ class Test_autobins:
         bins = histogram.autobins(spec, dset=MockLadimDataset())
         assert bins['x']['edges'].tolist() == [9, 12, 15, 18, 21]
 
+    def test_returns_offset_range_if_specified_alignment(self):
+        class MockLadimDataset:
+            def __init__(self):
+                self._specials = {'MIN_x': 10, 'MAX_x': 20}
+                self.add_aggregation_variable = lambda v, op: f'{op.upper()}_{v}'
+
+            def get_aggregation_value(self, key):
+                return self._specials[key]
+
+        spec = dict(x=dict(align=2, step=3))
+        bins = histogram.autobins(spec, dset=MockLadimDataset())
+        assert bins['x']['edges'].tolist() == [8, 11, 14, 17, 20, 23]
+
     def test_returns_bins_if_unique(self):
         class MockLadimDataset:
             def __init__(self):
@@ -295,28 +308,6 @@ class Test_convert_date:
         assert result == 31
 
 
-class Test_align_to_resolution:
-    def test_aligns_to_integer(self):
-        assert histogram.align_to_resolution(value=22, resolution=3) == 21
-        assert histogram.align_to_resolution(value=21, resolution=3) == 21
-        assert histogram.align_to_resolution(value=19, resolution=3) == 18
-
-    def test_aligns_to_time(self):
-        align = histogram.align_to_resolution
-
-        date = np.datetime64('2020-01-02T03:04:05')
-
-        second = np.timedelta64(1, 's')
-        minute = np.timedelta64(1, 'm')
-        hour = np.timedelta64(1, 'h')
-        day = np.timedelta64(1, 'D')
-
-        assert align(date, second).astype(str) == '2020-01-02T03:04:05.000000'
-        assert align(date, minute).astype(str) == '2020-01-02T03:04:00.000000'
-        assert align(date, hour).astype(str) == '2020-01-02T03:00:00.000000'
-        assert align(date, day).astype(str) == '2020-01-02T00:00:00.000000'
-
-
 class Test_t64conv:
     def test_returns_timedeltas_verbatim(self):
         t = np.timedelta64(1, 's')
@@ -355,6 +346,59 @@ class Test_t64conv:
             '23000 milliseconds',
             '23000000 microseconds',
         ]
+
+
+class Test_generate_1d_grid:
+    def test_correct_if_regular(self):
+        g = histogram.generate_1d_grid(start=3, stop=11, step=2)
+        assert g.tolist() == [3, 5, 7, 9, 11, 13]
+
+    def test_correct_if_extended(self):
+        g = histogram.generate_1d_grid(start=3, stop=12, step=2)
+        assert g.tolist() == [3, 5, 7, 9, 11, 13]
+
+    def test_correct_if_regular_aligned(self):
+        g = histogram.generate_1d_grid(start=3, stop=11, step=2)
+        assert g.tolist() == [3, 5, 7, 9, 11, 13]
+
+    def test_correct_if_aligned_extended(self):
+        g = histogram.generate_1d_grid(start=3, stop=11, step=2, align=4)
+        assert g.tolist() == [2, 4, 6, 8, 10, 12]
+
+    def test_correct_if_dates(self):
+        g = histogram.generate_1d_grid(
+            start=np.datetime64('1970-01-01T01'),
+            stop=np.datetime64('1970-01-01T05'),
+            step=np.timedelta64(2, 'h')
+        )
+        assert g.astype('datetime64[h]').astype(str).tolist() == [
+            '1970-01-01T01',
+            '1970-01-01T03',
+            '1970-01-01T05',
+            '1970-01-01T07',
+        ]
+
+
+class Test_align_range:
+    def test_correct_when_already_aligned(self):
+        new_start = histogram.align_start_of_range(
+            start=3, step=2, align=5
+        )
+        assert new_start == 3
+
+    def test_correct_when_nonaligned(self):
+        new_start = histogram.align_start_of_range(
+            start=3, step=2, align=6
+        )
+        assert new_start == 2
+
+    def test_correct_when_datetime(self):
+        new_start = histogram.align_start_of_range(
+            start=np.datetime64('1970-01-01 00:04'),
+            step=np.timedelta64(180, 's'),
+            align=np.datetime64('1970-01-01 00:06:00.000'),
+        )
+        assert str(new_start.astype('datetime64[m]')) == '1970-01-01T00:03'
 
 
 class Object:

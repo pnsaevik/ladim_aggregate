@@ -9,7 +9,7 @@ histogram:
 
 X:
   dims: X
-  data: [1, 3, 5, 7, 9]
+  data: [2, 4, 6, 8, 10]
   attrs:
     axis: X
     long_name: longitude coordinate

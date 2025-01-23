@@ -9,7 +9,7 @@ Z:
   data: [0, 1, 2, 3, 4, 5, 6, 7]
 mass:
   dims: particle_instance
-  data: [100, 100, 100, 100, 10, 10, 10, 10]
+  data: [300, 300, 300, 300, 30, 30, 30, 30]
 particle_count:
   dims: time
   data: [4, 2, 2]

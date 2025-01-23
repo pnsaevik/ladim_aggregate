@@ -147,6 +147,10 @@ def run(dset_in, config, dset_out, filedata=None):
     for derived_name, derived_spec in config.get('derived', dict()).items():
         dset_in.add_derived_variable(varname=derived_name, definition=derived_spec)
 
+    # Add special variable TIMESTEPS
+    dset_in.add_derived_variable(
+        varname='TIMESTEPS', definition=len(dset_in.timesteps))
+
     # Add weights
     if 'weights' in config:
         dset_in.add_derived_variable(varname='_auto_weights', definition=config['weights'])

@@ -6,9 +6,13 @@ bins:
 
 # Here we specify the weights expression. This must be a valid numeric
 # expression containing variable names defined in the input file.
+#
 # Variables imported from external files can also be used in the expression.
 # In the expression below, `spec` and `super` are imported from a file
-weights: mass * spec * super
+#
+# The special variable "TIMESTEPS" represents the number of time steps
+# in the particle file. Divide by this variable to get the time-weighted mean.
+weights: mass * spec * super / TIMESTEPS
 
 # The standard name "histogram" may not make sense when the weights are
 # applied. Here, we change the name to "conc"

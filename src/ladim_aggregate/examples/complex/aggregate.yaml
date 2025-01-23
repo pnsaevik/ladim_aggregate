@@ -53,8 +53,11 @@ filter: (is_inside == 1) & (is_inside > 0)
 
 # Specify an optional weights expression. This must be a valid numeric
 # expression containing variable names defined in the input file.
-# In this example, the weights all evaluate to 1
-weights: 2*farm_id - double_farm_id + 1
+#
+# The special variable TIMESTEPS is the number of time steps in the particle file
+#
+# In this example, the weights evaluate to 1
+weights: (2*farm_id - double_farm_id) + (TIMESTEPS - 5) + 1
 
 # Multiple input files are specified using wildcards. CAUTION: All files must
 # be in the same format. In particular, the date format in all files must

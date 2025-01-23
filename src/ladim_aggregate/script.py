@@ -112,6 +112,7 @@ def run_conf(config):
 def run(dset_in, config, dset_out, filedata=None):
     from .histogram import Histogrammer, autobins
     from .parseconfig import parse_config, load_config
+    from .proj import compute_area_dataarray, write_projection
     import numpy as np
 
     # Modify configuration dict by reformatting and appending default values
@@ -151,14 +152,19 @@ def run(dset_in, config, dset_out, filedata=None):
     dset_in.add_derived_variable(
         varname='TIMESTEPS', definition=len(dset_in.timesteps))
 
-    # Add weights
-    if 'weights' in config:
-        dset_in.add_derived_variable(varname='_auto_weights', definition=config['weights'])
-
     # Prepare histogram bins
     bins = autobins(config['bins'], dset_in)
     hist = Histogrammer(bins=bins)
     coords = hist.coords
+
+    # Add AREA variable
+    if 'projection' in config:
+        area_dataarray = compute_area_dataarray(bins, config['projection'])
+        dset_in.add_grid_variable(data_array=area_dataarray, method="bin")
+
+    # Add weights
+    if 'weights' in config:
+        dset_in.add_derived_variable(varname='_auto_weights', definition=config['weights'])
 
     # Create output coordinate variables
     for coord_name, coord_info in coords.items():
@@ -179,7 +185,6 @@ def run(dset_in, config, dset_out, filedata=None):
 
     # Add projection information
     if 'projection' in config:
-        from .proj import write_projection
         write_projection(dset_out, config['projection'])
 
     import logging

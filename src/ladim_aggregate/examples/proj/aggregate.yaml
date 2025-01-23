@@ -12,6 +12,11 @@ bins:
   eta: [-3, -1, 1, 3]
   xi: [0, 4, 8]
 
+# When there is a defined projection, there is also a derived
+# variable AREA which denotes the area of the cell in square meters
+# TODO: Currently AREA is a dummy variable which is 1 everywhere
+weights: AREA
+
 # Input file in netCDF format (ladim output format)
 infile: ladim.nc
 

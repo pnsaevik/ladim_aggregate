@@ -506,7 +506,7 @@ def update_unique(old, data):
 def _open_spec(spec):
     if isinstance(spec, str):
         logger.debug(f'Open dataset "{spec}"')
-        with xr.open_dataset(spec, decode_cf=False) as ddset:
+        with xr.open_dataset(spec, decode_cf=False, engine='h5netcdf') as ddset:
             yield ddset
             logger.debug(f'Close dataset "{spec}"')
     else:

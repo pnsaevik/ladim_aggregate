@@ -2,6 +2,9 @@ SCRIPT_NAME = "crecon"
 
 
 def main_from_command_line():
+    """
+    Main CLI entry point, takes input arguments from command line
+    """
     import sys
     main(*sys.argv[1:])
 

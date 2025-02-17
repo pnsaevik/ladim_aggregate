@@ -14,8 +14,7 @@ class Test_main:
         assert out.startswith('usage: ' + SCRIPT_NAME)
 
     def test_prints_help_message_when_help_argument(self, capsys):
-        with pytest.raises(SystemExit):
-            script.main('--help')
+        script.main('--help')
         out = capsys.readouterr().out
         assert out.startswith('usage: ' + SCRIPT_NAME)
 
@@ -76,3 +75,33 @@ class Test_run_conf:
         script.run_conf(conf)
 
         assert outfile.variables['histogram'][:].tolist() == [100, 20]
+
+
+class Test_parse_args:
+    def test_returns_help_text_when_too_few_arguments(self):
+        result = script.parse_args([])
+        assert isinstance(result, str)
+        assert result.startswith('usage: crecon')
+        assert result.endswith('files are extracted to the current directory.\n')
+
+    def test_returns_help_text_when_unrecognized_args(self):
+        result = script.parse_args(['two', 'files'])
+        assert isinstance(result, str)
+        assert result.startswith('ERROR: ')
+        assert result.endswith('files are extracted to the current directory.\n')
+
+    def test_returns_help_text_when_help_parameter(self):
+        result = script.parse_args(['--help'])
+        assert isinstance(result, str)
+        assert result.startswith('usage: crecon')
+        assert result.endswith('files are extracted to the current directory.\n')
+
+    def test_returns_dict_when_valid_arguments(self):
+        result = script.parse_args(['my.file'])
+        assert result['config_file'] == 'my.file'
+        assert not result['example']
+
+    def test_returns_dict_when_example(self):
+        result = script.parse_args(['--example', 'my_example'])
+        assert result['config_file'] == 'my_example'
+        assert result['example']

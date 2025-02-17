@@ -10,26 +10,65 @@ def main_from_command_line():
 
 
 def main(*args):
+    parsed_args = parse_args(list(args))
+
+    # If error or help message, print and exit
+    if isinstance(parsed_args, str):
+        print(parsed_args)
+        return
+
+    # Otherwise, this is a dict
+    assert isinstance(parsed_args, dict)
+
+    init_logger()
+
+    # Extract example if requested
+    if parsed_args['example']:
+        from .examples import Example
+        example_name = parsed_args['config_file']
+        ex = Example(example_name)
+        config_file = ex.extract()
+    else:
+        config_file = parsed_args['config_file']
+
+    # Run program
+    config = load_config(config_file)
+    run_conf(config)
+
+
+def load_config(file):
+    import yaml
+
+    if hasattr(file, 'read'):
+        return yaml.safe_load(file)
+
+    assert isinstance(file, str)
+
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f'Open config file "{file}"')
+    with open(file, encoding='utf-8') as fp:
+        return yaml.safe_load(fp)
+
+
+def parse_args(args: list[str]):
+    """
+    Reformat a list of string arguments into a valid parameter set
+
+    If the input list of parameters is valid, the function returns a dict
+    of valid parameter values. Otherwise, the function returns a string
+    containing a help text explaining the proper use of the function.
+
+    :param args: A list of string arguments
+    :return: Either a dict of valid parameter values, or a help text string
+    """
     import argparse
-
-    from .examples import Example
-    available = Example.available()
-    sort_order = [
-        'grid_2D', 'grid_3D', 'time', 'filter', 'weights', 'wgt_tab', 'last', 'groupby',
-        'multi', 'blur', 'crs', 'density', 'geotag', 'connect',
-    ]
-    example_names = [n for n in sort_order if n in available]
-    example_names += [n for n in available if n not in example_names]
-
-    # Planned for the future:
-    # '  blur:     Apply a blurring filter the output grid\n'
-
-    example_list = []
-    for name in example_names:
-        ex = Example(name)
-        example_list.append(f'  {name:8}  {ex.descr}')
-
+    import io
     from . import __version__ as version_str
+
+    example_help_text = "\n".join(
+        [f'  {k:8}  {v}' for k, v in example_descriptions().items()]
+    )
 
     parser = argparse.ArgumentParser(
         prog='crecon',
@@ -40,10 +79,11 @@ def main(*args):
         ),
         epilog=(
             'The program includes several built-in examples:\n'
-            + "\n".join(example_list) +
-            '\n\nUse "crecon --example name_of_example" to run any of these.\n'
+            f'{example_help_text}\n\n'
+            'Use "crecon --example name_of_example" to run any of these.\n'
             'Example files and output files are extracted to the current directory.\n'
         ),
+        exit_on_error=False,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
@@ -58,36 +98,46 @@ def main(*args):
         help="Run a built-in example"
     )
 
-    # If called with too few arguments, print usage information
-    if len(args) < 1:
-        parser.print_help()
-        return
-
-    parsed_args = parser.parse_args(args)
-    config_file = parsed_args.config_file
-
-    import logging
-    from . import __version__ as version_str
-    init_logger()
+    # If called with too few arguments, return help string
+    if (len(args) < 1) or ('--help' in args) or ('-h' in args):
+        buf = io.StringIO()
+        parser.print_help(buf)
+        return buf.getvalue()
 
     try:
-        logger = logging.getLogger(__name__)
-        logger.info(f'Starting CRECON, version {version_str}')
+        parsed_args = parser.parse_args(args)
 
-        # Extract example if requested
-        if parsed_args.example:
-            ex = Example(config_file)
-            config_file = ex.extract()
+    # If any parsing errors, capture the error and return a string
+    except argparse.ArgumentError as e:
+        buf = io.StringIO(f"ERROR: {e.message}\n\n")
+        buf.seek(0, 2)
+        parser.print_help(buf)
+        return buf.getvalue()
 
-        import yaml
-        logger.info(f'Open config file "{config_file}"')
-        with open(config_file, encoding='utf-8') as f:
-            config = yaml.safe_load(f)
+    # If no errors, return a dict
+    return dict(
+        example=parsed_args.example,
+        config_file=parsed_args.config_file,
+    )
 
-        run_conf(config)
 
-    finally:
-        close_logger()
+def example_descriptions() -> dict[str, str]:
+    """
+    Returns a sorted dict of available examples with descriptions
+    """
+    from .examples import Example
+    available = Example.available()
+    sort_order = [
+        'grid_2D', 'grid_3D', 'time', 'filter', 'weights', 'wgt_tab', 'last',
+        'groupby', 'multi', 'blur', 'crs', 'density', 'geotag', 'connect',
+    ]
+    example_names = [n for n in sort_order if n in available]
+    example_names += [n for n in available if n not in example_names]
+
+    # Planned for the future:
+    # '  blur:     Apply a blurring filter the output grid\n'
+
+    return {k: Example(k).descr for k in example_names}
 
 
 def run_conf(config):
@@ -231,6 +281,9 @@ def init_logger(loglevel=None):
     ch.setLevel(loglevel)
     ch.setFormatter(formatter)
     package_logger.addHandler(ch)
+
+    from . import __version__ as version_str
+    package_logger.info(f'Starting CRECON, version {version_str}')
 
 
 def close_logger():

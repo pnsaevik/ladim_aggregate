@@ -103,8 +103,11 @@ def parse_args(args: list[str]):
     if (len(args) < 1) or ('--help' in args) or ('-h' in args):
         return parser.format_help()
 
-    exit_on_error = parser.exit_on_error
-    assert exit_on_error == False
+    # If unrecognized arguments, return help string
+    # This part is unnecessary for modern python versions (issue #121018 in python repo)
+    _, unknown_args = parser.parse_known_args(args)
+    if unknown_args:
+        return f"ERROR: Unknown arguments {unknown_args}\n\n" + parser.format_usage()
 
     try:
         parsed_args = parser.parse_args(args)

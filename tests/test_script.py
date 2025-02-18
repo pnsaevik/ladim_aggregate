@@ -88,7 +88,6 @@ class Test_parse_args:
         result = script.parse_args(['two', 'files'])
         assert isinstance(result, str)
         assert result.startswith('ERROR: ')
-        assert result.endswith('files are extracted to the current directory.\n')
 
     def test_returns_help_text_when_help_parameter(self):
         result = script.parse_args(['--help'])

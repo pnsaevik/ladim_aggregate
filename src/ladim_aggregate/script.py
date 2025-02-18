@@ -59,11 +59,12 @@ def parse_args(args: list[str]):
     of valid parameter values. Otherwise, the function returns a string
     containing a help text explaining the proper use of the function.
 
+    The return dict is simply {"example": bool, "config_file": str}
+
     :param args: A list of string arguments
     :return: Either a dict of valid parameter values, or a help text string
     """
     import argparse
-    import io
     from . import __version__ as version_str
 
     example_help_text = "\n".join(
@@ -100,19 +101,17 @@ def parse_args(args: list[str]):
 
     # If called with too few arguments, return help string
     if (len(args) < 1) or ('--help' in args) or ('-h' in args):
-        buf = io.StringIO()
-        parser.print_help(buf)
-        return buf.getvalue()
+        return parser.format_help()
+
+    exit_on_error = parser.exit_on_error
+    assert exit_on_error == False
 
     try:
         parsed_args = parser.parse_args(args)
 
     # If any parsing errors, capture the error and return a string
     except argparse.ArgumentError as e:
-        buf = io.StringIO(f"ERROR: {e.message}\n\n")
-        buf.seek(0, 2)
-        parser.print_help(buf)
-        return buf.getvalue()
+        return f"ERROR: {e.message}\n\n" + parser.format_usage()
 
     # If no errors, return a dict
     return dict(

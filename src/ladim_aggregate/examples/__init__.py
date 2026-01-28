@@ -31,10 +31,11 @@ class Example:
 
     @property
     def descr(self):
+        import importlib.resources
         import re
-        import pkgutil
-        data = pkgutil.get_data(self.package, 'aggregate.yaml')
-        config_txt = data.decode(encoding='utf-8')
+
+        pkg = importlib.resources.files(__package__).joinpath(self.name)
+        config_txt = pkg.joinpath('aggregate.yaml').read_text(encoding='utf-8')
         match = re.match('^# (.*)', config_txt)
         if match:
             return match.group(1)

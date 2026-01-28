@@ -2,6 +2,10 @@ from ladim_aggregate import examples
 import netCDF4 as nc
 from uuid import uuid4
 import pytest
+import xarray as xr
+import yaml
+import ladim_aggregate
+import os
 
 
 class Test_Example:
@@ -40,7 +44,7 @@ class Test_Example:
 
 class Test_nc_dump:
     def test_returns_dict_when_netcdf_input(self):
-        with nc.Dataset(uuid4(), 'w', diskless=True) as dset:
+        with nc.Dataset(uuid4().hex, 'w', diskless=True) as dset:
             dset = dset  # type: nc.Dataset
             dset.createDimension('time', 3)
 
@@ -64,3 +68,27 @@ class Test_run:
         ex = examples.Example(name)
         result, expected = ex.run()
         assert result == expected
+
+
+class Test_extract_and_run:
+    @pytest.mark.parametrize("name", named_examples)
+    def test_matches_output(self, name, tmp_path):
+        # Run example by first extracting to a temporary output folder
+
+        # Extract to temp folder
+        ex = examples.Example(name)
+        conf_file = ex.extract(tmp_path)
+        os.chdir(tmp_path)
+
+        # Load conf file
+        with open(conf_file, encoding='utf-8') as fp:
+            conf = yaml.safe_load(fp)
+
+        # Run aggregation
+        ladim_aggregate.run_conf(conf)
+
+        # Compare result
+        for fname, dset in ex.expected():
+            result = xr.load_dataset(fname, engine='h5netcdf', decode_times=False)
+            result.attrs = {}
+            assert result.to_dict() == dset.to_dict()

@@ -71,6 +71,10 @@ class Example:
 
         return data
 
+    def expected(self):
+        out_pattern = self.config['outfile'].replace('.nc', '*.nc')
+        return self.files(out_pattern).items()
+
     def extract(self, dirname='.'):
         import logging
         from pathlib import Path

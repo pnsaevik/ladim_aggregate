@@ -430,7 +430,6 @@ def ladim_iterator(ladim_dsets, timesteps=None):
                     new_var = xr.Variable(pid.dims[0], data, v.attrs)
                 else:
                     raise ValueError(f'Unknkown dimension: "{v.dims}"')
-
                 ddset = ddset.assign(**{k: new_var})
 
             yield ddset

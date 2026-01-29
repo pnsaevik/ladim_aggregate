@@ -100,7 +100,7 @@ def adaptive_histogram(sample, bins, **kwargs):
         df['weights'] = np.asarray(kwargs['weights'])[included]
         df_sum = df_grouped.sum()
     coords = df_sum.index.to_frame().values.T
-    vals = df_sum['weights'].values
+    vals = df_sum['weights'].to_numpy()
 
     # Find min and max bin edges to be used
     idx = [(np.min(c), np.max(c) + 1) for c in coords]
@@ -108,7 +108,7 @@ def adaptive_histogram(sample, bins, **kwargs):
 
     # Densify
     shifted_coords = coords - np.asarray([start for start, _ in idx])[:, np.newaxis]
-    shape = [stop - start for start, stop in idx]
+    shape = tuple(stop - start for start, stop in idx)
     hist_chunk = np.zeros(shape, dtype=vals.dtype)
     hist_chunk[tuple(shifted_coords)] = vals
 

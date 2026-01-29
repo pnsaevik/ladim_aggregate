@@ -49,7 +49,7 @@ class LadimInputStream:
 
         return self._timesteps
 
-    def open_dataset(self, idx: int) -> xr.Dataset:
+    def open_dataset(self, idx: int) -> typing.ContextManager[xr.Dataset]:
         """
         Open ladim dataset by index.
 
@@ -153,7 +153,7 @@ class LadimInputStream:
         :param spec: A mapping of variable names to summary function names.
         :returns: A mapping of variable names to summary function name/value pairs.
         """
-        out = {k: {fun: None for fun in funclist} for k, funclist in spec.items()}
+        out = {k: {fun: None for fun in funclist} for k, funclist in spec.items()}  # type: dict[str, dict[str, typing.Any]]
 
         def agg_log(aggfunc, aggval):
             if aggfunc == "unique":
@@ -211,7 +211,7 @@ class LadimInputStream:
         met).
         :return: An xarray dataset indexed by "pid" for each time step.
         """
-        filterfn = create_varfunc(filters)
+        filterfn = create_varfunc(filters) if filters else None
 
         if particle_filter is not None:
             particle_filterfn = create_varfunc(('pfilter', particle_filter))
@@ -219,7 +219,7 @@ class LadimInputStream:
             particle_filterfn = None
 
         # Initialize the "init variables"
-        init_variables = {k: None for k in self._init_variables}
+        init_variables = {k: None for k in self._init_variables}  # type: dict[str, tuple[np.ndarray, np.ndarray] | None]
 
         for chunk in ladim_iterator(self.datasets, timestep_filter):
             # Apply filter
@@ -246,7 +246,7 @@ class LadimInputStream:
                 data, mask = update_init(data_and_mask, input_data)
                 init_variables[varname] = (data, mask)
                 xr_var = xr.Variable('pid', data[pid])
-                chunk = chunk.assign(**{f"{varname}_INIT": xr_var})
+                chunk = chunk.assign({f"{varname}_INIT": xr_var})
 
             # Add aggregation variables (such as MAX_temp)
             for varname in self._agg_variables:
@@ -430,12 +430,12 @@ def ladim_iterator(ladim_dsets, timesteps=None):
                     new_var = xr.Variable(pid.dims[0], data, v.attrs)
                 else:
                     raise ValueError(f'Unknkown dimension: "{v.dims}"')
-                ddset = ddset.assign(**{k: new_var})
+                ddset = ddset.assign({k: new_var})
 
             yield ddset
 
 
-def update_agg(old, aggfun, data):
+def update_agg(old, aggfun: str, data):
     funcs = dict(
         max=update_max, min=update_min, unique=update_unique, init=update_init,
         final=update_final,
@@ -443,7 +443,7 @@ def update_agg(old, aggfun, data):
     return funcs[aggfun](old, data)
 
 
-def update_init(old, data, final=False):
+def update_init(old, data, final=False) -> tuple[np.ndarray, np.ndarray]:
     if old is None:
         old = (np.zeros(0, dtype=data[0].dtype), np.zeros(0, dtype=bool))
 
@@ -475,25 +475,25 @@ def update_init(old, data, final=False):
     return old_data, old_mask
 
 
-def update_final(old, data):
+def update_final(old, data) -> tuple[np.ndarray, np.ndarray]:
     return update_init(old, data, final=True)
 
 
-def update_max(old, data):
+def update_max(old, data) -> np.ndarray:
     if old is None:
         return np.max(data)
     else:
         return max(np.max(data), old)
 
 
-def update_min(old, data):
+def update_min(old, data) -> np.ndarray:
     if old is None:
         return np.min(data)
     else:
         return min(np.min(data), old)
 
 
-def update_unique(old, data):
+def update_unique(old, data) -> list:
     if old is None:
         return np.unique(data).tolist()
     else:
@@ -502,21 +502,21 @@ def update_unique(old, data):
 
 
 @contextlib.contextmanager
-def _open_spec(spec):
+def _open_spec(spec) -> typing.Iterator[xr.Dataset]:
     if isinstance(spec, str):
         logger.debug(f'Open dataset "{spec}"')
         with xr.open_dataset(spec, decode_cf=False, engine='h5netcdf') as ddset:
             yield ddset
             logger.debug(f'Close dataset "{spec}"')
-    else:
+    elif isinstance(spec, xr.Dataset):
         logger.debug(f'Enter new dataset')
         yield spec
+    else:
+        raise TypeError(f'Unknown input data type: {type(spec)}')
 
 
-def create_varfunc(spec):
-    if spec is None:
-        return None
-    elif isinstance(spec, tuple) and spec[0] == 'geotag':
+def create_varfunc(spec) -> typing.Callable[[xr.Dataset], xr.Variable]:
+    if isinstance(spec, tuple) and spec[0] == 'geotag':
         from .geotag import create_geotagger
         return create_geotagger(**spec[1])
     elif isinstance(spec, tuple) and spec[0] == 'pfilter':
@@ -546,7 +546,7 @@ def create_pfilter(spec):
         max_pid = pid.max()
         if max_pid >= len(has_been_triggered):
             has_been_triggered.resize(max_pid + 1)
-        is_new = ~has_been_triggered.data[pid]
+        is_new = ~has_been_triggered.data[pid]  # type: ignore
         condition = fn_val & is_new
         pid_triggered = pid[condition]
         has_been_triggered.data[pid_triggered] = True

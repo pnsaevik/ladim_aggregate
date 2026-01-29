@@ -89,6 +89,6 @@ class Test_extract_and_run:
 
         # Compare result
         for fname, dset in ex.expected():
-            result = xr.load_dataset(fname, engine='h5netcdf', decode_times=False)
+            result = xr.load_dataset(fname, decode_times=False)
             result.attrs = {}
             assert result.to_dict() == dset.to_dict()

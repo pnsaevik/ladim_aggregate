@@ -9,6 +9,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libhdf5-dev hdf5-tools
       - name: Install package
         run: pip install .
       - name: Install pytest

@@ -12,22 +12,22 @@ logger = logging.getLogger(__name__)
 BinSpec = typing.Dict[typing.Literal['centers', 'edges'], np.typing.NDArray]
 
 
-def make_histogram(chunk, coords):
-        coord_names = list(coords.keys())
-        bins = [coords[k]['edges'] for k in coord_names]
-        coords = []
-        for k in coord_names:
-            logger.debug(f'Load variable "{k}"')
-            coords.append(chunk[k].values)
+def make_histogram(chunk: xr.Dataset, coords: dict[str, BinSpec]):
+    coord_names = list(coords.keys())
+    bins = [coords[k]['edges'] for k in coord_names]
+    ccoords = []
+    for k in coord_names:
+        logger.debug(f'Load variable "{k}"')
+        ccoords.append(chunk[k].values)
 
-        if '_auto_weights' in chunk.variables:
-            weights = chunk['_auto_weights'].values
-        else:
-            weights = None
+    if '_auto_weights' in chunk.variables:
+        weights = chunk['_auto_weights'].values
+    else:
+        weights = None
 
-        binned_coords, aggregated_weights = sparse_histogram(coords, bins, weights)
-        hist_chunk, idx_slice = densify_sparse_histogram(binned_coords, aggregated_weights)
-        return hist_chunk, idx_slice
+    binned_coords, aggregated_weights = sparse_histogram(ccoords, bins, weights)
+    hist_chunk, idx_slice = densify_sparse_histogram(binned_coords, aggregated_weights)
+    return hist_chunk, idx_slice
 
 
 def get_centers_from_edges(edges):

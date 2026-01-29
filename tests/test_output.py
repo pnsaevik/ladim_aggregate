@@ -174,7 +174,7 @@ class Test_MultiDataset:
 
     def test_accepts_in_memory_datasets(self):
         import netCDF4 as nc
-        with nc.Dataset(uuid4(), mode='w', diskless=True) as dset:
+        with nc.Dataset(uuid4().hex, mode='w', diskless=True) as dset:
             mdset = output.MultiDataset(dset)
 
             mdset.createCoord('main_coord', [1, 2])
@@ -194,7 +194,7 @@ class Test_MultiDataset:
 
 class Test_nc_to_dict:
     def test_returns_valid_xarray_dict_representation(self):
-        with netCDF4.Dataset(uuid4(), 'w', diskless=True) as dset:
+        with netCDF4.Dataset(uuid4().hex, 'w', diskless=True) as dset:
             dset.createDimension('mydim1', 2)
             dset.createDimension('mydim2', 3)
             dset.createVariable('myvar1', int, 'mydim1')[:] = 0
@@ -206,3 +206,28 @@ class Test_nc_to_dict:
         assert list(xr_dset.variables) == ['myvar1', 'myvar2']
         assert xr_dset.myvar2.values.tolist() == [[1, 1, 1], [1, 1, 1]]
         assert xr_dset.myvar1.attrs['long_name'] == 'Variable 2'
+
+
+class Test_replace_first_qblock:
+    def test_single_question_mark(self):
+        assert output.replace_first_qblock("a?b") == "a{:01d}b"
+
+
+    def test_multiple_question_marks(self):
+        assert output.replace_first_qblock("abc????def") == "abc{:04d}def"
+
+
+    def test_only_first_block_replaced(self):
+        assert output.replace_first_qblock("??x???") == "{:02d}x???"
+
+
+    def test_question_marks_at_start(self):
+        assert output.replace_first_qblock("????abc") == "{:04d}abc"
+
+
+    def test_question_marks_at_end(self):
+        assert output.replace_first_qblock("abc??") == "abc{:02d}"
+
+
+    def test_no_question_marks(self):
+        assert output.replace_first_qblock("abcdef") == "abcdef"

@@ -15,7 +15,7 @@ class Test_make_histogram:
         )
 
         chunk = xr.Dataset(dict(x=[0, 1, 3], y=[0, 2, 4], z=[0, 1, 3]))
-        hist_piece_values, hist_piece_indices = histogram.make_histogram(chunk, bins)
+        hist_piece_values, hist_piece_indices = histogram.make_histogram(chunk, bins)  # type: ignore
         assert hist_piece_values.tolist() == [
             [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0]],
             [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1]],
@@ -30,7 +30,7 @@ class Test_make_histogram:
             x=dict(edges=[0, 2, 6], centers=[1, 4])
         )
         chunk = xr.Dataset(dict(x=[1, 3, 5], _auto_weights=[10, 100, 1000]))
-        hist_piece_values, _ = histogram.make_histogram(chunk, bins)
+        hist_piece_values, _ = histogram.make_histogram(chunk, bins)  # type: ignore
         assert hist_piece_values.tolist() == [10, 1100]
 
 

@@ -165,7 +165,7 @@ def run_conf(config):
 
 
 def run(dset_in, config, dset_out, filedata=None):
-    from .histogram import autobins, make_histogram
+    from .histogram import autobins, sparse_histogram, densify_sparse_histogram
     from .parseconfig import parse_config, load_config
     from .proj import compute_area_dataarray, write_projection
     from .input import LadimInputStream
@@ -214,6 +214,7 @@ def run(dset_in, config, dset_out, filedata=None):
 
     # Prepare histogram bins
     bins = autobins(config['bins'], dset_in)
+    bin_edges = [b['edges'] for b in bins.values()]
 
     # Add AREA variable
     if 'projection' in config:
@@ -221,8 +222,7 @@ def run(dset_in, config, dset_out, filedata=None):
         dset_in.add_grid_variable(data_array=area_dataarray, method="bin")
 
     # Add weights
-    if 'weights' in config:
-        dset_in.add_derived_variable(varname='_auto_weights', definition=config['weights'])
+    dset_in.add_derived_variable(varname='_auto_weights', definition=config.get('weights', '1'))
 
     # Create output coordinate variables
     for coord_name, coord_info in bins.items():
@@ -259,8 +259,13 @@ def run(dset_in, config, dset_out, filedata=None):
         if chunk_in.sizes['pid'] == 0:
             continue
 
-        # Write histogram values to file
-        chunk_out_values, chunk_out_indices = make_histogram(chunk=chunk_in, coords=bins)
+        # Extract coordinate and weight values
+        coord_vals = [chunk_in[k].to_numpy() for k in bins]
+        weights = chunk_in['_auto_weights'].to_numpy()
+
+        binned_coords, aggregated_weights = sparse_histogram(coord_vals, bin_edges, weights)
+        chunk_out_values, chunk_out_indices = densify_sparse_histogram(binned_coords, aggregated_weights)
+
         txt = ", ".join([f'{a.start}:{a.stop}' for a in chunk_out_indices])
         logger.debug(f'Write output chunk [{txt}]')
         dset_out.incrementData(

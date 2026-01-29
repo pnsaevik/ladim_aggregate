@@ -93,7 +93,7 @@ class Example:
             path = outdir / fname
             if fname.endswith('.nc'):
                 assert isinstance(data, xr.Dataset)
-                data.to_netcdf(path)
+                data.to_netcdf(path, engine='h5netcdf')
             else:
                 with open(path, 'bw') as f:
                     f.write(data)

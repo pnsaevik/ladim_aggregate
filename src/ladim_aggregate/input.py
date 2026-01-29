@@ -21,7 +21,8 @@ class LadimInputStream:
         self._timesteps = None
 
     @property
-    def attributes(self):
+    def attributes(self) -> dict[str, dict]:
+        """Mapping from variable names to attribute dict"""
         if self._attributes is None:
             self._attributes = dict()
             with self.open_dataset(0) as dset:

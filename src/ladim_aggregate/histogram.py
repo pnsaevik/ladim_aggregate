@@ -4,29 +4,17 @@ import logging
 import cftime
 import xarray as xr
 import datetime
+import typing
+from .input import LadimInputStream
 
 
 logger = logging.getLogger(__name__)
+BinSpec = typing.Dict[typing.Literal['centers', 'edges'], np.typing.NDArray]
 
 
-class Histogrammer:
-    def __init__(self, bins=None):
-        self.weights = dict(bincount=None)
-        self.coords = Histogrammer._get_coords_from_bins(bins)
-
-    @staticmethod
-    def _get_coords_from_bins(bins_dict):
-        crd = dict()
-        for crd_name, bins in bins_dict.items():
-            edges = bins['edges']
-            centers = bins['centers']
-            attrs = bins.get('attrs', dict())
-            crd[crd_name] = dict(centers=centers, edges=edges, attrs=attrs)
-        return crd
-
-    def make(self, chunk):
-        coord_names = list(self.coords.keys())
-        bins = [self.coords[k]['edges'] for k in coord_names]
+def make_histogram(chunk, coords):
+        coord_names = list(coords.keys())
+        bins = [coords[k]['edges'] for k in coord_names]
         coords = []
         for k in coord_names:
             logger.debug(f'Load variable "{k}"')
@@ -37,8 +25,9 @@ class Histogrammer:
         else:
             weights = None
 
-        values, idx = adaptive_histogram(coords, bins, weights=weights)
-        yield dict(indices=idx, values=values)
+        binned_coords, aggregated_weights = sparse_histogram(coords, bins, weights)
+        hist_chunk, idx_slice = densify_sparse_histogram(binned_coords, aggregated_weights)
+        return hist_chunk, idx_slice
 
 
 def get_centers_from_edges(edges):
@@ -141,7 +130,7 @@ def adaptive_histogram(sample, bins, weights=None):
     return hist_chunk, idx_slice
 
 
-def convert_datebins(spec: dict, dset: xr.Dataset):
+def convert_datebins(spec: dict, dset: xr.Dataset) -> dict:
     """
     Convert bin specifications containing dates.
 
@@ -246,15 +235,15 @@ def convert_date(value, units, calendar):
     return cftime.date2num(value, units, calendar)
 
 
-def autobins(spec, dset):
+def autobins(spec: dict, dset: LadimInputStream | None):
     if dset is not None and hasattr(dset, 'open_dataset'):
         with dset.open_dataset(0) as xr_dset:
             spec = convert_datebins(spec, xr_dset)
 
     # Add INIT bins, if any
     for k in spec:
-        if k.endswith('_INIT'):
-            varname, opname = k.rsplit(sep='_', maxsplit=1)
+        if k.endswith('_INIT') and dset is not None:
+            varname = k[:-5]
             dset.add_init_variable(varname)
 
     # Find bin specification type
@@ -294,7 +283,7 @@ def autobins(spec, dset):
     scan_params = {k: scan_params_template[v] for k, v in spec_types.items()
                    if v in scan_params_template}
     scan_output = {k: dict() for k in spec}
-    if scan_params:
+    if scan_params and dset is not None:
         # First add all the variable definitions...
         aggvars = []
         for varname, aggfuncs in scan_params.items():
@@ -315,16 +304,15 @@ def autobins(spec, dset):
     # Put the specs and the result of the pre-scanning into the bin generator
     bins = {k: bin_generator(spec[k], spec_types[k], scan_output[k]) for k in spec}
 
-    # Add attributes from the dataset
-    if dset is not None and hasattr(dset, 'attributes'):
-        for k, v in dset.attributes.items():
-            if k in bins:
-                bins[k]['attrs'] = v
-
     return bins
 
 
-def bin_generator(spec, spec_type, scan_output):
+def bin_generator(
+        spec: typing.Any,
+        spec_type: str,
+        scan_output: dict[str, typing.Any],
+    ) -> BinSpec:
+
     if spec_type == 'edges':
         edges = np.asarray(spec)
         centers = get_centers_from_edges(edges)
@@ -349,16 +337,19 @@ def bin_generator(spec, spec_type, scan_output):
     else:
         raise ValueError(f'Unknown spec_type: {spec_type}')
 
-    return dict(edges=edges, centers=centers)
+    return {'edges': edges, 'centers': centers}
 
 
 def t64conv(timedelta_or_other):
     """
-    Convert input data in the form of [value, unit] to timedelta64, or returns the
-    argument verbatim if there are any errors. Also accepts string values of the
-    form used in cfunits (e.g., "23 hours")
+    Convert input data to timedelta64.
+    
+    Acceptable input formats are for instance ``[value, unit]`` and ``"23 hours"``.
+    Timedelta input are returned verbatim.
     """
-    if isinstance(timedelta_or_other, str) and timedelta_or_other.count(' ') == 1:
+    if isinstance(timedelta_or_other, np.timedelta64):
+        return timedelta_or_other
+    elif isinstance(timedelta_or_other, str) and timedelta_or_other.count(' ') == 1:
         t64val_str, t64unit_cf = timedelta_or_other.split(sep=" ")
         t64val = int(t64val_str)
         if t64unit_cf.endswith('s') and len(t64unit_cf) > 3:  # Remove plurals
@@ -372,7 +363,7 @@ def t64conv(timedelta_or_other):
         t64val, t64unit = timedelta_or_other
         return np.timedelta64(t64val, t64unit)
     except TypeError:
-        return timedelta_or_other
+        raise ValueError(f'Could not convert input value to timedelta64: {timedelta_or_other}')
 
 
 def generate_1d_grid(start, stop, step, align=None):

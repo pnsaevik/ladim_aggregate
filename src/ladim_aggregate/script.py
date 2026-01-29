@@ -165,10 +165,15 @@ def run_conf(config):
 
 
 def run(dset_in, config, dset_out, filedata=None):
-    from .histogram import Histogrammer, autobins
+    from .histogram import autobins, make_histogram
     from .parseconfig import parse_config, load_config
     from .proj import compute_area_dataarray, write_projection
+    from .input import LadimInputStream
+    from .output import MultiDataset
     import numpy as np
+
+    assert isinstance(dset_in, LadimInputStream)
+    assert isinstance(dset_out, MultiDataset)
 
     # Modify configuration dict by reformatting and appending default values
     config = parse_config(config)
@@ -209,8 +214,6 @@ def run(dset_in, config, dset_out, filedata=None):
 
     # Prepare histogram bins
     bins = autobins(config['bins'], dset_in)
-    hist = Histogrammer(bins=bins)
-    coords = hist.coords
 
     # Add AREA variable
     if 'projection' in config:
@@ -222,11 +225,11 @@ def run(dset_in, config, dset_out, filedata=None):
         dset_in.add_derived_variable(varname='_auto_weights', definition=config['weights'])
 
     # Create output coordinate variables
-    for coord_name, coord_info in coords.items():
+    for coord_name, coord_info in bins.items():
         dset_out.createCoord(
             varname=coord_name,
             data=coord_info['centers'],
-            attrs=coord_info.get('attrs', dict()),
+            attrs=dset_in.attributes.get(coord_name, {}),
             cross_dataset=coord_name in filesplit_dims,
         )
 
@@ -235,7 +238,7 @@ def run(dset_in, config, dset_out, filedata=None):
     dset_out.createVariable(
         varname=config['output_varname'],
         data=np.array(0, dtype=hist_dtype),
-        dims=tuple(coords.keys()),
+        dims=tuple(bins.keys()),
     )
 
     # Add projection information
@@ -257,14 +260,14 @@ def run(dset_in, config, dset_out, filedata=None):
             continue
 
         # Write histogram values to file
-        for chunk_out in hist.make(chunk_in):
-            txt = ", ".join([f'{a.start}:{a.stop}' for a in chunk_out['indices']])
-            logger.debug(f'Write output chunk [{txt}]')
-            dset_out.incrementData(
-                varname=config['output_varname'],
-                data=chunk_out['values'],
-                idx=chunk_out['indices'],
-            )
+        chunk_out_values, chunk_out_indices = make_histogram(chunk=chunk_in, coords=bins)
+        txt = ", ".join([f'{a.start}:{a.stop}' for a in chunk_out_indices])
+        logger.debug(f'Write output chunk [{txt}]')
+        dset_out.incrementData(
+            varname=config['output_varname'],
+            data=chunk_out_values,
+            idx=chunk_out_indices,
+        )
 
     return dset_out
 

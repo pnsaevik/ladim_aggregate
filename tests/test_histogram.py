@@ -6,33 +6,32 @@ from ladim_aggregate import histogram
 import xarray as xr
 
 
-class Test_Histogrammer:
+class Test_make_histogram:
     def test_can_generate_histogram_piece_from_chunk(self):
-        h = histogram.Histogrammer(
-            bins=dict(
-                z=dict(edges=[-1.5, 1.5, 4.5], centers=[0, 3]),
-                y=dict(edges=[-1, 1, 3, 5], centers=[0, 2, 4]),
-                x=dict(edges=[-.5, .5, 1.5, 2.5, 3.5], centers=[0, 1, 2, 3]),
-            )
+        bins=dict(
+            z=dict(edges=[-1.5, 1.5, 4.5], centers=[0, 3]),
+            y=dict(edges=[-1, 1, 3, 5], centers=[0, 2, 4]),
+            x=dict(edges=[-.5, .5, 1.5, 2.5, 3.5], centers=[0, 1, 2, 3]),
         )
+
         chunk = xr.Dataset(dict(x=[0, 1, 3], y=[0, 2, 4], z=[0, 1, 3]))
-        hist_piece = next(h.make(chunk))
-        assert hist_piece['values'].tolist() == [
+        hist_piece_values, hist_piece_indices = histogram.make_histogram(chunk, bins)
+        assert hist_piece_values.tolist() == [
             [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0]],
             [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1]],
         ]
-        start = [idx.start for idx in hist_piece['indices']]
+        start = [idx.start for idx in hist_piece_indices]
         assert start == [0, 0, 0]
-        stop = [idx.stop for idx in hist_piece['indices']]
+        stop = [idx.stop for idx in hist_piece_indices]
         assert stop == [2, 3, 4]
 
     def test_can_generate_weighted_histogram_piece_from_chunk(self):
-        h = histogram.Histogrammer(bins=dict(x=dict(
-            edges=[0, 2, 6], centers=[1, 4],
-        )))
+        bins = dict(
+            x=dict(edges=[0, 2, 6], centers=[1, 4])
+        )
         chunk = xr.Dataset(dict(x=[1, 3, 5], _auto_weights=[10, 100, 1000]))
-        hist_piece = next(h.make(chunk))
-        assert hist_piece['values'].tolist() == [10, 1100]
+        hist_piece_values, _ = histogram.make_histogram(chunk, bins)
+        assert hist_piece_values.tolist() == [10, 1100]
 
 
 class Test_adaptive_histogram:
@@ -160,7 +159,7 @@ class Test_autobins:
                 return self._specials[key]
 
         spec = dict(x=3)
-        bins = histogram.autobins(spec, dset=MockLadimDataset())
+        bins = histogram.autobins(spec, dset=MockLadimDataset())  # type: ignore
         assert bins['x']['edges'].tolist() == [9, 12, 15, 18, 21]
 
     def test_returns_offset_range_if_specified_alignment(self):
@@ -173,7 +172,7 @@ class Test_autobins:
                 return self._specials[key]
 
         spec = dict(x=dict(align=2, step=3))
-        bins = histogram.autobins(spec, dset=MockLadimDataset())
+        bins = histogram.autobins(spec, dset=MockLadimDataset())  # type: ignore
         assert bins['x']['edges'].tolist() == [8, 11, 14, 17, 20, 23]
 
     def test_returns_bins_if_unique(self):
@@ -186,22 +185,9 @@ class Test_autobins:
                 return self._specials[key]
 
         spec = dict(x='unique')
-        bins = histogram.autobins(spec, dset=MockLadimDataset())
+        bins = histogram.autobins(spec, dset=MockLadimDataset())  # type: ignore
         assert bins['x']['edges'].tolist() == [1, 2, 5, 6]
         assert bins['x']['centers'].tolist() == [1, 2, 5]
-
-    def test_copies_attributes_from_input_dataset(self):
-        class MockLadimDataset:
-            def __init__(self):
-                self.attributes = dict(
-                    x=dict(long_name="x coordinate value"),
-                    y=dict(long_name="y coordinate value"),  # An extra attribute which is not in the bins
-                )
-
-        spec = dict(x=[1, 2, 3])
-        bins = histogram.autobins(spec, dset=MockLadimDataset())
-        assert bins['x']['attrs']['long_name'] == "x coordinate value"
-        assert 'y' not in bins
 
     def test_converts_time_specs(self):
         class MockLadimDataset:
@@ -212,7 +198,7 @@ class Test_autobins:
                 yield xr.Dataset(data_vars=dict(time=tvar))
 
         spec = dict(time=dict(min='1980-01-01', max='1980-01-03', step='1 days'))
-        bins = histogram.autobins(spec, dset=MockLadimDataset())
+        bins = histogram.autobins(spec, dset=MockLadimDataset())  # type: ignore
         assert bins['time']['centers'].tolist() == [12, 36]
         assert bins['time']['edges'].tolist() == [0, 24, 48]
 
@@ -311,11 +297,6 @@ class Test_convert_date:
 class Test_t64conv:
     def test_returns_timedeltas_verbatim(self):
         t = np.timedelta64(1, 's')
-        result = histogram.t64conv(t)
-        assert result is t
-
-    def test_returns_numbers_verbatim(self):
-        t = 123
         result = histogram.t64conv(t)
         assert result is t
 

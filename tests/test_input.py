@@ -190,35 +190,35 @@ class Test_LadimInputStream:
         dset = ladim_input.LadimInputStream(ladim_dset)
 
         # No filter: 6 particle instances
-        chunks = xr.concat(dset.chunks(), dim='pid')
+        chunks = xr.concat(dset.chunks(), dim='pid', data_vars='all')
         assert chunks.sizes['pid'] == 6
 
         # With filter: 4 particle instances
         filters = "farm_id != 12346"
-        chunks = xr.concat(dset.chunks(filters=filters), dim='pid')
+        chunks = xr.concat(dset.chunks(filters=filters), dim='pid', data_vars='all')
         assert chunks.sizes['pid'] == 4
 
         # A more complex filter expression
         filters = "(farm_id > 12345) & (farm_id < 12347)"
-        chunks = xr.concat(dset.chunks(filters=filters), dim='pid')
+        chunks = xr.concat(dset.chunks(filters=filters), dim='pid', data_vars='all')
         assert chunks.sizes['pid'] == 2
 
     def test_can_apply_particle_filter(self, ladim_dset):
         dset = ladim_input.LadimInputStream(ladim_dset)
 
         # No filter: 6 particle instances
-        chunks = xr.concat(dset.chunks(), dim='pid')
+        chunks = xr.concat(dset.chunks(), dim='pid', data_vars='all')
         assert chunks.sizes['pid'] == 6
 
         # With filter: Keeps only the first time the condition is triggered
         filters = "Z >= 2"
-        chunks = xr.concat(dset.chunks(particle_filter=filters), dim='pid')
+        chunks = xr.concat(dset.chunks(particle_filter=filters), dim='pid', data_vars='all')
         assert chunks['pid'].values.tolist() == [2, 3, 1]
         assert chunks['Z'].values.tolist() == [2, 3, 4]
 
         # Combination of particle filter and regular filter
         chunk_iter = dset.chunks(particle_filter="Z >= 2", filters="pid != 3")
-        chunks = xr.concat(chunk_iter, dim='pid')
+        chunks = xr.concat(chunk_iter, dim='pid', data_vars='all')
         assert chunks['pid'].values.tolist() == [2, 1]
         assert chunks['Z'].values.tolist() == [2, 4]
 
@@ -226,15 +226,15 @@ class Test_LadimInputStream:
         dset = ladim_input.LadimInputStream(ladim_dset)
 
         # No filter: 6 particle instances
-        chunks = xr.concat(dset.chunks(), dim='pid')
+        chunks = xr.concat(dset.chunks(), dim='pid', data_vars='all')
         assert chunks.sizes['pid'] == 6
 
         # Just first timestep: 4 particle instances
-        chunks = xr.concat(dset.chunks(timestep_filter=[0]), dim='pid')
+        chunks = xr.concat(dset.chunks(timestep_filter=[0]), dim='pid', data_vars='all')
         assert chunks.sizes['pid'] == 4
 
         # Just second timestep: 2 particle instances
-        chunks = xr.concat(dset.chunks(timestep_filter=[1]), dim='pid')
+        chunks = xr.concat(dset.chunks(timestep_filter=[1]), dim='pid', data_vars='all')
         assert chunks.sizes['pid'] == 2
 
     def test_can_add_weights_from_string_expression(self, ladim_dset):

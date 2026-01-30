@@ -165,12 +165,13 @@ def run_conf(config):
 
 
 def run(dset_in, config, dset_out, filedata=None):
-    from .histogram import autobins, sparse_histogram, densify_sparse_histogram
+    from .histogram import autobins, densify_sparse_histogram
     from .parseconfig import parse_config, load_config
     from .proj import compute_area_dataarray, write_projection
     from .input import LadimInputStream
     from .output import MultiDataset
     import numpy as np
+    import xarray as xr
 
     assert isinstance(dset_in, LadimInputStream)
     assert isinstance(dset_out, MultiDataset)
@@ -214,7 +215,6 @@ def run(dset_in, config, dset_out, filedata=None):
 
     # Prepare histogram bins
     bins = autobins(config['bins'], dset_in)
-    bin_edges = [b['edges'] for b in bins.values()]
 
     # Add AREA variable
     if 'projection' in config:
@@ -223,6 +223,14 @@ def run(dset_in, config, dset_out, filedata=None):
 
     # Add weights
     dset_in.add_derived_variable(varname='_auto_weights', definition=config.get('weights', '1'))
+
+    # Add bin indices
+    for k, v in bins.items():
+        darr = xr.DataArray(data=v['edges'], dims=k, name=f'_BIN_{k}')
+        dset_in.add_grid_variable(
+            data_array=darr,
+            method='bin_idx',
+        )
 
     # Create output coordinate variables
     for coord_name, coord_info in bins.items():
@@ -248,6 +256,36 @@ def run(dset_in, config, dset_out, filedata=None):
     import logging
     logger = logging.getLogger(__name__)
 
+    # Aggregation algorithm:
+    # 1. Read single chunk from ladim file
+    # 2. Compute derived variables, including bin idx and weight
+    # 3. Group by bin idx and compute weight sum
+    # 4. Append result to output dataframe
+    # 5. (Persist output dataframe to disk if necessary)
+    #
+
+    # Prepare output chunks
+    import pandas as pd
+    out_chunks = []  # type: list[pd.DataFrame]
+    bin_cols = [f'_BIN_{k}' for k in bins]
+    weight_col = '_auto_weights'
+
+    #from pathlib import Path
+    #import datetime
+    #out_chunk_cols = list(bins) + ['weights']
+    #out_chunk_bufsize = 10_000_000
+    #num_output_df_written = 0
+    #if dset_out.diskless():
+    #    import tempfile
+    #    writable_location = Path(tempfile.gettempdir())
+    #else:
+    #    writable_location = Path(dset_out.main_dataset.filepath()).parent
+    #out_chunk_fname_pattern = str(
+    #    writable_location / 
+    #    f'crecontemp_{datetime.datetime.now():%Y%m%d%H%M%S}' / 
+    #    'aggchunk.*.parquet'
+    #)
+
     # Read ladim file timestep by timestep
     dset_in_iterator = dset_in.chunks(
         filters=filter_spec,
@@ -259,20 +297,54 @@ def run(dset_in, config, dset_out, filedata=None):
         if chunk_in.sizes['pid'] == 0:
             continue
 
-        # Extract coordinate and weight values
-        coord_vals = [chunk_in[k].to_numpy() for k in bins]
-        weights = chunk_in['_auto_weights'].to_numpy()
+        # Group by bin idx and compute weight sum
+        df = chunk_in[bin_cols + [weight_col]].to_dataframe()
+        out_chunk = df.groupby(bin_cols).sum().reset_index()
+        included = np.all(out_chunk[bin_cols].to_numpy() >= 0, axis=1)  # Remove out-of-bounds entries
+        out_chunks.append(out_chunk.iloc[included])
 
-        binned_coords, aggregated_weights = sparse_histogram(coord_vals, bin_edges, weights)
-        chunk_out_values, chunk_out_indices = densify_sparse_histogram(binned_coords, aggregated_weights)
+#        ## Persist to disk if necessary
+#        #num_rows_total = sum(len(df) for df in out_chunks)
+#        #if num_rows_total > out_chunk_bufsize:
+#        #    # Aggregate output chunks
+#        #    df_out = pd.concat(out_chunks, ignore_index=True)
+#        #    df_out = df_out.groupby(list(bins)).sum().reset_index()
+#
+#            # Save to disk
+#            fname = out_chunk_fname_pattern.replace('*', '{:05d}').format(num_output_df_written)
+#            Path(fname).parent.mkdir(exist_ok=True)
+#            df_out.to_parquet(fname, compression='snappy')
+#            out_chunks = []
+#            num_output_df_written += 1
+#
+#    # If there are any persisted chunks, do the same to the last one, for completeness
+#    if num_output_df_written:
+#        # Aggregate output chunks
+#        df_out = pd.concat(out_chunks, ignore_index=True)
+#        df_out = df_out.groupby(list(bins)).sum().reset_index()
+#
+#        # Save to disk
+#        fname = out_chunk_fname_pattern.replace('*', '{:05d}').format(num_output_df_written)
+#        Path(fname).parent.mkdir(exist_ok=True)
+#        df_out.to_parquet(fname, compression='snappy')
+#        out_chunks = []
+#        num_output_df_written += 1
 
-        txt = ", ".join([f'{a.start}:{a.stop}' for a in chunk_out_indices])
-        logger.debug(f'Write output chunk [{txt}]')
-        dset_out.incrementData(
-            varname=config['output_varname'],
-            data=chunk_out_values,
-            idx=chunk_out_indices,
-        )
+    # Aggregate output chunks
+    df_out = pd.concat(out_chunks, ignore_index=True)
+    df_out = df_out.groupby(bin_cols).sum().reset_index()
+    agg_coords = df_out[bin_cols].to_numpy().T
+    agg_weights = df_out[weight_col].to_numpy()
+
+    # Write dense output
+    out_values, out_indices = densify_sparse_histogram(agg_coords, agg_weights)
+    txt = ", ".join([f'{a.start}:{a.stop}' for a in out_indices])
+    logger.debug(f'Write output chunk [{txt}]')
+    dset_out.incrementData(
+        varname=config['output_varname'],
+        data=out_values,
+        idx=out_indices,
+    )
 
     return dset_out
 

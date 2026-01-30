@@ -235,10 +235,11 @@ class LadimInputStream:
             if (num_unfiltered == 0) and (len(init_variables) == 0):
                 continue
 
-            # Add derived variables (such as weights and geotags)
+            # Add derived variables (such as weights and geotags) except BIN variables
             for varname, fn in self._derived_variables.items():
-                logger.debug(f'Compute "{varname}"')
-                chunk = chunk.assign(**{varname: fn(chunk)})
+                if not varname.startswith('_BIN'):
+                    logger.debug(f'Compute "{varname}"')
+                    chunk = chunk.assign(**{varname: fn(chunk)})
 
             # Add init variables (such as region_INIT)
             for varname, data_and_mask in init_variables.items():
@@ -268,6 +269,12 @@ class LadimInputStream:
             # Do actual filtering
             if filter_idx is not None:
                 chunk = chunk.isel(pid=filter_idx)
+
+            # Add BIN variables
+            for varname, fn in self._derived_variables.items():
+                if varname.startswith('_BIN'):
+                    logger.debug(f'Compute "{varname}"')
+                    chunk = chunk.assign(**{varname: fn(chunk)})
 
             yield chunk
 
@@ -335,8 +342,19 @@ def get_varfunc_from_grid(darr: xr.DataArray, method):
             idx[d] = xr.Variable(dims='pid', data=data)
         return darr.isel(idx).variable
 
+    def fn_bin_idx(chunk):
+        assert len(darr.dims) == 1
+        dvalues = darr.values
+        pvalues = chunk.variables[darr.dims[0]].values
+        data = np.searchsorted(dvalues, pvalues, side='right') - 1
+        data[data >= len(dvalues)] = -1
+        idx = xr.Variable(dims='pid', data=data)
+        return idx
+
     if method == 'bin':
         return fn_bin
+    elif method == 'bin_idx':
+        return fn_bin_idx
     else:
         return fn_other
 

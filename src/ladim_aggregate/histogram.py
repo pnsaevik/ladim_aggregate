@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import logging
 import cftime
 import xarray as xr
@@ -12,70 +11,9 @@ logger = logging.getLogger(__name__)
 BinSpec = typing.Dict[typing.Literal['centers', 'edges'], np.typing.NDArray]
 
 
-def make_histogram(chunk: xr.Dataset, coords: dict[str, BinSpec]):
-    coord_names = list(coords.keys())
-    bins = [coords[k]['edges'] for k in coord_names]
-    ccoords = []
-    for k in coord_names:
-        logger.debug(f'Load variable "{k}"')
-        ccoords.append(chunk[k].values)
-
-    if '_auto_weights' in chunk.variables:
-        weights = chunk['_auto_weights'].values
-    else:
-        weights = None
-
-    binned_coords, aggregated_weights = sparse_histogram(ccoords, bins, weights)
-    hist_chunk, idx_slice = densify_sparse_histogram(binned_coords, aggregated_weights)
-    return hist_chunk, idx_slice
-
-
 def get_centers_from_edges(edges):
     edgediff = edges[1:] - edges[:-1]
     return edges[:-1] + 0.5 * edgediff
-
-
-def sparse_histogram(sample, bins, weights=None):
-    """
-    Aggregate weights from a sparse tensor
-    
-    :param sample: Sequence of coordinate vectors, length N per vector
-    :param bins: Sequence of bin edges
-    :param weights: Weights to aggregate, length N
-    :returns: coords, vals where coords are indices into the bins vectors,
-        and vals are the aggregated weights.
-    """
-    # Cast datetime samples to be comparable with bins
-    for i, s in enumerate(sample):
-        s_dtype = np.asarray(s).dtype
-        if np.issubdtype(s_dtype, np.datetime64):
-            sample[i] = s.astype(bins[i].dtype)
-
-    num_entries = next(len(s) for s in sample)
-    included = np.ones(num_entries, dtype=bool)
-    if weights is None:
-        weights = np.ones(num_entries, dtype=int)
-
-    # Find histogram coordinates of each entry
-    binned_sample = []
-    for s, b in zip(sample, bins):
-        coords = np.searchsorted(b, s, side='right') - 1
-        included = included & (0 <= coords) & (coords < len(b) - 1)
-        binned_sample.append(coords)
-
-    # Filter out coordinates outside interval
-    for i, bs in enumerate(binned_sample):
-        binned_sample[i] = bs[included]
-
-    # Aggregate particles
-    df = pd.DataFrame(np.asarray(binned_sample).T)
-    df['weights'] = np.asarray(weights)[included]
-    df_grouped = df.groupby(list(range(len(bins))))
-    df_sum = df_grouped.sum()
-    coords = df_sum.index.to_frame().values.T
-    vals = df_sum['weights'].to_numpy()
-    
-    return coords, vals
 
 
 def densify_sparse_histogram(coords, vals):
@@ -103,29 +41,6 @@ def densify_sparse_histogram(coords, vals):
     shape = tuple(stop - start for start, stop in idx)
     hist_chunk = np.zeros(shape, dtype=vals.dtype)
     hist_chunk[tuple(shifted_coords)] = vals
-
-    return hist_chunk, idx_slice
-
-
-def adaptive_histogram(sample, bins, weights=None):
-    """
-    Return an adaptive histogram
-
-    For input values `sample` and `bins`, the code snippet
-
-    hist = np.zeros([len(b) - 1 for b in bins])
-    hist_chunk, idx = adaptive_histogram(sample, bins, **kwargs)
-    hist[idx] = hist_chunk
-
-    gives the same output as
-
-    hist, _ = np.histogramdd(sample, bins, **kwargs)
-
-    """
-
-    coords, vals = sparse_histogram(sample, bins, weights)
-
-    hist_chunk, idx_slice = densify_sparse_histogram(coords, vals)
 
     return hist_chunk, idx_slice
 

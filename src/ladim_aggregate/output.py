@@ -47,6 +47,9 @@ class MultiDataset:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
+    def diskless(self) -> bool:
+        return self._dataset_kwargs.get('diskless', False)
+
     def close(self):
         logger.info(f'Close dataset "{self.main_dataset.filepath()}"')
         if not self._has_diskless_input_dataset:
@@ -428,15 +431,16 @@ class MultiParquet:
     """
     Encapsulates buffered writing to a set of parquet files
     """
-    def __init__(self, fname_pattern: str, buffer_size = 100_000_000):
+    def __init__(self, glob_pattern: str, buffer_size = 100_000_000):
         """
         Initialize a series of parquet files
 
-        :param fname_pattern: Should contain a format string such as "out_???.parquet"
+        :param glob_pattern: Should contain a format string such as "out_???.parquet"
         :param buffer_size: Number of rows per file
         """
         self._cache = []  # type: list[pd.DataFrame]
-        self._pattern = replace_first_qblock(fname_pattern)
+        self._glob_pattern = glob_pattern
+        self._pattern = replace_first_qblock(glob_pattern)
         self._buffer_capacity = buffer_size
         self._num_files_written = 0
     
@@ -446,6 +450,9 @@ class MultiParquet:
     def __close__(self):
         self.flush()
     
+    def glob_pattern(self):
+        return self._glob_pattern
+
     def write(self, data: pd.DataFrame):
         self._cache.append(data)
         if sum(len(df) for df in self._cache) > self._buffer_capacity:

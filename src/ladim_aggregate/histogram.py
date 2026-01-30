@@ -1,3 +1,4 @@
+import pandas as pd
 import numpy as np
 import logging
 import cftime
@@ -330,3 +331,78 @@ def align_start_of_range(start, step, align):
     """
     offset = (start - align) % step
     return start - offset
+
+
+def sparse_histogram_chunks_from_dataset_iterator(
+        dset_in_iterator: typing.Iterable[xr.Dataset],
+        bin_cols: list[str],
+        weight_col: str,
+) -> typing.Iterator[pd.DataFrame]:
+    """
+    We guarantee that the yielded data frames satisfy the following:
+    
+    1. They contain the columns ``bin_cols + [weight_col]``
+
+    2. If concatenated, the data frame is sorted by bin_cols
+
+    3. If concatenated, ``bin_cols`` have unique rows
+    """
+    out_chunks = []  # type: list[pd.DataFrame]
+
+    for chunk_in in dset_in_iterator:
+        # Group by bin idx and compute weight sum
+        df = chunk_in[bin_cols + [weight_col]].to_dataframe()
+        out_chunk = df.groupby(bin_cols).sum().reset_index()
+        included = np.all(out_chunk[bin_cols].to_numpy() >= 0, axis=1)  # Remove out-of-bounds entries
+        out_chunks.append(out_chunk.iloc[included])
+    
+    # Aggregate output chunks
+    df_out = pd.concat(out_chunks, ignore_index=True)
+    df_out = df_out.groupby(bin_cols).sum().reset_index()
+
+    yield df_out
+    
+
+    #from pathlib import Path
+    #import datetime
+    #out_chunk_cols = list(bins) + ['weights']
+    #out_chunk_bufsize = 10_000_000
+    #num_output_df_written = 0
+    #if dset_out.diskless():
+    #    import tempfile
+    #    writable_location = Path(tempfile.gettempdir())
+    #else:
+    #    writable_location = Path(dset_out.main_dataset.filepath()).parent
+    #out_chunk_fname_pattern = str(
+    #    writable_location / 
+    #    f'crecontemp_{datetime.datetime.now():%Y%m%d%H%M%S}' / 
+    #    'aggchunk.*.parquet'
+    #)
+
+
+    #        ## Persist to disk if necessary
+#        #num_rows_total = sum(len(df) for df in out_chunks)
+#        #if num_rows_total > out_chunk_bufsize:
+#        #    # Aggregate output chunks
+#        #    df_out = pd.concat(out_chunks, ignore_index=True)
+#        #    df_out = df_out.groupby(list(bins)).sum().reset_index()
+#
+#            # Save to disk
+#            fname = out_chunk_fname_pattern.replace('*', '{:05d}').format(num_output_df_written)
+#            Path(fname).parent.mkdir(exist_ok=True)
+#            df_out.to_parquet(fname, compression='snappy')
+#            out_chunks = []
+#            num_output_df_written += 1
+#
+#    # If there are any persisted chunks, do the same to the last one, for completeness
+#    if num_output_df_written:
+#        # Aggregate output chunks
+#        df_out = pd.concat(out_chunks, ignore_index=True)
+#        df_out = df_out.groupby(list(bins)).sum().reset_index()
+#
+#        # Save to disk
+#        fname = out_chunk_fname_pattern.replace('*', '{:05d}').format(num_output_df_written)
+#        Path(fname).parent.mkdir(exist_ok=True)
+#        df_out.to_parquet(fname, compression='snappy')
+#        out_chunks = []
+#        num_output_df_written += 1

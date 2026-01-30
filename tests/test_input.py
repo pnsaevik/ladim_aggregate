@@ -353,7 +353,7 @@ class Test_update_agg:
 
 class Test_create_pfilter:
     def test_checks_if_variable_is_triggered(self):
-        pfilter = ladim_input.create_pfilter(spec='age >= 2')
+        pfilter, _ = ladim_input.create_pfilter(spec='age >= 2')
 
         chunk = xr.Dataset(
             data_vars=dict(
@@ -367,7 +367,7 @@ class Test_create_pfilter:
         assert is_triggered.values.tolist() == [0, 0, 1, 1, 1, 1]
 
     def test_counts_only_first_occurrence(self):
-        pfilter = ladim_input.create_pfilter(spec='age >= 2')
+        pfilter, _ = ladim_input.create_pfilter(spec='age >= 2')
 
         chunk = xr.Dataset(
             data_vars=dict(
@@ -384,7 +384,7 @@ class Test_create_pfilter:
         assert is_triggered.values.tolist() == [0, 1, 0, 0, 0, 0]
 
     def test_works_with_large_pids(self):
-        pfilter = ladim_input.create_pfilter(spec='age >= 2')
+        pfilter, _ = ladim_input.create_pfilter(spec='age >= 2')
 
         chunk = xr.Dataset(
             data_vars=dict(
@@ -439,13 +439,13 @@ class Test_create_varfunc:
 
 class Test_get_varfunc_from_callable:
     def test_returns_weight_function(self):
-        weight_fn = ladim_input.get_varfunc_from_callable(lambda a, b: a + b)
+        weight_fn, _ = ladim_input.get_varfunc_from_callable(lambda a, b: a + b)
         chunk = xr.Dataset(dict(a=[1, 2, 3], b=[4, 5, 6]))
         new_var = weight_fn(chunk)
         assert new_var.values.tolist() == [5, 7, 9]
 
     def test_fails_if_param_not_in_chunk(self):
-        weight_fn = ladim_input.get_varfunc_from_callable(lambda a, b: a + b)
+        weight_fn, _ = ladim_input.get_varfunc_from_callable(lambda a, b: a + b)
         chunk = xr.Dataset(dict(a=[1, 2, 3]))
         with pytest.raises(KeyError):
             _ = weight_fn(chunk)
@@ -454,7 +454,7 @@ class Test_get_varfunc_from_callable:
         def fn(a, b, c=1):
             return a + b + c
 
-        weight_fn = ladim_input.get_varfunc_from_callable(fn)
+        weight_fn, _ = ladim_input.get_varfunc_from_callable(fn)
         chunk_1 = xr.Dataset(dict(a=[1, 2, 3], b=[4, 5, 6]))
         chunk_2 = xr.Dataset(dict(a=[1, 2, 3], b=[4, 5, 6], c=[2, 2, 2]))
 

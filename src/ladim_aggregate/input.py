@@ -65,7 +65,7 @@ class LadimInputStream:
         :param varname: Variable name
         :param definition: Variable definition
         """
-        self._derived_variables[varname] = create_varfunc(definition)
+        self._derived_variables[varname] = ChunkFunc.from_spec(definition)
 
     def add_aggregation_variable(self, varname, operator):
         """
@@ -116,7 +116,7 @@ class LadimInputStream:
         :param method: Either 'linear', 'nearest' or 'bin'
         :return: None
         """
-        self._derived_variables[data_array.name] = create_varfunc(('grid', data_array, method))
+        self._derived_variables[data_array.name] = ChunkFunc.from_spec(('grid', data_array, method))
 
     def _update_agg_variables(self):
         # Find all unassigned aggfuncs and store them variable-wise
@@ -212,10 +212,10 @@ class LadimInputStream:
         met).
         :return: An xarray dataset indexed by "pid" for each time step.
         """
-        filterfn = create_varfunc(filters) if filters else None
+        filterfn = ChunkFunc.from_spec(filters) if filters else None
 
         if particle_filter is not None:
-            particle_filterfn = create_varfunc(('pfilter', particle_filter))
+            particle_filterfn = ChunkFunc.from_spec(('pfilter', particle_filter))
         else:
             particle_filterfn = None
 
@@ -298,7 +298,9 @@ def get_varfunc_from_numexpr(spec):
         result_reshaped = np.broadcast_to(result, out_shape)
         return xr.Variable('pid', result_reshaped)
 
-    return weight_fn
+    param_names = ex.input_names
+
+    return weight_fn, param_names
 
 
 def get_varfunc_from_callable(fn):
@@ -317,7 +319,9 @@ def get_varfunc_from_callable(fn):
 
         return xr.Variable('pid', fn(*args))
 
-    return weight_fn
+    param_names = [str(k) for k in signature.parameters.keys()]
+
+    return weight_fn, param_names
 
 
 def get_varfunc_from_funcstring(s: str):
@@ -352,12 +356,14 @@ def get_varfunc_from_grid(darr: xr.DataArray, method):
         return idx
 
     if method == 'bin':
-        return fn_bin
+        func = fn_bin
     elif method == 'bin_idx':
-        return fn_bin_idx
+        func = fn_bin_idx
     else:
-        return fn_other
+        func = fn_other
 
+    params = [str(d) for d in darr.dims]
+    return func, params
 
 def glob_files(spec):
     """
@@ -534,10 +540,11 @@ def _open_spec(spec) -> typing.Iterator[xr.Dataset]:
         raise TypeError(f'Unknown input data type: {type(spec)}')
 
 
-def create_varfunc(spec) -> typing.Callable[[xr.Dataset], xr.Variable]:
+def create_varfunc(spec) -> tuple[typing.Callable[[xr.Dataset], xr.Variable], list[str]]:
     if isinstance(spec, tuple) and spec[0] == 'geotag':
         from .geotag import create_geotagger
-        return create_geotagger(**spec[1])
+        params = [spec[1]['x_var'], spec[1]['y_var']]
+        return create_geotagger(**spec[1]), params
     elif isinstance(spec, tuple) and spec[0] == 'pfilter':
         return create_pfilter(spec[1])
     elif isinstance(spec, tuple) and spec[0] == 'grid':
@@ -556,7 +563,7 @@ def create_varfunc(spec) -> typing.Callable[[xr.Dataset], xr.Variable]:
 
 
 def create_pfilter(spec):
-    fn = create_varfunc(spec)
+    fn, params = create_varfunc(spec)
     has_been_triggered = ResizableArray(100, dtype=bool)
 
     def pfilter(chunk):
@@ -571,7 +578,7 @@ def create_pfilter(spec):
         has_been_triggered.data[pid_triggered] = True
         return xr.Variable('pid', condition)
 
-    return pfilter
+    return pfilter, params
 
 
 class ResizableArray:
@@ -585,3 +592,21 @@ class ResizableArray:
 
     def __len__(self):
         return len(self.data)
+
+
+class ChunkFunc:
+    def __init__(self, fn, params):
+        self._fn = fn
+        self._params = params
+
+    @staticmethod
+    def from_spec(spec) -> "ChunkFunc":
+        fn, params = create_varfunc(spec)
+        return ChunkFunc(fn, params)
+
+    @property
+    def arguments(self) -> list[str]:
+        return self._params
+
+    def __call__(self, chunk: xr.Dataset) -> xr.Variable:
+        return self._fn(chunk)

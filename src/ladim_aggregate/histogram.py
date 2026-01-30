@@ -357,24 +357,32 @@ def sparse_histogram_chunks_from_dataset_iterator(
     writable_file = Path(writable_location) / (f'crecon_{uuid.uuid4().hex}.duckdb')
 
     max_size = 10_000_000
+    bincols_str = ", ".join(f'"{c}"' for c in bin_cols)
+    filterstm_str = " AND ".join(f'("{c}" >= 0)' for c in bin_cols)
 
     with duckdb.connect(str(writable_file)) as con:
         for chunk_in in dset_in_iterator:
-            # Group by bin idx and compute weight sum
+            # Retrieve dataframe chunk
             df = chunk_in[bin_cols + [weight_col]].to_dataframe()
-            out_chunk = df.groupby(bin_cols).sum().reset_index()
-            included = np.all(out_chunk[bin_cols].to_numpy() >= 0, axis=1)  # Remove out-of-bounds entries
             
             # Store result
-            con.register("chunktab", out_chunk.iloc[included])
-            con.execute("CREATE TABLE IF NOT EXISTS temptab AS SELECT * FROM chunktab LIMIT 0")
-            con.execute("INSERT INTO temptab SELECT * FROM chunktab")
+            con.register("chunktab", df)
+            con.execute(
+                "CREATE TABLE IF NOT EXISTS temptab "
+                f'AS SELECT {bincols_str}, "{weight_col}" AS weights '
+                'FROM chunktab LIMIT 0; '
+
+                "INSERT INTO temptab "
+                f'SELECT {bincols_str}, SUM("{weight_col}") AS weights '
+                "FROM chunktab "
+                f'WHERE {filterstm_str} '
+                f"GROUP BY {bincols_str} ORDER BY {bincols_str}; "
+            )
 
         # Perform final aggregation
-        bincols_str = '"' + '", "'.join(bin_cols) + '"'
         con.execute(
             "CREATE TABLE aggtab AS "
-            f'SELECT {bincols_str}, SUM("{weight_col}") AS weights '
+            f'SELECT {bincols_str}, SUM(weights) AS weights '
             "FROM temptab "
             f"GROUP BY {bincols_str} ORDER BY {bincols_str}"
         )

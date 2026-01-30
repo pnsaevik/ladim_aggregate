@@ -27,6 +27,7 @@ class MultiDataset:
         :param filename: Name of the main dataset.
         :param kwargs: Additional arguments passed to netCDF4.Dataset
         """
+        self.max_write_size = 10_000_000  # Max page size for writing to disk
         self._dataset_kwargs = kwargs
         self.datasets = dict()
         self._cross_coords = dict()
@@ -213,6 +214,14 @@ class MultiDataset:
         base, ext = os.path.splitext(self.main_dataset.filepath())
         return base + '_' + '_'.join(stubs) + ext
 
+    def getShape(self, varname) -> tuple[int, ...]:
+        if varname in self._cross_vars:
+            dims = self._cross_vars[varname]['dims']
+            shape = [self.main_dataset.dimensions[d].size for d in dims]
+        else:
+            shape = self.main_dataset.variables[varname].shape
+        return tuple(shape)
+
     def getDataset(self, **file_idx):
         """Return sub-dataset, or create it if necessary"""
         file_idx_key = tuple((k, file_idx[k]) for k in self._cross_coords.keys())
@@ -341,6 +350,45 @@ class MultiDataset:
         previous = self.getData(varname, idx)
         newdata = previous + np.broadcast_to(data, previous.shape)
         self.setData(varname, newdata, idx)
+
+    def writeSparse(
+            self,
+            varname: str,
+            data: typing.Iterator[pd.DataFrame],
+        ):
+            # Input param ``data``: First columns should contain unique indices into
+            # dense array, ordered from the outermost to innermost dimension. The last
+            # column should contain the weights.
+
+            from .histogram import densify_sparse_histogram as densify
+
+            # How many dimensions should be written at a time?
+            shape = self.getShape(varname)
+            max_write_size = self.max_write_size
+            num_dims_to_write = np.count_nonzero(np.cumprod(np.flip(shape)) <= max_write_size)
+            
+            for df in data:
+                # Either group by some columns, or use entire chunk at once
+                if num_dims_to_write == len(shape):
+                    df_grp = iter([(None, df)])
+                else:
+                    groupcols = (list(df.columns)[:-1])[:len(shape) - num_dims_to_write]
+                    df_grp = df.groupby(groupcols)
+
+                # Iterate over chunks that are managable even when dense
+                for _, smallchunk in df_grp:
+                    # Make dense histogram
+                    agg_coords = smallchunk.iloc[:, :-1].to_numpy().T
+                    agg_weights = smallchunk.iloc[:, -1].to_numpy()
+                    dense_arr, dense_idx = densify(agg_coords, agg_weights)
+
+                    # Output message
+                    txt = ", ".join([f'{a.start}:{a.stop}' for a in dense_idx])
+                    logger.debug(f'Write output chunk [{txt}]')
+
+                    # Write data
+                    self.setData(varname=varname, data=dense_arr, idx=dense_idx)
+
 
     def _split_indices(self, varname, index):
         """

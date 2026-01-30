@@ -172,7 +172,6 @@ def run(dset_in, config, dset_out, filedata=None):
     from .output import MultiDataset
     import numpy as np
     import xarray as xr
-    import pandas as pd
 
     assert isinstance(dset_in, LadimInputStream)
     assert isinstance(dset_out, MultiDataset)
@@ -254,9 +253,6 @@ def run(dset_in, config, dset_out, filedata=None):
     if 'projection' in config:
         write_projection(dset_out, config['projection'])
 
-    import logging
-    logger = logging.getLogger(__name__)
-
     # Aggregation algorithm:
     # 1. Read single chunk from ladim file
     # 2. Compute derived variables, including bin idx and weight
@@ -277,25 +273,11 @@ def run(dset_in, config, dset_out, filedata=None):
         bin_cols=[f'_BIN_{k}' for k in bins],
         weight_col='_auto_weights',
         )
-    out_chunks = list(out_chunk_iterator)
 
-
-    # Aggregate output chunks
-    df_out = pd.concat(out_chunks, ignore_index=True)
-    agg_coords = df_out.iloc[:, :-1].to_numpy().T
-    agg_weights = df_out.iloc[:, -1].to_numpy()
-
-    # Write dense output
-    out_values, out_indices = histogram.densify_sparse_histogram(agg_coords, agg_weights)
-    txt = ", ".join([f'{a.start}:{a.stop}' for a in out_indices])
-    logger.debug(f'Write output chunk [{txt}]')
-    dset_out.incrementData(
+    dset_out.writeSparse(
         varname=config['output_varname'],
-        data=out_values,
-        idx=out_indices,
+        data=out_chunk_iterator,
     )
-
-    return dset_out
 
 
 def init_logger(loglevel=None):

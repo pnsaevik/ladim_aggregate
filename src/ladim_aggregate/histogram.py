@@ -358,7 +358,7 @@ def sparse_histogram_chunks_from_dataset_iterator(
     
     # Aggregate output chunks
     df_out = pd.concat(out_chunks, ignore_index=True)
-    df_out = df_out.groupby(bin_cols).sum().reset_index()
+    df_out = df_out.groupby(bin_cols, as_index=False).sum()
 
     yield df_out
     

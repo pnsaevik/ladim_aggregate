@@ -387,7 +387,7 @@ class MultiDataset:
                     logger.debug(f'Write output chunk [{txt}]')
 
                     # Write data
-                    self.setData(varname=varname, data=dense_arr, idx=dense_idx)
+                    self.incrementData(varname=varname, data=dense_arr, idx=dense_idx)
 
 
     def _split_indices(self, varname, index):

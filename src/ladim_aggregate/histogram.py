@@ -360,24 +360,26 @@ def sparse_histogram_chunks_from_dataset_iterator(
     bincols_str = ", ".join(f'"{c}"' for c in bin_cols)
     filterstm_str = " AND ".join(f'("{c}" >= 0)' for c in bin_cols)
 
+    aggregate_and_add = (
+        "CREATE TABLE IF NOT EXISTS temptab "
+        f'AS SELECT {bincols_str}, "{weight_col}" AS weights '
+        'FROM chunktab LIMIT 0; '
+
+        "INSERT INTO temptab "
+        f'SELECT {bincols_str}, SUM("{weight_col}") AS weights '
+        "FROM chunktab "
+        f'WHERE {filterstm_str} '
+        f"GROUP BY {bincols_str} ORDER BY {bincols_str}; "
+    )
+
     with duckdb.connect(str(writable_file)) as con:
         for chunk_in in dset_in_iterator:
             # Retrieve dataframe chunk
             df = chunk_in[bin_cols + [weight_col]].to_dataframe()
             
-            # Store result
+            # Aggregate and add data frame
             con.register("chunktab", df)
-            con.execute(
-                "CREATE TABLE IF NOT EXISTS temptab "
-                f'AS SELECT {bincols_str}, "{weight_col}" AS weights '
-                'FROM chunktab LIMIT 0; '
-
-                "INSERT INTO temptab "
-                f'SELECT {bincols_str}, SUM("{weight_col}") AS weights '
-                "FROM chunktab "
-                f'WHERE {filterstm_str} '
-                f"GROUP BY {bincols_str} ORDER BY {bincols_str}; "
-            )
+            con.execute(aggregate_and_add)
 
         # Perform final aggregation
         con.execute(

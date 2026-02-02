@@ -20,7 +20,9 @@ def main(*args):
     # Otherwise, this is a dict
     assert isinstance(parsed_args, dict)
 
-    init_logger()
+    import logging
+    loglevel = logging.DEBUG if parsed_args.get('verbose', False) else logging.INFO
+    init_logger(loglevel)
 
     # Extract example if requested
     if parsed_args['example']:
@@ -99,6 +101,12 @@ def parse_args(args: list[str]):
         help="Run a built-in example"
     )
 
+    parser.add_argument(
+        '--verbose',
+        action='store_true',
+        help="Activate verbose logging output"
+    )
+
     # If called with too few arguments, return help string
     if (len(args) < 1) or ('--help' in args) or ('-h' in args):
         return parser.format_help()
@@ -120,6 +128,7 @@ def parse_args(args: list[str]):
     return dict(
         example=parsed_args.example,
         config_file=parsed_args.config_file,
+        verbose=parsed_args.verbose,
     )
 
 

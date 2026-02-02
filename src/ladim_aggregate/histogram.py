@@ -392,14 +392,17 @@ def chunkwise_aggsum(
             f'WHERE {filterstm_str} '
             f"GROUP BY {bincols_str} ORDER BY {bincols_str}; "
         )
+        logger.debug(f'Apply aggsum to {len(df)} rows')
         con.execute(query_aggregate_and_add)
 
         for df in df_chunks:
             # Aggregate and add data frame
+            logger.debug(f'Apply aggsum to {len(df)} rows')
             con.register("chunktab", df)
             con.execute(query_aggregate_and_add)
 
         # Perform final aggregation
+        logger.debug(f'Perform final aggregation')
         con.execute(
             "CREATE TABLE aggtab AS "
             f'SELECT {bincols_str}, SUM("{weight_col}") AS "{weight_col}" '
@@ -411,5 +414,6 @@ def chunkwise_aggsum(
         cur = con.execute(f"SELECT * FROM aggtab")
         df_out = cur.fetch_df_chunk(output_size)
         while df_out is not None and len(df_out) > 0:
+            logger.debug(f'Yield {len(df_out)} rows of aggregated data')
             yield df_out
             df_out = cur.fetch_df_chunk(output_size)

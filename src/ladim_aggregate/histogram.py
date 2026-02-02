@@ -333,12 +333,28 @@ def align_start_of_range(start, step, align):
     return start - offset
 
 
-def sparse_histogram_chunks_from_dataset_iterator(
-        dset_in_iterator: typing.Iterable[xr.Dataset],
-        bin_cols: list[str],
-        weight_col: str,
+def chunkwise_aggsum(
+        df_chunks: typing.Iterable[pd.DataFrame],
+        output_size = 10_000_000,
 ) -> typing.Iterator[pd.DataFrame]:
     """
+    Perform group-by-sum out of core
+
+    Groups by the first columns and computes the groupwise sum of the last
+    column. Conceptually, this function does the same as the following code:
+
+    .. code-block:: python
+
+        df = pd.concat(dset_in_iterator, ignore_index=True)
+        df = df.groupby(bin_cols, as_index=False)
+        df = df.sum()
+        sz = 10_000_000
+        for i in range(len(df) // sz + 1):
+            yield df.iloc[i*sz : (i+1)*sz]
+
+    But it works also for very long tables since it spills to disk
+    when necessary.
+
     We guarantee that the yielded data frames satisfy the following:
     
     1. They contain the columns ``bin_cols + [weight_col]``
@@ -349,52 +365,51 @@ def sparse_histogram_chunks_from_dataset_iterator(
     """
 
     import duckdb
-    import tempfile
-    from pathlib import Path
-    import uuid
 
-    writable_location = tempfile.gettempdir()
-    writable_file = Path(writable_location) / (f'crecon_{uuid.uuid4().hex}.duckdb')
+    df_iterator = iter(df_chunks)
 
-    max_size = 10_000_000
-    bincols_str = ", ".join(f'"{c}"' for c in bin_cols)
-    filterstm_str = " AND ".join(f'("{c}" >= 0)' for c in bin_cols)
+    with duckdb.connect() as con:
+        # We need extra information from the first chunk
+        df = next(df_iterator)
+        bincols = [str(c) for c in df.columns[:-1]]
+        weight_col = str(df.columns[-1])
+        bincols_str = ", ".join(f'"{c}"' for c in bincols)
+        filterstm_str = " AND ".join(f'("{c}" >= 0)' for c in bincols)
 
-    aggregate_and_add = (
-        "CREATE TABLE IF NOT EXISTS temptab "
-        f'AS SELECT {bincols_str}, "{weight_col}" AS weights '
-        'FROM chunktab LIMIT 0; '
+        # Create temporary table for holding aggregated results
+        con.register("chunktab", df)
+        con.execute(
+            "CREATE TABLE temptab "
+            f'AS SELECT {bincols_str}, "{weight_col}" AS "{weight_col}" '
+            'FROM chunktab LIMIT 0; '
+        )
 
-        "INSERT INTO temptab "
-        f'SELECT {bincols_str}, SUM("{weight_col}") AS weights '
-        "FROM chunktab "
-        f'WHERE {filterstm_str} '
-        f"GROUP BY {bincols_str} ORDER BY {bincols_str}; "
-    )
+        # Aggregate results and store to temporary table
+        query_aggregate_and_add = (
+            "INSERT INTO temptab "
+            f'SELECT {bincols_str}, SUM("{weight_col}") AS "{weight_col}" '
+            "FROM chunktab "
+            f'WHERE {filterstm_str} '
+            f"GROUP BY {bincols_str} ORDER BY {bincols_str}; "
+        )
+        con.execute(query_aggregate_and_add)
 
-    with duckdb.connect(str(writable_file)) as con:
-        for chunk_in in dset_in_iterator:
-            # Retrieve dataframe chunk
-            df = chunk_in[bin_cols + [weight_col]].to_dataframe()
-            
+        for df in df_chunks:
             # Aggregate and add data frame
             con.register("chunktab", df)
-            con.execute(aggregate_and_add)
+            con.execute(query_aggregate_and_add)
 
         # Perform final aggregation
         con.execute(
             "CREATE TABLE aggtab AS "
-            f'SELECT {bincols_str}, SUM(weights) AS weights '
+            f'SELECT {bincols_str}, SUM("{weight_col}") AS "{weight_col}" '
             "FROM temptab "
             f"GROUP BY {bincols_str} ORDER BY {bincols_str}"
         )
 
         # Yield output chunks
         cur = con.execute(f"SELECT * FROM aggtab")
-        df_out = cur.fetch_df_chunk(max_size)
+        df_out = cur.fetch_df_chunk(output_size)
         while df_out is not None and len(df_out) > 0:
             yield df_out
-            df_out = cur.fetch_df_chunk(max_size)
-        
-    # Delete temporary duckdb database file
-    writable_file.unlink(missing_ok=True)
+            df_out = cur.fetch_df_chunk(output_size)

@@ -268,11 +268,12 @@ def run(dset_in, config, dset_out, filedata=None):
         particle_filter=pfilter_spec,
     )
 
-    out_chunk_iterator = histogram.sparse_histogram_chunks_from_dataset_iterator(
-        dset_in_iterator,
-        bin_cols=[f'_BIN_{k}' for k in bins],
-        weight_col='_auto_weights',
-        )
+    # Convert xarray chunks to pandas dataframe
+    bin_cols = [f'_BIN_{k}' for k in bins]
+    weight_col = '_auto_weights'
+    df_in_iterator = (chunk[bin_cols + [weight_col]].to_dataframe() for chunk in dset_in_iterator)
+
+    out_chunk_iterator = histogram.chunkwise_aggsum(df_in_iterator)
 
     dset_out.writeSparse(
         varname=config['output_varname'],

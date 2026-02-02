@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from ladim_aggregate import histogram
 import xarray as xr
+import pandas as pd
 
 
 class Test_autobins:
@@ -267,6 +268,26 @@ class Test_align_range:
         )
         assert str(new_start.astype('datetime64[m]')) == '1970-01-01T00:03'
 
+
+class Test_chunkwise_aggsum:
+    def test_yields_chunks(self):
+        df = pd.DataFrame(
+            data=dict(
+                b1=[1, 2, 3, 1, 2, 3, 1, 1, 1],
+                b2=[1, 1, 1, 2, 2, 2, 1, 1, 1],
+                w=[1, 1, 1, 1, 1, 1, 1, 1, 1],
+            ),
+        )
+
+        df_iter = iter([df.iloc[:3], df.iloc[3:6], df.iloc[6:]])
+
+        dfs_out = list(histogram.chunkwise_aggsum(df_iter, output_size=5))
+        df_out = pd.concat(dfs_out, ignore_index=True)
+        assert df_out.to_dict(orient='list') == dict(
+            b1=[1, 1, 2, 2, 3, 3],
+            b2=[1, 2, 1, 2, 1, 2],
+            w=[4, 1, 1, 1, 1, 1],
+        )
 
 class Object:
     pass

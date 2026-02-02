@@ -92,3 +92,16 @@ class Test_extract_and_run:
             result = xr.load_dataset(fname, decode_times=False)
             result.attrs = {}
             assert result.to_dict() == dset.to_dict()
+
+def test_():
+    return
+    from pathlib import Path
+    fname = Path(r"S:\scratch\a5606\temp\connectivity\2025-05-14\crecon3.yaml")
+    os.chdir(fname.parent)
+
+    # Load conf file
+    with open(fname, encoding='utf-8') as fp:
+        conf = yaml.safe_load(fp)
+
+    # Run aggregation
+    ladim_aggregate.run_conf(conf)

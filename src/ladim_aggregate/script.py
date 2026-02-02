@@ -226,9 +226,9 @@ def run(dset_in, config, dset_out, filedata=None):
 
     # Add bin indices
     for k, v in bins.items():
-        darr = xr.DataArray(data=v['edges'], dims=k, name=f'_BIN_{k}')
+        edge_dataarray = xr.DataArray(data=v['edges'], dims=k, name=f'_BIN_{k}')
         dset_in.add_grid_variable(
-            data_array=darr,
+            data_array=edge_dataarray,
             method='bin_idx',
         )
 

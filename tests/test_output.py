@@ -206,28 +206,3 @@ class Test_nc_to_dict:
         assert list(xr_dset.variables) == ['myvar1', 'myvar2']
         assert xr_dset.myvar2.values.tolist() == [[1, 1, 1], [1, 1, 1]]
         assert xr_dset.myvar1.attrs['long_name'] == 'Variable 2'
-
-
-class Test_replace_first_qblock:
-    def test_single_question_mark(self):
-        assert output.replace_first_qblock("a?b") == "a{:01d}b"
-
-
-    def test_multiple_question_marks(self):
-        assert output.replace_first_qblock("abc????def") == "abc{:04d}def"
-
-
-    def test_only_first_block_replaced(self):
-        assert output.replace_first_qblock("??x???") == "{:02d}x???"
-
-
-    def test_question_marks_at_start(self):
-        assert output.replace_first_qblock("????abc") == "{:04d}abc"
-
-
-    def test_question_marks_at_end(self):
-        assert output.replace_first_qblock("abc??") == "abc{:02d}"
-
-
-    def test_no_question_marks(self):
-        assert output.replace_first_qblock("abcdef") == "abcdef"

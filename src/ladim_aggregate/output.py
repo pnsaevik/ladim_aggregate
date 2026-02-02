@@ -186,7 +186,8 @@ class MultiDataset:
         # Create regular variable
         else:
             dset = self.main_dataset
-            variable = dset.createVariable(varname, data.dtype, dims, fill_value=False)
+            variable = dset.createVariable(
+                varname, data.dtype, dims, fill_value=False, zlib=True, shuffle=True)
             variable.set_auto_maskandscale(False)
             variable[:] = data
             if attrs:
@@ -248,7 +249,7 @@ class MultiDataset:
 
         # Copy variables
         for v in source.variables.values():
-            new_var = dest.createVariable(v.name, v.dtype, v.dimensions)
+            new_var = dest.createVariable(v.name, v.dtype, v.dimensions, fill_value=False, zlib=True, shuffle=True)
             new_var.set_auto_maskandscale(False)
             atts = {k: v.getncattr(k) for k in v.ncattrs()}
             new_var.setncatts(atts)
@@ -263,7 +264,7 @@ class MultiDataset:
 
         # Add filesplit variables
         for vname, vinfo in self._cross_vars.items():
-            new_var = dest.createVariable(vname, vinfo['data'].dtype, vinfo['dims'])
+            new_var = dest.createVariable(vname, vinfo['data'].dtype, vinfo['dims'], fill_value=False, zlib=True, shuffle=True)
             new_var.set_auto_maskandscale(False)
             new_var[:] = vinfo['data']
             dest.variables[vname].setncatts(vinfo['attrs'])

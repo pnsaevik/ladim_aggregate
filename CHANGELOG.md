@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Verbosity option
 ### Changed
 - Use duckdb as aggregation backend, allowing faster aggregation computation
+- Output netcdf files are compressed
 
 ## [1.26.0] - 2025-01-23
 ### Added

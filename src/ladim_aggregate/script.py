@@ -253,14 +253,6 @@ def run(dset_in, config, dset_out, filedata=None):
     if 'projection' in config:
         write_projection(dset_out, config['projection'])
 
-    # Aggregation algorithm:
-    # 1. Read single chunk from ladim file
-    # 2. Compute derived variables, including bin idx and weight
-    # 3. Group by bin idx and compute weight sum
-    # 4. Append result to output dataframe
-    # 5. (Persist output dataframe to disk if necessary)
-    #
-
     # Read ladim file timestep by timestep
     dset_in_iterator = dset_in.chunks(
         filters=filter_spec,

@@ -370,7 +370,10 @@ def chunkwise_aggsum(
 
     with duckdb.connect() as con:
         # We need extra information from the first chunk
-        df = next(df_iterator)
+        try:
+            df = next(df_iterator)
+        except StopIteration:
+            return
         bincols = [str(c) for c in df.columns[:-1]]
         weight_col = str(df.columns[-1])
         bincols_str = ", ".join(f'"{c}"' for c in bincols)

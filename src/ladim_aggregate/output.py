@@ -368,27 +368,19 @@ class MultiDataset:
             max_write_size = self.max_write_size
             num_dims_to_write = np.count_nonzero(np.cumprod(np.flip(shape)) <= max_write_size)
             
-            for df in data:
-                # Either group by some columns, or use entire chunk at once
-                if num_dims_to_write == len(shape):
-                    df_grp = iter([(None, df)])
-                else:
-                    groupcols = (list(df.columns)[:-1])[:len(shape) - num_dims_to_write]
-                    df_grp = df.groupby(groupcols)
+            # Iterate over chunks that are managable even when dense
+            for smallchunk in group_by_cols(data, len(shape) - num_dims_to_write):
+                # Make dense histogram
+                agg_coords = smallchunk.iloc[:, :-1].to_numpy().T
+                agg_weights = smallchunk.iloc[:, -1].to_numpy()
+                dense_arr, dense_idx = densify(agg_coords, agg_weights)
 
-                # Iterate over chunks that are managable even when dense
-                for _, smallchunk in df_grp:
-                    # Make dense histogram
-                    agg_coords = smallchunk.iloc[:, :-1].to_numpy().T
-                    agg_weights = smallchunk.iloc[:, -1].to_numpy()
-                    dense_arr, dense_idx = densify(agg_coords, agg_weights)
+                # Output message
+                txt = ", ".join([f'{a.start}:{a.stop}' for a in dense_idx])
+                logger.debug(f'Write output chunk [{txt}]')
 
-                    # Output message
-                    txt = ", ".join([f'{a.start}:{a.stop}' for a in dense_idx])
-                    logger.debug(f'Write output chunk [{txt}]')
-
-                    # Write data
-                    self.incrementData(varname=varname, data=dense_arr, idx=dense_idx)
+                # Write data
+                self.incrementData(varname=varname, data=dense_arr, idx=dense_idx)
 
 
     def _split_indices(self, varname, index):
@@ -474,3 +466,59 @@ def nc_to_dict(dset):
         if atts:
             d[varname]['attrs'] = atts
     return d
+
+
+def group_by_cols(chunked_sorted_dataframe: typing.Iterable[pd.DataFrame], num_grouping_cols: int):
+    """
+    Helper function for writeSparse method.
+
+    The idea: This function takes a chunked, sorted data frame as input and
+    returns a re-chunked version of the same data frame. In this context, a
+    "chunked data frame" is an iterator over a series of equal-formatted data
+    frames, and a "re-chunking" means returning a new iterator over the same
+    data, but with a different type of splitting.
+
+    Output chunking is based on the "grouping columns", which are the first 
+    columns in the data frame. It is assumed that the data frame is already
+    sorted by the grouping columns. The output is chunked such that all
+    grouping columns are equal within a chunk.
+    """
+
+    def split_by_group_cols(df):
+        grp_vals = df.iloc[:, :num_grouping_cols].to_numpy()
+        next_row_is_new_group = np.any(grp_vals[:-1, :] != grp_vals[1:, :], axis=1)
+        inner_split_positions = np.where(next_row_is_new_group)[0] + 1
+        out_chunk_start = np.concatenate(([0], inner_split_positions))
+        out_chunk_stop = np.concatenate((inner_split_positions, [len(df)]))
+        return [df.iloc[s1:s2, :] for s1, s2 in zip(out_chunk_start, out_chunk_stop)]
+
+    # Algorithm: Gather chunks until there is a difference in grouping columns.
+    # Then split by differing rows until there are no unequals left.
+    # Keep the remainder as starting point for the next round of iterations.
+
+    chunks = []  # type: list[pd.DataFrame]
+    for df in chunked_sorted_dataframe:
+        chunks.append(df)
+        if len(df) == 0:
+            continue  # All elements in chunks should have at least one row
+
+        # Gather chunks until there is a difference in grouping columns
+        ref_grp_vals = chunks[0].iloc[0, :num_grouping_cols].tolist()
+        last_grp_vals = chunks[-1].iloc[-1, :num_grouping_cols].tolist()
+        if ref_grp_vals == last_grp_vals:
+            continue
+
+        # Now we know there is a difference. Split by the group cols
+        df = pd.concat(chunks, ignore_index=True)
+        out_chunks = split_by_group_cols(df)
+        
+        # Yield only the first complete output chunks. Save the last one for
+        # potential further processing, when new input data comes in.
+        for out_chunk in out_chunks[:-1]:
+            yield out_chunk
+        
+        chunks = [ out_chunks[-1] ]
+
+    # At this point, chunks is either empty, or all group cols are equal    
+    if chunks:
+        yield pd.concat(chunks, ignore_index=True)

@@ -3,6 +3,7 @@ import xarray as xr
 from ladim_aggregate import output
 import pytest
 import numpy as np
+import pandas as pd
 from uuid import uuid4
 
 
@@ -206,3 +207,44 @@ class Test_nc_to_dict:
         assert list(xr_dset.variables) == ['myvar1', 'myvar2']
         assert xr_dset.myvar2.values.tolist() == [[1, 1, 1], [1, 1, 1]]
         assert xr_dset.myvar1.attrs['long_name'] == 'Variable 2'
+
+
+class Test_group_by_cols:
+    def test_correct_when_single_input_frame(self):
+        df = pd.DataFrame([
+            [1, 1, 1], [1, 1, 2], [2, 1, 3], [2, 3, 4],
+        ])
+        out_iter = output.group_by_cols([df], 2)
+        out_vals = [d.values.tolist() for d in out_iter]
+        assert out_vals == [
+            [[1, 1, 1], [1, 1, 2]],
+            [[2, 1, 3]],
+            [[2, 3, 4]],
+        ]
+    
+    def test_correct_when_zero_grouping_columns(self):
+        df1 = pd.DataFrame([[1, 1], [1, 2], [2, 3], [2, 4]])
+        df2 = pd.DataFrame([[2, 5], [3, 6], [3, 7], [3, 8]])
+        out_iter = output.group_by_cols([df1, df2], 0)
+        out_vals = [d.values.tolist() for d in out_iter]
+        assert out_vals == [
+            [[1, 1], [1, 2],
+            [2, 3], [2, 4], [2, 5],
+            [3, 6], [3, 7], [3, 8]],
+        ]
+    
+    def test_correct_when_empty_input(self):
+        out_iter = output.group_by_cols([], 2)
+        out_dfs = list(out_iter)
+        assert len(out_dfs) == 0
+    
+    def test_correct_when_multiple_input(self):
+        df1 = pd.DataFrame([[1, 1], [1, 2], [2, 3], [2, 4]])
+        df2 = pd.DataFrame([[2, 5], [3, 6], [3, 7], [3, 8]])
+        out_iter = output.group_by_cols([df1, df2], 1)
+        out_vals = [d.values.tolist() for d in out_iter]
+        assert out_vals == [
+            [[1, 1], [1, 2]],
+            [[2, 3], [2, 4], [2, 5]],
+            [[3, 6], [3, 7], [3, 8]],
+        ]

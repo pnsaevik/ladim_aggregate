@@ -274,7 +274,11 @@ def run(dset_in, config, dset_out, filedata=None):
     weight_col = '_auto_weights'
     df_in_iterator = (chunk[bin_cols + [weight_col]].to_dataframe() for chunk in dset_in_iterator)
 
-    out_chunk_iterator = histogram.chunkwise_aggsum(df_in_iterator)
+    # Define temporary aggregation output file
+    import uuid
+    writable_file = f'crecon_temp_{uuid.uuid4().hex}.duckdb'
+
+    out_chunk_iterator = histogram.chunkwise_aggsum(df_in_iterator, tempfile=writable_file)
 
     dset_out.writeSparse(
         varname=config['output_varname'],

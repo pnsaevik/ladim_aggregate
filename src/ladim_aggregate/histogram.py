@@ -5,6 +5,7 @@ import cftime
 import xarray as xr
 import datetime
 import typing
+from pathlib import Path
 from .input import LadimInputStream
 
 
@@ -335,7 +336,8 @@ def align_start_of_range(start, step, align):
 
 def chunkwise_aggsum(
         df_chunks: typing.Iterable[pd.DataFrame],
-        output_size = 10_000_000,
+        output_size=1_000,  # Typically number of rows per chunk is 2048 times larger
+        tempfile=':memory:',
 ) -> typing.Iterator[pd.DataFrame]:
     """
     Perform group-by-sum out of core
@@ -348,9 +350,8 @@ def chunkwise_aggsum(
         df = pd.concat(dset_in_iterator, ignore_index=True)
         df = df.groupby(bin_cols, as_index=False)
         df = df.sum()
-        sz = 10_000_000
-        for i in range(len(df) // sz + 1):
-            yield df.iloc[i*sz : (i+1)*sz]
+        for sz1, sz2 in duckdb_chunker(output_size):  # A bit unpredictable
+            yield df.iloc[sz1 : sz2]
 
     But it works also for very long tables since it spills to disk
     when necessary.
@@ -368,7 +369,7 @@ def chunkwise_aggsum(
 
     df_iterator = iter(df_chunks)
 
-    with duckdb.connect() as con:
+    with duckdb.connect(tempfile) as con:
         # We need extra information from the first chunk
         try:
             df = next(df_iterator)
@@ -420,3 +421,7 @@ def chunkwise_aggsum(
             logger.debug(f'Yield {len(df_out)} rows of aggregated data')
             yield df_out
             df_out = cur.fetch_df_chunk(output_size)
+
+    # Delete temporary duckdb database file
+    if str(tempfile) != ':memory:':
+        Path(tempfile).unlink(missing_ok=True)

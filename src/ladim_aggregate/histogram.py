@@ -399,7 +399,7 @@ def chunkwise_aggsum(
         logger.debug(f'Apply aggsum to {len(df)} rows')
         con.execute(query_aggregate_and_add)
 
-        for df in df_chunks:
+        for df in df_iterator:
             # Aggregate and add data frame
             logger.debug(f'Apply aggsum to {len(df)} rows')
             con.register("chunktab", df)

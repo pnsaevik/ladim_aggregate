@@ -349,10 +349,11 @@ def get_varfunc_from_grid(darr: xr.DataArray, method):
     def fn_bin_idx(chunk):
         assert len(darr.dims) == 1
         dvalues = darr.values
+        num_bins = len(dvalues) - 1
         pvalues = chunk.variables[darr.dims[0]].values
-        data = np.searchsorted(dvalues, pvalues, side='right') - 1
-        data[data >= len(dvalues)] = -1
-        idx = xr.Variable(dims='pid', data=data)
+        bin_idx = np.searchsorted(dvalues, pvalues, side='right') - 1
+        bin_idx[bin_idx >= num_bins] = -1
+        idx = xr.Variable(dims='pid', data=bin_idx)
         return idx
 
     if method == 'bin':

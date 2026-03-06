@@ -294,9 +294,16 @@ def get_varfunc_from_numexpr(spec):
             args.append(chunk[n].values)
         logger.debug(f'Compute expression "{spec}"')
         out_shape = chunk['pid'].shape
-        result = ex.run(*args)  # Might be single-valued
-        result_reshaped = np.broadcast_to(result, out_shape)
-        return xr.Variable('pid', result_reshaped)
+        result = ex.run(*args)
+
+        # Result might be single-valued
+        if np.shape(result) == ():
+            value = np.asarray(result)
+            result = np.empty(out_shape, dtype=value.dtype)
+            result[:] = value
+
+        assert result.shape == out_shape
+        return xr.Variable('pid', result)
 
     param_names = ex.input_names
 
